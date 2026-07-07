@@ -1,0 +1,19 @@
+{
+    "helmet": [
+        {
+            "version": 1,
+            "timestamp": "2026-07-08T01:25:41.803899",
+            "metrics": {
+                "box_loss": 0.0,
+                "cls_loss": 0.0,
+                "dfl_loss": 0.0,
+                "mAP50": 5.946447755662251e-05,
+                "mAP50-95": 2.1594992043032158e-05,
+                "epochs_trained": 1,
+                "fraction": 0.01
+            },
+            "weights_path": "models\\helmet\\helmet_model.pt",
+            "backup_path": "models\\helmet\\versions\\helmet_v1.pt"
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+Training completed successfully for: helmet
+Backup weights saved: helmet_v1.pt
+Metrics: {
+  "box_loss": 0.0,
+  "cls_loss": 0.0,
+  "dfl_loss": 0.0,
+  "mAP50": 5.946447755662251e-05,
+  "mAP50-95": 2.1594992043032158e-05,
+  "epochs_trained": 1,
+  "fraction": 0.01
+}

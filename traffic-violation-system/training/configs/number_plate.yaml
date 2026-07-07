@@ -1,0 +1,6 @@
+model_name: "number_plate"
+format: "xml"
+path: "datasets/Indian vehicle license plate dataset"
+source_dir: "State-wise_OLX/DL"
+nc: 1
+names: ['number plate']

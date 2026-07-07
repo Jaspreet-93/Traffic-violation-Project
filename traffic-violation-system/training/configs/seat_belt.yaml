@@ -1,0 +1,7 @@
+model_name: "seat_belt"
+format: "yolo"
+path: "datasets/Seat Belt Detection/Yolo Annotated Dataset"
+train: "Train/images"
+val: "Test/images"
+nc: 2
+names: ['seat belt', 'no seat belt']

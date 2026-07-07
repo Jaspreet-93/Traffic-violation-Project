@@ -36,4 +36,5 @@ Desktop.ini
 **/datasets/
 runs/
 *.cache
+**/training/cache/
 

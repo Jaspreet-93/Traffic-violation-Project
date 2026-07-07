@@ -1,0 +1,7 @@
+model_name: "traffic_light"
+format: "custom_json"
+path: "datasets/Traffic Light Detection Dataset"
+source_json: "train_dataset/train.json"
+train_images: "train_dataset"
+nc: 3
+names: ['red', 'yellow', 'green']

@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+import numpy as np
 from datetime import datetime, timezone
 from app.database.connection import SessionLocal
 from app.database.models.violation import Violation
@@ -12,10 +13,10 @@ class ViolationService:
         # Unique keys cache to avoid duplicate inserts for the same track in short window
         self.session_keys = set()
 
-    def process_frame_violations(self, camera_id: int):
+    def process_frame_violations(self, camera_id: int, frame: Optional[np.ndarray] = None):
         """
         Runs evaluation on current frame states, identifies rules matching,
-        and persists new violations to the database.
+        persists new violations, and triggers evidence captures.
         """
         try:
             detected = violation_decision_engine.evaluate_frame_violations(camera_id)
@@ -45,7 +46,23 @@ class ViolationService:
                         snapshot_path=item["evidence_path"]
                     )
                     db.add(db_violation)
-                db.commit()
+                    db.commit() # Commit to generate db_violation.id
+                    db.refresh(db_violation)
+                    
+                    # Trigger evidence capture
+                    if frame is not None:
+                        from app.services.evidence.evidence_service import evidence_service
+                        res = evidence_service.record_evidence(
+                            violation_id=db_violation.id,
+                            vehicle_id=db_violation.vehicle_id,
+                            plate_number=db_violation.plate_number,
+                            violation_type=db_violation.violation_type,
+                            annotated_frame=frame
+                        )
+                        if res and res.get("image_path"):
+                            db_violation.evidence_path = res["image_path"]
+                            db_violation.snapshot_path = res["image_path"]
+                            db.commit()
             except Exception as e:
                 db.rollback()
                 logger.error(f"Error persisting violations: {e}")

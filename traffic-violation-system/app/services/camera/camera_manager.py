@@ -80,6 +80,10 @@ class CameraManager:
             if ret and frame is not None:
                 consecutive_failures = 0
                 
+                # Feed raw frame to evidence capture buffer
+                from app.services.evidence.evidence_capture import evidence_capture
+                evidence_capture.add_frame_to_buffer(frame)
+                
                 # Apply real-time vehicle tracking or detection depending on active state
                 try:
                     from app.services.tracking.tracking_service import tracking_service
@@ -122,7 +126,7 @@ class CameraManager:
                     
                     # Run Violation Decision Engine evaluation
                     from app.services.violation.violation_service import violation_service
-                    violation_service.process_frame_violations(camera_id=1)
+                    violation_service.process_frame_violations(camera_id=1, frame=annotated_frame)
                 except Exception as e:
                     logger.error(f"Error in video frame processing pipeline: {e}")
                     annotated_frame = frame

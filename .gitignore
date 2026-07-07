@@ -37,4 +37,6 @@ Desktop.ini
 runs/
 *.cache
 **/training/cache/
+**/outputs/violations/images/*.jpg
+**/outputs/violations/videos/*.mp4
 

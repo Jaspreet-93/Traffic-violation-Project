@@ -114,6 +114,11 @@ class CameraManager:
                     from app.services.traffic_light.traffic_light_service import traffic_light_service
                     if traffic_light_service.get_status():
                         annotated_frame = traffic_light_service.process_frame(annotated_frame)
+                    
+                    # Apply custom driver behavior detection if active
+                    from app.services.driver_behavior.behavior_service import behavior_service
+                    if behavior_service.get_status():
+                        annotated_frame = behavior_service.process_frame(annotated_frame)
                 except Exception as e:
                     logger.error(f"Error in video frame processing pipeline: {e}")
                     annotated_frame = frame

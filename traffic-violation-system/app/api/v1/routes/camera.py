@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.schemas.camera import CameraCreate, CameraResponse
@@ -20,3 +20,16 @@ def list_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     Retrieves all registered traffic surveillance cameras.
     """
     return CameraService.get_cameras(db=db, skip=skip, limit=limit)
+
+@router.get("/{camera_id}", response_model=CameraResponse)
+def get_camera(camera_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieves a single traffic surveillance camera by its ID.
+    """
+    db_camera = CameraService.get_camera_by_id(db=db, camera_id=camera_id)
+    if not db_camera:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Camera with ID {camera_id} not found."
+        )
+    return db_camera

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from app.database.models.violation import Violation
 from app.database.models.camera import Camera
 from app.schemas.violation import ViolationCreate
-from typing import List
+from typing import List, Optional
 
 class ViolationService:
     @staticmethod
@@ -35,3 +35,10 @@ class ViolationService:
         Retrieves a list of violation records.
         """
         return db.query(Violation).offset(skip).limit(limit).all()
+
+    @staticmethod
+    def get_violation_by_id(db: Session, violation_id: int) -> Optional[Violation]:
+        """
+        Retrieves a single violation record by its ID. Returns None if not found.
+        """
+        return db.query(Violation).filter(Violation.id == violation_id).first()

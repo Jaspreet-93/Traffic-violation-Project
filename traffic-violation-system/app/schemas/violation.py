@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
+# Legacy schemas (kept for backward compatibility)
 class ViolationBase(BaseModel):
     camera_id: int = Field(..., description="ID of the camera that captured the violation")
     vehicle_number: Optional[str] = Field(None, max_length=50, description="Detected vehicle license plate number")
@@ -14,8 +15,32 @@ class ViolationBase(BaseModel):
 class ViolationCreate(ViolationBase):
     pass
 
-class ViolationResponse(ViolationBase):
+class LegacyViolationResponse(ViolationBase):
     id: int
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+# New schemas (for Stage 15 decision engine)
+class ViolationResponse(BaseModel):
+    vehicle_id: int = Field(..., description="ID of the tracked vehicle")
+    plate_number: str = Field(..., description="Extracted plate registration number")
+    violation: str = Field(..., description="Detected traffic violation type")
+    confidence: float = Field(..., description="Model confidence score")
+
+    model_config = {
+        "from_attributes": True
+    }
+
+class ViolationDetail(BaseModel):
+    camera_id: int
+    vehicle_id: Optional[int] = None
+    plate_number: Optional[str] = None
+    vehicle_type: str
+    violation_type: str
+    confidence: Optional[float] = None
+    evidence_path: Optional[str] = None
+
+    model_config = {
+        "from_attributes": True
+    }

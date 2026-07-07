@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.database.connection import get_db
-from app.schemas.violation import ViolationCreate, ViolationResponse
+from app.schemas.violation import ViolationCreate, LegacyViolationResponse
 from app.services.violation_service import ViolationService
 from typing import List
 
-router = APIRouter(prefix="/violations", tags=["Violation"])
+router = APIRouter(prefix="/violations-legacy", tags=["Violation Legacy"])
 
-@router.post("", response_model=ViolationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=LegacyViolationResponse, status_code=status.HTTP_201_CREATED)
 def create_violation(violation_in: ViolationCreate, db: Session = Depends(get_db)):
     """
     Registers a new traffic violation. Ensures the associated camera exists.
@@ -20,14 +20,14 @@ def create_violation(violation_in: ViolationCreate, db: Session = Depends(get_db
             detail=str(e)
         )
 
-@router.get("", response_model=List[ViolationResponse])
+@router.get("", response_model=List[LegacyViolationResponse])
 def list_violations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """
     Retrieves all registered traffic violations.
     """
     return ViolationService.get_violations(db=db, skip=skip, limit=limit)
 
-@router.get("/{id}", response_model=ViolationResponse)
+@router.get("/{id}", response_model=LegacyViolationResponse)
 def get_violation(id: int, db: Session = Depends(get_db)):
     """
     Retrieves a single traffic violation record by its ID.

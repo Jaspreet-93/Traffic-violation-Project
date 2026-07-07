@@ -7,6 +7,7 @@ from app.core.logger import logger
 class BehaviorService:
     def __init__(self):
         self.is_running = False
+        self.latest_behavior_results = {} # Maps vehicle_id -> {"status": str, "confidence": float}
 
     def start_behavior_detection(self):
         """
@@ -43,6 +44,10 @@ class BehaviorService:
             # Query latest tracked vehicles
             latest_tracks = getattr(bytetrack_tracker, "latest_tracks", [])
             annotated_detections = []
+            current_results = {}
+
+            # Class mapping list
+            behavior_classes = {0: "cigarette", 1: "phone", 2: "seatbelt"}
 
             for det in detections:
                 x1, y1, x2, y2 = det['bbox']
@@ -61,6 +66,12 @@ class BehaviorService:
                         associated_id = vehicle_id
                         break
                 
+                if associated_id != -1 and cls_id in behavior_classes:
+                    current_results[associated_id] = {
+                        "status": behavior_classes[cls_id],
+                        "confidence": conf
+                    }
+
                 annotated_detections.append({
                     "vehicle_id": associated_id,
                     "class_id": cls_id,
@@ -68,6 +79,7 @@ class BehaviorService:
                     "confidence": conf
                 })
 
+            self.latest_behavior_results = current_results
             frame = draw_behavior_detections(frame, annotated_detections)
         except Exception as e:
             logger.error(f"Error during real-time frame behavior processing: {e}")

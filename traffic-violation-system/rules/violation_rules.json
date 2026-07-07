@@ -1,0 +1,6 @@
+{
+  "helmet_required": true,
+  "seat_belt_required": true,
+  "red_light_violation": true,
+  "phone_usage_violation": true
+}

@@ -7,6 +7,7 @@ from app.core.logger import logger
 class SeatBeltService:
     def __init__(self):
         self.is_running = False
+        self.latest_seat_belt_results = {} # Maps vehicle_id -> {"status": str, "confidence": float}
 
     def start_seat_belt_detection(self):
         """
@@ -43,6 +44,7 @@ class SeatBeltService:
             # Query latest tracked vehicles
             latest_tracks = getattr(bytetrack_tracker, "latest_tracks", [])
             annotated_detections = []
+            current_results = {}
 
             for det in detections:
                 x1, y1, x2, y2 = det['bbox']
@@ -61,6 +63,13 @@ class SeatBeltService:
                         associated_id = vehicle_id
                         break
                 
+                if associated_id != -1:
+                    status = "no seatbelt" if cls_id == 1 else "seatbelt"
+                    current_results[associated_id] = {
+                        "status": status,
+                        "confidence": conf
+                    }
+
                 annotated_detections.append({
                     "vehicle_id": associated_id,
                     "class_id": cls_id,
@@ -68,6 +77,7 @@ class SeatBeltService:
                     "confidence": conf
                 })
 
+            self.latest_seat_belt_results = current_results
             frame = draw_seat_belt_detections(frame, annotated_detections)
         except Exception as e:
             logger.error(f"Error during real-time frame seat belt processing: {e}")

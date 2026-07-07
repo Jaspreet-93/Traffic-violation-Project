@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.routes import system, camera, violation, email_logs, camera_stream, detection, tracking, helmet, number_plate, ocr, seat_belt, traffic_light, driver_behavior
+from app.api.v1.routes import system, camera, violation, violations, email_logs, camera_stream, detection, tracking, helmet, number_plate, ocr, seat_belt, traffic_light, driver_behavior
 
 api_router = APIRouter()
 
@@ -8,6 +8,7 @@ api_router.include_router(system.router)
 api_router.include_router(camera_stream.router)
 api_router.include_router(camera.router)
 api_router.include_router(violation.router)
+api_router.include_router(violations.router)
 api_router.include_router(email_logs.router)
 api_router.include_router(detection.router)
 api_router.include_router(tracking.router)

@@ -119,6 +119,10 @@ class CameraManager:
                     from app.services.driver_behavior.behavior_service import behavior_service
                     if behavior_service.get_status():
                         annotated_frame = behavior_service.process_frame(annotated_frame)
+                    
+                    # Run Violation Decision Engine evaluation
+                    from app.services.violation.violation_service import violation_service
+                    violation_service.process_frame_violations(camera_id=1)
                 except Exception as e:
                     logger.error(f"Error in video frame processing pipeline: {e}")
                     annotated_frame = frame

@@ -6,6 +6,7 @@ from app.core.logger import logger
 class TrafficLightService:
     def __init__(self):
         self.is_running = False
+        self.latest_traffic_light_state = "green" # Default to green
 
     def start_traffic_light_detection(self):
         """
@@ -38,6 +39,16 @@ class TrafficLightService:
             detections = traffic_light_detector.detect_traffic_lights(frame)
             if not detections:
                 return frame
+
+            # Determine global signal state
+            state = "green"
+            for det in detections:
+                if det['class_id'] == 0: # red
+                    state = "red"
+                    break
+                elif det['class_id'] == 1 and state != "red":
+                    state = "yellow"
+            self.latest_traffic_light_state = state
 
             frame = draw_traffic_light_detections(frame, detections)
         except Exception as e:

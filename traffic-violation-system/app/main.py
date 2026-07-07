@@ -51,3 +51,10 @@ app.include_router(system.router)
 
 # Register routers under version 1 prefix
 app.include_router(api_router, prefix=constants.API_V1_STR)
+
+# Mount outputs folder statically to serve violation images/videos
+from fastapi.staticfiles import StaticFiles
+import os
+outputs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "outputs"))
+os.makedirs(outputs_dir, exist_ok=True)
+app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")

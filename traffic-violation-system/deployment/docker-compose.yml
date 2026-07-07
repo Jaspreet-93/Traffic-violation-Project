@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: traffic-violation-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: traffic_violations
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build:
+      context: ../
+      dockerfile: deployment/docker/backend.Dockerfile
+    container_name: traffic-violation-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/traffic_violations
+      - APP_ENV=production
+      - DEBUG=false
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - outputs_volume:/app/outputs
+    restart: always
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deployment/docker/frontend.Dockerfile
+    container_name: traffic-violation-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: traffic-violation-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - outputs_volume:/usr/share/nginx/html/outputs:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+volumes:
+  pgdata:
+  outputs_volume:

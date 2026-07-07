@@ -1,6 +1,8 @@
-# AI-Based Smart Traffic Violation Detection System - Backend API
+# AI-Based Smart Traffic Violation Detection System
 
-Production-ready FastAPI backend for logging, tracking, and managing traffic violations.
+This repository hosts a production-ready, full-stack real-time computer vision system that monitors video streams, identifies vehicle tracks, and runs AI classifiers to log traffic violations (such as helmet requirements, seat belts, traffic lights, and phone usage).
+
+---
 
 ## 📂 Folder Structure
 
@@ -10,61 +12,87 @@ traffic-violation-system/
 ├── app/
 │   ├── api/
 │   │   └── v1/
-│   │       ├── routes/          # API route controllers (e.g. system.py)
-│   │       ├── dependencies/    # FastAPI dependency injections
-│   │       └── router.py        # Central Router for v1
-│   │
-│   ├── core/
-│   │   ├── config.py            # Pydantic Configuration Management
-│   │   ├── logger.py            # Standardized logger
-│   │   ├── security.py          # Security and auth functions (placeholder)
-│   │   └── constants.py         # System constants
-│   │
+│   │       ├── routes/          # Routers (camera, violations, evidence, analytics)
+│   │       └── router.py        # Central Router registration
 │   ├── database/
-│   │   └── connection.py        # Database connection and session lifecycle
-│   │
-│   ├── services/                # Business logic layer
-│   ├── schemas/                 # Pydantic schemas (DTOs)
-│   ├── utils/                   # Helper functions
-│   │
-│   └── main.py                  # Entrypoint of the FastAPI app
+│   │   ├── models/              # SQLAlchemy Models (Camera, Violation, Evidence)
+│   │   └── connection.py        # Lifecycle DB Session managers
+│   ├── services/
+│   │   ├── camera/              # RTSP / Web stream handlers
+│   │   ├── detection/           # YOLO class estimators
+│   │   ├── tracking/            # ByteTrack vehicle matching
+│   │   ├── violation/           # Rule evaluator engine
+│   │   ├── evidence/            # Frame snapshot & video clip recorder
+│   │   └── analytics/           # Metric SQL aggregations
+│   └── main.py                  # Entrypoint mounting static resources and CORS
 │
-├── tests/                       # Testing module
-├── docs/                        # Static API documentation
-├── scripts/                     # Helper script utilities
+├── frontend/                    # Vite + React SPA dashboard client
+│   ├── src/
+│   │   ├── components/          # Navbar, Sidebar, LiveFeed stream canvas, Charts
+│   │   ├── pages/               # Dashboard, Violations logs, Evidence Vault, Analytics
+│   │   └── services/            # Axios API wrappers
+│   └── vite.config.js           # Proxy forwarding configurations
 │
-├── requirements.txt             # Project requirements
-├── .env                         # Local configuration variables
-├── .gitignore                   # Files excluded from git
-└── README.md                    # Module documentation
+├── deployment/                  # Docker container configs
+│   ├── docker/
+│   │   ├── backend.Dockerfile   # Python compilation environment
+│   │   └── frontend.Dockerfile  # Multi-stage SPA bundler
+│   ├── nginx/
+│   │   └── nginx.conf           # Port 80 ingress configuration
+│   └── docker-compose.yml       # Stack coordinator (db, backend, frontend, nginx)
+│
+├── tests/                       # Unit and Integration test scripts
+│   ├── api_tests/               # Endpoint client tests
+│   ├── model_tests/             # YOLO load test checks
+│   └── integration_tests/       # Pipeline simulation checks
+│
+├── requirements.txt             # Backend python packages list
+└── README.md                    # System documentation guide
 ```
 
-## 🛠️ Tech Stack
-- **FastAPI**: Modern, high-performance web framework for Python APIs.
-- **SQLAlchemy**: Relational database ORM.
-- **Psycopg2-binary**: PostgreSQL engine driver.
-- **Pydantic / Pydantic-settings**: Data modeling and settings parsing from `.env`.
+---
 
-## 🚀 Execution & Command Reference
+## 🚀 Running Instructions
 
-### Local Setup
-1. Create a virtual environment inside the `traffic-violation-system` directory:
+### 1. Docker Production Compose (Recommended)
+Build and spin up the complete containerized full stack:
+```bash
+cd traffic-violation-system/deployment
+docker-compose up -d --build
+```
+Access points:
+* **Frontend Dashboard client**: `http://localhost`
+* **Interactive API Swagger Docs**: `http://localhost/docs`
+
+---
+
+### 2. Local Development Execution
+
+#### A. Backend Setup
+1. Activate virtual environment:
+   `.\venv\Scripts\Activate.ps1` (Windows) or `source venv/bin/activate` (Unix)
+2. Run backend dev server:
    ```bash
-   python -m venv venv
-   ```
-2. Activate the virtual environment:
-   - **Windows PowerShell**: `.\venv\Scripts\Activate.ps1`
-   - **Linux/macOS**: `source venv/bin/activate`
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the FastAPI development server:
-   ```bash
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --reload --port 8000
    ```
 
-### Endpoint Reference
-- **Root Welcome**: `GET /api/v1/`
-- **System Health**: `GET /api/v1/health`
-- **Interactive Swagger Docs**: `http://localhost:8000/docs`
+#### B. Frontend Setup
+1. Install packages:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Start Vite client:
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:3000` in browser.
+
+---
+
+## 🛠️ Testing reference
+Execute all discoverable unit tests from the backend project root folder:
+```bash
+$env:PYTHONPATH="."
+python -m unittest discover -s tests -p "test_*.py"
+```

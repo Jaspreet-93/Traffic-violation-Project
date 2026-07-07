@@ -79,6 +79,9 @@ class EvidenceService:
                 }
                 for r in results
             ]
+        except Exception as e:
+            logger.error(f"Error querying all evidence: {e}")
+            return []
         finally:
             db.close()
 
@@ -101,6 +104,9 @@ class EvidenceService:
                 "video_path": r.video_path,
                 "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
             }
+        except Exception as e:
+            logger.error(f"Error querying evidence for violation {violation_id}: {e}")
+            return None
         finally:
             db.close()
 

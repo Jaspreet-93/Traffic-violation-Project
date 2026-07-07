@@ -95,6 +95,9 @@ class ViolationService:
                 }
                 for r in results
             ]
+        except Exception as e:
+            logger.error(f"Error querying all violations: {e}")
+            return []
         finally:
             db.close()
 
@@ -118,6 +121,9 @@ class ViolationService:
                 }
                 for r in results
             ]
+        except Exception as e:
+            logger.error(f"Error querying violations for vehicle {vehicle_id}: {e}")
+            return []
         finally:
             db.close()
 

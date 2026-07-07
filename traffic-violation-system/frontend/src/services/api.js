@@ -12,6 +12,15 @@ export const cameraAPI = {
   getStatus: () => API.get('/api/v1/camera/status'),
   startStream: (source) => API.post('/api/v1/camera/start', { source }),
   stopStream: () => API.post('/api/v1/camera/stop'),
+  uploadFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return API.post('/api/v1/camera/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 export const pipelineAPI = {

@@ -200,4 +200,53 @@ class CameraManager:
                 "source": self.source
             }
 
+    def process_single_frame(self, frame: cv2.Mat) -> cv2.Mat:
+        """
+        Runs the full detection pipeline on a single frame and returns the annotated result.
+        """
+        try:
+            from app.services.tracking.tracking_service import tracking_service
+            from app.services.detection.detection_service import detection_service
+            from app.services.helmet.helmet_service import helmet_service
+            from app.services.number_plate.plate_service import plate_service
+            from app.services.ocr.ocr_service import ocr_service
+            from app.services.seat_belt.seat_belt_service import seat_belt_service
+            from app.services.traffic_light.traffic_light_service import traffic_light_service
+            from app.services.driver_behavior.behavior_service import behavior_service
+            from app.services.violation.violation_service import violation_service
+
+            annotated_frame = frame.copy()
+
+            # Apply tracking or detection
+            if tracking_service.get_status():
+                annotated_frame = tracking_service.process_frame(frame)
+            else:
+                annotated_frame = detection_service.process_frame(frame)
+            
+            # Apply helmet, plate, ocr, seatbelt, traffic lights, behavior
+            if helmet_service.get_status():
+                annotated_frame = helmet_service.process_frame(annotated_frame)
+            
+            if plate_service.get_status():
+                annotated_frame = plate_service.process_frame(annotated_frame)
+            
+            if ocr_service.get_status():
+                annotated_frame = ocr_service.process_frame(annotated_frame)
+            
+            if seat_belt_service.get_status():
+                annotated_frame = seat_belt_service.process_frame(annotated_frame)
+            
+            if traffic_light_service.get_status():
+                annotated_frame = traffic_light_service.process_frame(annotated_frame)
+            
+            if behavior_service.get_status():
+                annotated_frame = behavior_service.process_frame(annotated_frame)
+            
+            # Process violations and record evidence
+            violation_service.process_frame_violations(camera_id=1, frame=annotated_frame)
+            return annotated_frame
+        except Exception as e:
+            logger.error(f"Error in single frame processing pipeline: {e}")
+            return frame
+
 camera_manager = CameraManager()

@@ -79,7 +79,46 @@ class CameraManager:
             ret, frame = self.cap.read()
             if ret and frame is not None:
                 consecutive_failures = 0
-                success, encoded_img = cv2.imencode(".jpg", frame)
+                
+                # Apply real-time vehicle tracking or detection depending on active state
+                try:
+                    from app.services.tracking.tracking_service import tracking_service
+                    from app.services.detection.detection_service import detection_service
+                    from app.services.helmet.helmet_service import helmet_service
+                    from app.services.number_plate.plate_service import plate_service
+                    
+                    if tracking_service.get_status():
+                        annotated_frame = tracking_service.process_frame(frame)
+                    else:
+                        annotated_frame = detection_service.process_frame(frame)
+                    
+                    # Apply custom helmet detection if active
+                    if helmet_service.get_status():
+                        annotated_frame = helmet_service.process_frame(annotated_frame)
+                    
+                    # Apply custom vehicle number plate detection if active
+                    if plate_service.get_status():
+                        annotated_frame = plate_service.process_frame(annotated_frame)
+                    
+                    # Apply custom number plate OCR if active
+                    from app.services.ocr.ocr_service import ocr_service
+                    if ocr_service.get_status():
+                        annotated_frame = ocr_service.process_frame(annotated_frame)
+                    
+                    # Apply custom seat belt detection if active
+                    from app.services.seat_belt.seat_belt_service import seat_belt_service
+                    if seat_belt_service.get_status():
+                        annotated_frame = seat_belt_service.process_frame(annotated_frame)
+                    
+                    # Apply custom traffic light detection if active
+                    from app.services.traffic_light.traffic_light_service import traffic_light_service
+                    if traffic_light_service.get_status():
+                        annotated_frame = traffic_light_service.process_frame(annotated_frame)
+                except Exception as e:
+                    logger.error(f"Error in video frame processing pipeline: {e}")
+                    annotated_frame = frame
+                
+                success, encoded_img = cv2.imencode(".jpg", annotated_frame)
                 if success:
                     with self.frame_lock:
                         self.latest_frame = encoded_img.tobytes()

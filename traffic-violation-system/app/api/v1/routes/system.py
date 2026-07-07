@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
-from app.database import check_db_connection
-from app.config import settings
+from app.database.connection import check_db_connection
+from app.core.config import settings
 
 router = APIRouter(tags=["System"])
 
@@ -20,7 +20,7 @@ async def root():
 @router.get("/health", status_code=status.HTTP_200_OK)
 async def health_check():
     """
-    System health check. Tests connection to the PostgreSQL database.
+    Checks database connection health and overall API status.
     """
     db_healthy = check_db_connection()
     

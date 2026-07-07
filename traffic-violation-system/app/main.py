@@ -1,19 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.config import settings
-from app.database import check_db_connection
-from app.routers import system
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("uvicorn.error")
+from app.core.config import settings
+from app.core import constants
+from app.core.logger import logger
+from app.database.connection import check_db_connection
+from app.api.v1.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: test database connection
-    logger.info("Starting up Traffic Violation Detection API...")
+    logger.info("Starting up Smart Traffic Violation Detection API...")
     db_ok = check_db_connection()
     if db_ok:
         logger.info("Database connection test: SUCCESS")
@@ -21,7 +18,7 @@ async def lifespan(app: FastAPI):
         logger.error("Database connection test: FAILED. Ensure database is running and credentials in .env are correct.")
     yield
     # Shutdown
-    logger.info("Shutting down Traffic Violation Detection API...")
+    logger.info("Shutting down Smart Traffic Violation Detection API...")
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -32,14 +29,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Enable Cross-Origin Resource Sharing (CORS)
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update to specific domains in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers
-app.include_router(system.router)
+# Register routers under version 1 prefix
+app.include_router(api_router, prefix=constants.API_V1_STR)

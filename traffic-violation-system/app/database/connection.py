@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
-from app.config import settings
+from app.core.config import settings
+from app.core.logger import logger
 
-# Determine database connection settings
+# Connect arguments (specific for SQLite during local mock testing)
 connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
@@ -38,8 +39,5 @@ def check_db_connection() -> bool:
             conn.execute(text("SELECT 1"))
         return True
     except Exception as e:
-        # Log error in console
-        import logging
-        logger = logging.getLogger("uvicorn.error")
         logger.error(f"Database connection test failed: {e}")
         return False

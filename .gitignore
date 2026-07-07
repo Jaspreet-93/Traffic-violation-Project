@@ -1,0 +1,33 @@
+# Virtual Environment
+api/venv/
+venv/
+ENV/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Databases
+*.db
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+.project
+.pydevproject
+.settings/
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

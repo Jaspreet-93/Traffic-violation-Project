@@ -4,7 +4,8 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core import constants
 from app.core.logger import logger
-from app.database.connection import check_db_connection
+from app.database.connection import engine, check_db_connection
+from app.database.base import Base
 from app.api.v1.router import api_router
 
 @asynccontextmanager
@@ -14,6 +15,12 @@ async def lifespan(app: FastAPI):
     db_ok = check_db_connection()
     if db_ok:
         logger.info("Database connection test: SUCCESS")
+        try:
+            logger.info("Creating database tables if they do not exist...")
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables initialized successfully.")
+        except Exception as e:
+            logger.error(f"Error creating database tables: {e}")
     else:
         logger.error("Database connection test: FAILED. Ensure database is running and credentials in .env are correct.")
     yield

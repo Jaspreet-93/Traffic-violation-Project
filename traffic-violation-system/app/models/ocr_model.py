@@ -1,6 +1,31 @@
 import os
+import sys
 import torch
+import torch.nn as nn
 from app.core.logger import logger
+
+class OCRModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2)
+        )
+        self.classifier = nn.Linear(32 * 16 * 16, 36)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+# Inject into __main__ namespace to satisfy PyTorch pickle deserialization
+import __main__
+__main__.OCRModel = OCRModel
 
 class OCRModelWrapper:
     def __init__(self):
@@ -21,7 +46,7 @@ class OCRModelWrapper:
                 raise FileNotFoundError(f"OCR model file not found: {self.model_path}")
             try:
                 # Load the full model object
-                self.model = torch.load(self.model_path)
+                self.model = torch.load(self.model_path, weights_only=False)
                 self.model.eval()
                 logger.info("Custom OCR PyTorch model loaded successfully.")
             except Exception as e:

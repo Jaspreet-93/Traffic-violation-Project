@@ -1,0 +1,120 @@
+{
+    "vehicle_detection": {
+        "dataset": "COCO val2017 (subset)",
+        "metrics": {
+            "precision": 0.784,
+            "recall": 0.721,
+            "mAP50": 0.793,
+            "mAP50-95": 0.548,
+            "f1_score": 0.751
+        },
+        "performance": {
+            "latency_ms": 160.3,
+            "fps": 6.2,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    },
+    "helmet_detection": {
+        "dataset": "Dataset of helmet detection",
+        "metrics": {
+            "precision": 0.0003629834267750657,
+            "recall": 0.060305517555859556,
+            "mAP50": 5.946447755662251e-05,
+            "mAP50-95": 2.1594992043032158e-05,
+            "f1_score": 0.0007216233485688205
+        },
+        "performance": {
+            "latency_ms": 108.13,
+            "fps": 9.2,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    },
+    "number_plate_detection": {
+        "dataset": "Indian vehicle license plate dataset",
+        "metrics": {
+            "precision": 0.0016666666666666668,
+            "recall": 0.5,
+            "mAP50": 0.00125,
+            "mAP50-95": 0.0005,
+            "f1_score": 0.0033222591362126247
+        },
+        "performance": {
+            "latency_ms": 142.04,
+            "fps": 7.0,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    },
+    "ocr_model": {
+        "dataset": "Number Plate OCR",
+        "metrics": {
+            "accuracy": 0.5333,
+            "precision": 0.2667,
+            "recall": 0.5,
+            "f1_score": 0.3478
+        },
+        "performance": {
+            "latency_ms": 4.14,
+            "fps": 241.5,
+            "device": "cpu",
+            "memory_mb": 110.0,
+            "status": "success"
+        }
+    },
+    "seat_belt_detection": {
+        "dataset": "Seat Belt Detection",
+        "metrics": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "mAP50": 0.0,
+            "mAP50-95": 0.0,
+            "f1_score": 0.0
+        },
+        "performance": {
+            "latency_ms": 156.62,
+            "fps": 6.4,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    },
+    "traffic_light_detection": {
+        "dataset": "Traffic Light Detection Dataset",
+        "metrics": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "mAP50": 0.0,
+            "mAP50-95": 0.0,
+            "f1_score": 0.0
+        },
+        "performance": {
+            "latency_ms": 139.93,
+            "fps": 7.1,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    },
+    "driver_behavior_detection": {
+        "dataset": "Driver behaviors.v10i.yolov8",
+        "metrics": {
+            "precision": 0.0,
+            "recall": 0.0,
+            "mAP50": 0.0,
+            "mAP50-95": 0.0,
+            "f1_score": 0.0
+        },
+        "performance": {
+            "latency_ms": 116.81,
+            "fps": 8.6,
+            "device": "cpu",
+            "memory_mb": 350.0,
+            "status": "success"
+        }
+    }
+}

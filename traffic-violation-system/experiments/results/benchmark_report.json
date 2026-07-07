@@ -1,0 +1,51 @@
+{
+    "vehicle_detection": {
+        "latency_ms": 160.3,
+        "fps": 6.2,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    },
+    "helmet_detection": {
+        "latency_ms": 108.13,
+        "fps": 9.2,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    },
+    "number_plate_detection": {
+        "latency_ms": 142.04,
+        "fps": 7.0,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    },
+    "ocr_model": {
+        "latency_ms": 4.14,
+        "fps": 241.5,
+        "device": "cpu",
+        "memory_mb": 110.0,
+        "status": "success"
+    },
+    "seat_belt_detection": {
+        "latency_ms": 156.62,
+        "fps": 6.4,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    },
+    "traffic_light_detection": {
+        "latency_ms": 139.93,
+        "fps": 7.1,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    },
+    "driver_behavior_detection": {
+        "latency_ms": 116.81,
+        "fps": 8.6,
+        "device": "cpu",
+        "memory_mb": 350.0,
+        "status": "success"
+    }
+}

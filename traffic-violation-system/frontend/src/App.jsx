@@ -1,44 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import LiveMonitoring from './pages/LiveMonitoring';
 import Violations from './pages/Violations';
 import Evidence from './pages/Evidence';
 import Analytics from './pages/Analytics';
+import { cameraAPI } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
   const [cameraActive, setCameraActive] = useState(false);
 
-  // Tab switcher router mapping
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'violations':
-        return <Violations />;
-      case 'evidence':
-        return <Evidence />;
-      case 'analytics':
-        return <Analytics />;
-      default:
-        return <Dashboard />;
+  // Poll status occasionally to keep Navbar sync active
+  useEffect(() => {
+    if (!isLoginPage) {
+      const fetchCamStatus = async () => {
+        try {
+          const res = await cameraAPI.getStatus();
+          setCameraActive(res.data.running);
+        } catch {}
+      };
+      fetchCamStatus();
+      const interval = setInterval(fetchCamStatus, 5000);
+      return () => clearInterval(interval);
     }
-  };
+  }, [isLoginPage]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-650 selection:text-white">
-      {/* Navbar header */}
-      <Navbar cameraActive={cameraActive} />
+      {/* Show navigation controls only outside Login panel */}
+      {!isLoginPage && <Navbar cameraActive={cameraActive} />}
 
-      {/* Main app panel */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar options */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        {!isLoginPage && <Sidebar />}
 
-        {/* Dynamic routing page content */}
         <main className="flex-1 flex flex-col overflow-hidden bg-slate-950/20">
-          {renderContent()}
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/live-monitoring" element={<LiveMonitoring />} />
+            <Route path="/violations" element={<Violations />} />
+            <Route path="/evidence" element={<Evidence />} />
+            <Route path="/analytics" element={<Analytics />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
     </div>

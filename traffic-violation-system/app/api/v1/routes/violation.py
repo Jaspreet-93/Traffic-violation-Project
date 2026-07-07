@@ -27,15 +27,15 @@ def list_violations(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     """
     return ViolationService.get_violations(db=db, skip=skip, limit=limit)
 
-@router.get("/{violation_id}", response_model=ViolationResponse)
-def get_violation(violation_id: int, db: Session = Depends(get_db)):
+@router.get("/{id}", response_model=ViolationResponse)
+def get_violation(id: int, db: Session = Depends(get_db)):
     """
     Retrieves a single traffic violation record by its ID.
     """
-    db_violation = ViolationService.get_violation_by_id(db=db, violation_id=violation_id)
+    db_violation = ViolationService.get_violation_by_id(db=db, violation_id=id)
     if not db_violation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Violation with ID {violation_id} not found."
+            detail=f"Violation with ID {id} not found."
         )
     return db_violation

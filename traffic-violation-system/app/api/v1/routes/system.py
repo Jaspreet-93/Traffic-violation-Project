@@ -11,10 +11,7 @@ async def root():
     Welcome endpoint returning basic metadata about the API.
     """
     return {
-        "message": f"Welcome to the {settings.APP_NAME}",
-        "environment": settings.APP_ENV,
-        "debug_mode": settings.DEBUG,
-        "docs_url": "/docs"
+        "message": "Traffic Violation Detection Backend Running"
     }
 
 @router.get("/health", status_code=status.HTTP_200_OK)
@@ -24,18 +21,10 @@ async def health_check():
     """
     db_healthy = check_db_connection()
     
-    health_status = {
-        "status": "healthy" if db_healthy else "unhealthy",
-        "services": {
-            "api": "healthy",
-            "database": "healthy" if db_healthy else "unhealthy"
-        }
-    }
-    
     if not db_healthy:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content=health_status
+            content={"status": "Unhealthy"}
         )
         
-    return health_status
+    return {"status": "Healthy"}

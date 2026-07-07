@@ -7,6 +7,7 @@ from app.core.logger import logger
 from app.database.connection import engine, check_db_connection
 from app.database.base import Base
 from app.api.v1.router import api_router
+from app.api.v1.routes import system
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +45,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register root level system router (GET / and GET /health)
+app.include_router(system.router)
 
 # Register routers under version 1 prefix
 app.include_router(api_router, prefix=constants.API_V1_STR)

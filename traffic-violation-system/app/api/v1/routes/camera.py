@@ -21,15 +21,15 @@ def list_cameras(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
     """
     return CameraService.get_cameras(db=db, skip=skip, limit=limit)
 
-@router.get("/{camera_id}", response_model=CameraResponse)
-def get_camera(camera_id: int, db: Session = Depends(get_db)):
+@router.get("/{id}", response_model=CameraResponse)
+def get_camera(id: int, db: Session = Depends(get_db)):
     """
     Retrieves a single traffic surveillance camera by its ID.
     """
-    db_camera = CameraService.get_camera_by_id(db=db, camera_id=camera_id)
+    db_camera = CameraService.get_camera_by_id(db=db, camera_id=id)
     if not db_camera:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Camera with ID {camera_id} not found."
+            detail=f"Camera with ID {id} not found."
         )
     return db_camera

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu, Activity } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu, Activity, GitPullRequest } from 'lucide-react';
 
 export default function Sidebar() {
   const menuItems = [
@@ -12,6 +12,7 @@ export default function Sidebar() {
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/ai-command-center', label: 'AI Command Center', icon: Cpu },
     { path: '/confidence-dashboard', label: 'AI Confidence', icon: Activity },
+    { path: '/ai-decision-engine', label: 'Decision Engine', icon: GitPullRequest },
     { path: '/settings', label: 'Email Settings', icon: Settings },
     { path: '/email-logs', label: 'Email Logs', icon: Mail },
   ];

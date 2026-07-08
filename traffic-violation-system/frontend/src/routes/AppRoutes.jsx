@@ -11,6 +11,7 @@ import Settings from '../pages/Settings';
 import EmailLogs from '../pages/EmailLogs';
 import AICommandCenter from '../pages/AICommandCenter';
 import ConfidenceDashboard from '../pages/ConfidenceDashboard';
+import AIDecisionEngine from '../pages/AIDecisionEngine';
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
       <Route path="/email-logs" element={<EmailLogs />} />
       <Route path="/ai-command-center" element={<AICommandCenter />} />
       <Route path="/confidence-dashboard" element={<ConfidenceDashboard />} />
+      <Route path="/ai-decision-engine" element={<AIDecisionEngine />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

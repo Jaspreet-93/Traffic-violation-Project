@@ -18,6 +18,7 @@ import CameraManagement from '../pages/CameraManagement';
 import AIStatistics from '../pages/AIStatistics';
 import Reports from '../pages/Reports';
 import ModelVerification from '../pages/ModelVerification';
+import Profile from '../pages/Profile';
 
 export default function AppRoutes() {
   return (
@@ -34,6 +35,7 @@ export default function AppRoutes() {
       <Route path="/ai-statistics" element={<AIStatistics />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/model-verification" element={<ModelVerification />} />
+      <Route path="/profile" element={<Profile />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/email-logs" element={<EmailLogs />} />

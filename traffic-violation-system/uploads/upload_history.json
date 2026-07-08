@@ -1,5 +1,23 @@
 [
   {
+    "job_id": "851f4065-6a60-448e-ad31-8f70ee8f4379",
+    "upload_date": "2026-07-09 01:19:32",
+    "filename": "test_surveillance.avi",
+    "file_type": "video",
+    "status": "Processing",
+    "summary_text": "Worker initialized.",
+    "result_link": "/api/v1/upload/result/851f4065-6a60-448e-ad31-8f70ee8f4379"
+  },
+  {
+    "job_id": "e9030607-dc0c-4f8d-89ab-f0cd407485ec",
+    "upload_date": "2026-07-09 01:19:32",
+    "filename": "snapshot.jpg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 0 vehicles and 0 violations in 22.80 seconds.",
+    "result_link": "/api/v1/upload/result/e9030607-dc0c-4f8d-89ab-f0cd407485ec"
+  },
+  {
     "job_id": "31462138-71ac-43e0-a000-a0807a69ae71",
     "upload_date": "2026-07-09 01:10:48",
     "filename": "test_surveillance.avi",

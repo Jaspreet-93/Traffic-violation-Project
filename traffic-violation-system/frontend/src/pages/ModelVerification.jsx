@@ -5,7 +5,6 @@ import ModelHealthCard from '../components/model/ModelHealthCard';
 import MetricsCard from '../components/model/MetricsCard';
 import DatasetSummary from '../components/model/DatasetSummary';
 import PerformanceCharts from '../components/model/PerformanceCharts';
-import BenchmarkTable from '../components/model/BenchmarkTable';
 import RecommendationPanel from '../components/model/RecommendationPanel';
 import VerificationStatus from '../components/model/VerificationStatus';
 
@@ -81,8 +80,6 @@ export default function ModelVerification() {
           <ModelOverview overview={overview} />
 
           <PerformanceCharts performance={performance} />
-
-          <BenchmarkTable benchmarks={benchmarks} />
 
           <MetricsCard metrics={metrics} />
         </div>

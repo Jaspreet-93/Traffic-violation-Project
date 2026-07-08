@@ -39,7 +39,22 @@ export default function Settings() {
     try {
       const res = await settingsAPI.updateSettings(settings);
       setSettings(res.data);
+      
+      const theme = res.data.theme || 'dark';
+      const lang = res.data.language || 'en';
+      
+      localStorage.setItem('system_theme', theme);
+      localStorage.setItem('system_language', lang);
+
+      if (theme === 'light') {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+      
       alert("System configurations successfully saved!");
+      // Reload page to re-translate sidebar links instantly
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert("Failed to modify settings.");

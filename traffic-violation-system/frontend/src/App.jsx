@@ -10,6 +10,29 @@ export default function App() {
   const isLoginPage = location.pathname === '/login';
   const [cameraActive, setCameraActive] = useState(false);
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { settingsAPI } = await import('./services/settingsApi');
+        const res = await settingsAPI.getSettings();
+        const theme = res.data.theme || 'dark';
+        const lang = res.data.language || 'en';
+        
+        localStorage.setItem('system_theme', theme);
+        localStorage.setItem('system_language', lang);
+
+        if (theme === 'light') {
+          document.documentElement.classList.add('light');
+        } else {
+          document.documentElement.classList.remove('light');
+        }
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    };
+    loadSettings();
+  }, []);
+
   // Poll status occasionally to keep Navbar sync active
   useEffect(() => {
     if (!isLoginPage) {

@@ -11,6 +11,54 @@ body {
   margin: 0;
 }
 
+/* Light Theme overrides */
+.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+.light .bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.light .bg-slate-950 {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+.light .bg-slate-955 {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+.light .text-slate-100 {
+  color: #0f172a !important;
+}
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+.light .text-slate-350 {
+  color: #334155 !important;
+}
+.light .text-slate-450 {
+  color: #475569 !important;
+}
+.light .text-slate-500 {
+  color: #64748b !important;
+}
+.light .border-slate-800,
+.light .border-slate-850 {
+  border-color: #cbd5e1 !important;
+}
+.light aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.light nav {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+.light .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+}
+
 /* Custom scrollbar styling for premium feel */
 ::-webkit-scrollbar {
   width: 6px;

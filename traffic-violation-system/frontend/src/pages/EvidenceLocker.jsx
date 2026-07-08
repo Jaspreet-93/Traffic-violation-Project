@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { evidenceAPI } from '../services/evidenceApi';
 import EvidenceGrid from '../components/evidence/EvidenceGrid';
-import EvidenceViewer from '../components/evidence/EvidenceViewer';
-import MetadataPanel from '../components/evidence/MetadataPanel';
-import DownloadPanel from '../components/evidence/DownloadPanel';
 import FilterPanel from '../components/evidence/FilterPanel';
-import PreviewPanel from '../components/evidence/PreviewPanel';
-import IntegrityStatus from '../components/evidence/IntegrityStatus';
+import EvidenceDetails from '../components/evidence/EvidenceDetails';
 
 export default function EvidenceLocker() {
   const [items, setItems] = useState([]);
@@ -58,13 +54,15 @@ export default function EvidenceLocker() {
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(item =>
-        item.evidence_id.toString().includes(q) ||
-        (item.vehicle_id && item.vehicle_id.toString().includes(q)) ||
-        item.violation.toLowerCase().includes(q)
+        item.plate_number?.toLowerCase().includes(q) ||
+        String(item.vehicle_id).includes(q) ||
+        item.violation?.toLowerCase().includes(q)
       );
     }
     if (filterClass !== 'All') {
-      result = result.filter(item => item.violation === filterClass);
+      result = result.filter(item =>
+        item.violation?.toLowerCase() === filterClass.toLowerCase()
+      );
     }
     setFiltered(result);
   }, [items, search, filterClass]);
@@ -77,22 +75,26 @@ export default function EvidenceLocker() {
   const handleDelete = async (id) => {
     try {
       await evidenceAPI.deleteEvidence(id);
-      if (activeId === id) {
+      const updated = items.filter(item => item.evidence_id !== id);
+      setItems(updated);
+      if (updated.length > 0) {
+        const nextId = updated[0].evidence_id;
+        setActiveId(nextId);
+        await fetchEvidenceDetails(nextId);
+      } else {
+        setActiveId(null);
         setMetadata(null);
         setIntegrity(null);
-        setActiveId(null);
       }
-      fetchEvidenceList();
     } catch (err) {
-      console.error("Failed to purge evidence log record:", err);
+      console.error("Failed to delete evidence log:", err);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center space-y-3 p-12 text-slate-550 text-xs">
-        <span className="w-6 h-6 rounded-full border-2 border-purple-500 border-t-transparent animate-spin"></span>
-        <span>Loading Evidence Locker Database...</span>
+      <div className="flex-1 flex flex-col items-center justify-center text-slate-550 text-xs">
+        <span>Loading Evidence Archive...</span>
       </div>
     );
   }
@@ -125,11 +127,12 @@ export default function EvidenceLocker() {
 
         {/* Right Panel (1 col) */}
         <div className="space-y-6">
-          {activeId && <EvidenceViewer evidenceId={activeId} />}
-          {activeId && <PreviewPanel evidenceId={activeId} />}
-          {metadata && <MetadataPanel metadata={metadata} />}
-          {integrity && <IntegrityStatus integrity={integrity} />}
-          {activeId && <DownloadPanel evidenceId={activeId} />}
+          <EvidenceDetails
+            activeId={activeId}
+            metadata={metadata}
+            integrity={integrity}
+            onDelete={handleDelete}
+          />
         </div>
       </div>
     </div>

@@ -55,7 +55,7 @@ export default function App() {
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-955 text-slate-100 selection:bg-purple-650 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-650 selection:text-white">
       {/* Show navigation controls only outside Login panel */}
       {!isLoginPage && (
         <Navbar 

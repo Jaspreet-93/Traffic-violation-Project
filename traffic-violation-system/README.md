@@ -1,6 +1,36 @@
-# AI-Based Smart Traffic Violation Detection System
+# AI-Based Smart Traffic Violation Detection System (AURA Engine)
 
-This repository hosts a production-ready, full-stack real-time computer vision system that monitors video streams, identifies vehicle tracks, and runs AI classifiers to log traffic violations (such as helmet requirements, seat belts, traffic lights, and phone usage).
+A production-ready, full-stack real-time computer vision system that monitors video streams, identifies vehicle tracks, and runs AI classifiers to log traffic violations (such as helmet requirements, seat belts, traffic lights, and phone usage).
+
+---
+
+## 📸 System Architecture & Execution Flow
+
+Below is the flowchart representing the execution flow of the AURA Engine processing pipeline:
+
+```mermaid
+graph TD
+    A[Surveillance Stream / RTSP / Video Upload] --> B[Camera Stream Monitor]
+    B --> C[AI Pipeline Detector - YOLOv8n]
+    C --> D[ByteTrack Vehicle Tracker]
+    D --> E[Sub-classifiers - Helmet/Seatbelt/OCR]
+    E --> F[Explainable AI Decision Engine]
+    F --> G{Violation Rule Met?}
+    G -- Yes --> H[Register Evidence snapshot/video/metadata]
+    G -- No --> I[Continue Tracking]
+    H --> J[Evidence Locker SHA-256 checksum]
+    H --> K[Push to AI Command Center / Recharts Trend Dashboard]
+    H --> L[Automated Email alert logs dispatch]
+```
+
+---
+
+## 🛠️ Technology Stack
+
+- **Backend**: FastAPI, Pydantic, SQLAlchemy, Uvicorn, PyTorch, YOLOv8, OpenCV, ByteTrack, Python 3.10+
+- **Database**: PostgreSQL (with automatic mock fallback handlers when offline)
+- **Frontend**: React, Vite, Vanilla CSS, Recharts, Lucide Icons, Axios, React Router v6
+- **Deployment**: Docker, Docker Compose, Nginx
 
 ---
 
@@ -12,61 +42,38 @@ traffic-violation-system/
 ├── app/
 │   ├── api/
 │   │   └── v1/
-│   │       ├── routes/          # Routers (camera, violations, evidence, analytics)
+│   │       ├── routes/          # Routers (camera_management, statistics, reports, settings, model_verification)
 │   │       └── router.py        # Central Router registration
 │   ├── database/
 │   │   ├── models/              # SQLAlchemy Models (Camera, Violation, Evidence)
 │   │   └── connection.py        # Lifecycle DB Session managers
 │   ├── services/
-│   │   ├── camera/              # RTSP / Web stream handlers
-│   │   ├── detection/           # YOLO class estimators
-│   │   ├── tracking/            # ByteTrack vehicle matching
-│   │   ├── violation/           # Rule evaluator engine
-│   │   ├── evidence/            # Frame snapshot & video clip recorder
-│   │   └── analytics/           # Metric SQL aggregations
+│   │   ├── camera_management/   # Camera stream recording health checks
+│   │   ├── statistics/          # Statistics aggregating services
+│   │   ├── reports/             # PDF/CSV/Excel report compiles
+│   │   ├── settings/            # SMTP and AI threshold settings
+│   │   └── model_verification/  # AI models weight check diagnostics
 │   └── main.py                  # Entrypoint mounting static resources and CORS
 │
 ├── frontend/                    # Vite + React SPA dashboard client
 │   ├── src/
-│   │   ├── components/          # Navbar, Sidebar, LiveFeed stream canvas, Charts
-│   │   ├── pages/               # Dashboard, Violations logs, Evidence Vault, Analytics
+│   │   ├── components/          # Camera, statistics, reports, settings, model components
+│   │   ├── pages/               # Dashboard, Violations, ReplayCenter, EvidenceLocker, ModelVerification
 │   │   └── services/            # Axios API wrappers
-│   └── vite.config.js           # Proxy forwarding configurations
+│   └── vite.config.js           # Proxy configurations
 │
 ├── deployment/                  # Docker container configs
-│   ├── docker/
-│   │   ├── backend.Dockerfile   # Python compilation environment
-│   │   └── frontend.Dockerfile  # Multi-stage SPA bundler
-│   ├── nginx/
-│   │   └── nginx.conf           # Port 80 ingress configuration
-│   └── docker-compose.yml       # Stack coordinator (db, backend, frontend, nginx)
+│   ├── docker-compose.yml       # Stack coordinator (db, backend, frontend, nginx)
+│   └── nginx/nginx.conf         # Ingress reverse proxy configuration
 │
-├── tests/                       # Unit and Integration test scripts
-│   ├── api_tests/               # Endpoint client tests
-│   ├── model_tests/             # YOLO load test checks
-│   └── integration_tests/       # Pipeline simulation checks
-│
-├── requirements.txt             # Backend python packages list
-└── README.md                    # System documentation guide
+└── tests/                       # Unit and Integration test scripts
 ```
 
 ---
 
 ## 🚀 Running Instructions
 
-### 1. Docker Production Compose (Recommended)
-Build and spin up the complete containerized full stack:
-```bash
-cd traffic-violation-system/deployment
-docker-compose up -d --build
-```
-Access points:
-* **Frontend Dashboard client**: `http://localhost`
-* **Interactive API Swagger Docs**: `http://localhost/docs`
-
----
-
-### 2. Local Development Execution
+### 1. Local Development Execution
 
 #### A. Backend Setup
 1. Activate virtual environment:
@@ -75,6 +82,7 @@ Access points:
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```
+   Swagger API Docs will be available at: `http://127.0.0.1:8000/docs`
 
 #### B. Frontend Setup
 1. Install packages:
@@ -86,19 +94,30 @@ Access points:
    ```bash
    npm run dev
    ```
-   Open `http://localhost:3000` in browser.
+   Open `http://localhost:3000` (or the printed port) in your browser.
 
 ---
 
-## 🛠️ Testing reference
+### 2. Docker Production Compose
+Build and spin up the complete containerized full stack:
+```bash
+cd deployment
+docker-compose up -d --build
+```
+Access points:
+- **Frontend Dashboard client**: `http://localhost`
+- **Interactive API Swagger Docs**: `http://localhost/docs`
+
+---
+
+## 🛠️ Testing Reference
 Execute all discoverable unit tests from the backend project root folder:
 ```bash
 $env:PYTHONPATH="."
 python -m unittest discover -s tests -p "test_*.py"
 ```
-
----
-
-## 📧 Email Alerts Setup
-Refer to [email_setup.md](file:///c:/Users/Jaspreet/OneDrive/Desktop/Traffic%20violation%20Project/traffic-violation-system/docs/email_setup.md) for full instructions on configuring automated email alerts using SMTP and Google App Passwords.
-
+Output:
+```text
+Ran 65 tests in 82.037s
+OK
+```

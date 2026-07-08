@@ -3,19 +3,15 @@ import { modelVerificationAPI } from '../services/modelVerificationApi';
 import ModelOverview from '../components/model/ModelOverview';
 import ModelHealthCard from '../components/model/ModelHealthCard';
 import MetricsCard from '../components/model/MetricsCard';
-import DatasetSummary from '../components/model/DatasetSummary';
 import PerformanceCharts from '../components/model/PerformanceCharts';
-import RecommendationPanel from '../components/model/RecommendationPanel';
 import VerificationStatus from '../components/model/VerificationStatus';
+import SystemActivityLog from '../components/model/SystemActivityLog';
 
 export default function ModelVerification() {
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [metrics, setMetrics] = useState(null);
-  const [dataset, setDataset] = useState(null);
   const [performance, setPerformance] = useState(null);
-  const [benchmarks, setBenchmarks] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
   const [verification, setVerification] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,28 +21,19 @@ export default function ModelVerification() {
         resOver,
         resHealth,
         resMetrics,
-        resData,
         resPerf,
-        resBench,
-        resRecs,
         resVerif
       ] = await Promise.all([
         modelVerificationAPI.getOverview(),
         modelVerificationAPI.getHealth(),
         modelVerificationAPI.getMetrics(),
-        modelVerificationAPI.getDataset(),
         modelVerificationAPI.getPerformance(),
-        modelVerificationAPI.getBenchmark(),
-        modelVerificationAPI.getRecommendations(),
         modelVerificationAPI.getVerification()
       ]);
       setOverview(resOver.data);
       setHealth(resHealth.data);
       setMetrics(resMetrics.data);
-      setDataset(resData.data);
       setPerformance(resPerf.data);
-      setBenchmarks(resBench.data.benchmarks || []);
-      setRecommendations(resRecs.data.recommendations || []);
       setVerification(resVerif.data);
     } catch (err) {
       console.error(err);
@@ -90,9 +77,7 @@ export default function ModelVerification() {
 
           <ModelHealthCard health={health} />
 
-          <DatasetSummary dataset={dataset} />
-
-          <RecommendationPanel recommendations={recommendations} />
+          <SystemActivityLog />
         </div>
       </div>
     </div>

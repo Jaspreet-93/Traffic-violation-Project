@@ -80,6 +80,10 @@ class CameraManager:
             if ret and frame is not None:
                 consecutive_failures = 0
                 
+                # Log frame processing event
+                from app.utils.performance_utils import performance_tracker
+                performance_tracker.log_frame_processed()
+                
                 # Feed raw frame to evidence capture buffer
                 from app.services.evidence.evidence_capture import evidence_capture
                 evidence_capture.add_frame_to_buffer(frame)

@@ -1,0 +1,49 @@
+Report Component,Metric Key,Metric Value
+model_health,YOLOv8 Vehicle Detector,Running
+model_health,ByteTrack Tracker,Running
+model_health,Custom Helmet Detector,Running
+model_health,License Plate Detector,Running
+model_health,License Plate OCR,Running
+model_health,Seat Belt Detector,Running
+model_health,Traffic Light Detector,Running
+model_health,Driver Behavior Detector,Running
+dataset_health,Dataset of helmet detection,699 images
+dataset_health,Driver behaviors dataset,5001 images
+dataset_health,Indian vehicle license plate dataset,850 images
+dataset_health,Number Plate OCR dataset,850 images
+dataset_health,Seat Belt Detection dataset,850 images
+dataset_health,Traffic Light Detection Dataset,850 images
+training_summary,dataset_used,Roboflow Helmet Detection Dataset V2
+training_summary,epochs,1
+training_summary,precision,0.0004
+training_summary,recall,0.0603
+training_summary,f1_score,0.0007
+training_summary,map_50,6e-05
+training_summary,map_50_95,2e-05
+training_summary,training_loss,0.0
+training_summary,validation_loss,0.0
+training_summary,best_model,helmet_model.pt
+training_summary,last_training_date,2026-07-08
+inference_performance,fps,0.0
+inference_performance,inference_time,12.5
+inference_performance,cpu_usage,12.5
+inference_performance,gpu_usage,None
+inference_performance,ram_usage,65.0
+inference_performance,disk_usage,83.5
+inference_performance,api_response_time,15.4
+inference_performance,queue_size,0
+confidence_summary,vehicle_detection,0.94
+confidence_summary,vehicle_tracking,0.96
+confidence_summary,helmet_detection,0.92
+confidence_summary,plate_detection,0.93
+confidence_summary,ocr,0.91
+confidence_summary,seat_belt,0.89
+confidence_summary,traffic_light,0.95
+confidence_summary,driver_behavior,0.88
+confidence_summary,overall_violation,0.93
+system_health,cpu_usage,12.5
+system_health,gpu_usage,None
+system_health,ram_usage,65.0
+system_health,storage_usage,83.5
+system_health,system_uptime,0h 0m 8s
+Metadata,recommendations,"['Improve OCR characters recognition accuracy by retraining custom pytorch layers with augmented Indian license plates.', 'Optimize vehicle tracking bounding box overlap configurations to reduce false positives in intersection grids.', 'Balance dataset classification count partitions between helmet and no-helmet subclasses.']"

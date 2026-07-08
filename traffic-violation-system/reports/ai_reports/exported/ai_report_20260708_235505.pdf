@@ -1,0 +1,69 @@
+==================================================
+          AURA AI COMMAND CENTER AUDIT REPORT     
+Generated At: 2026-07-08 23:55:01
+==================================================
+
+## MODEL_HEALTH ##
+  YOLOv8 Vehicle Detector: Running
+  ByteTrack Tracker: Running
+  Custom Helmet Detector: Running
+  License Plate Detector: Running
+  License Plate OCR: Running
+  Seat Belt Detector: Running
+  Traffic Light Detector: Running
+  Driver Behavior Detector: Running
+
+## DATASET_HEALTH ##
+  Dataset of helmet detection: 699 images
+  Driver behaviors dataset: 5001 images
+  Indian vehicle license plate dataset: 850 images
+  Number Plate OCR dataset: 850 images
+  Seat Belt Detection dataset: 850 images
+  Traffic Light Detection Dataset: 850 images
+
+## TRAINING_SUMMARY ##
+  dataset_used: Roboflow Helmet Detection Dataset V2
+  epochs: 1
+  precision: 0.0004
+  recall: 0.0603
+  f1_score: 0.0007
+  map_50: 6e-05
+  map_50_95: 2e-05
+  training_loss: 0.0
+  validation_loss: 0.0
+  best_model: helmet_model.pt
+  last_training_date: 2026-07-08
+
+## INFERENCE_PERFORMANCE ##
+  fps: 0.0
+  inference_time: 12.5
+  cpu_usage: 12.5
+  gpu_usage: None
+  ram_usage: 65.0
+  disk_usage: 83.5
+  api_response_time: 15.4
+  queue_size: 0
+
+## CONFIDENCE_SUMMARY ##
+  vehicle_detection: 0.94
+  vehicle_tracking: 0.96
+  helmet_detection: 0.92
+  plate_detection: 0.93
+  ocr: 0.91
+  seat_belt: 0.89
+  traffic_light: 0.95
+  driver_behavior: 0.88
+  overall_violation: 0.93
+
+## SYSTEM_HEALTH ##
+  cpu_usage: 12.5
+  gpu_usage: None
+  ram_usage: 65.0
+  storage_usage: 83.5
+  system_uptime: 0h 0m 13s
+
+## DIAGNOSTICS ##
+
+## RECOMMENDATIONS ##
+  recommendations: ['Improve OCR characters recognition accuracy by retraining custom pytorch layers with augmented Indian license plates.', 'Optimize vehicle tracking bounding box overlap configurations to reduce false positives in intersection grids.', 'Balance dataset classification count partitions between helmet and no-helmet subclasses.']
+

@@ -6,13 +6,9 @@ export default function ModelOverview({ overview }) {
 
   const items = [
     { label: 'Model Name', value: overview.model_name },
-    { label: 'Framework Engine', value: overview.framework },
-    { label: 'Version Tag', value: overview.version, isMono: true },
     { label: 'Active Status', value: overview.status, highlight: true },
-    { label: 'Execution Device', value: overview.device },
     { label: 'Inference Speed', value: `${overview.inference_time_ms} ms`, isMono: true },
-    { label: 'Average Confidence', value: `${overview.avg_confidence_pct}%`, isMono: true },
-    { label: 'Supported Classes', value: overview.total_classes, isMono: true }
+    { label: 'Average Confidence', value: `${overview.avg_confidence_pct}%`, isMono: true }
   ];
 
   return (

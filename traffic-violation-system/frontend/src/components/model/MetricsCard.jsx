@@ -7,6 +7,8 @@ export default function MetricsCard({ metrics }) {
   const items = [
     { label: 'F1 Accuracy Score', value: metrics.f1_score, isFloat: true },
     { label: 'Model R2 score', value: metrics.r2_score, isFloat: true, highlight: true },
+    { label: 'Mean Squared Error (MSE)', value: metrics.mean_squared_error, isFloat: true },
+    { label: 'Mean Absolute Error (MAE)', value: metrics.mean_absolute_error, isFloat: true },
     { label: 'Pipeline Speed', value: `${metrics.fps} FPS`, isMono: true },
     { label: 'RAM Memory Footprint', value: `${metrics.memory_usage_mb} MB`, isMono: true }
   ];

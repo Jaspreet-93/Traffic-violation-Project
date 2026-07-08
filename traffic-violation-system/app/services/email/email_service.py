@@ -50,11 +50,15 @@ class EmailService:
         """
         # Create initial pending log
         settings = load_email_settings()
-        recipient = settings.get("station_email")
+        from app.services.officer_email.officer_email_service import OfficerEmailService
+        recipients = OfficerEmailService.get_active_recipients()
+        if not recipients:
+            recipients = [settings.get("station_email")]
+        recipient = ", ".join(recipients)
         
         if not recipient:
-            logger.error("Destination station_email is not configured in settings.")
-            raise ValueError("Destination station email missing.")
+            logger.error("Destination recipient is not configured.")
+            raise ValueError("Destination recipient email missing.")
             
         violation = db.query(Violation).filter(Violation.id == violation_id).first()
         if not violation:

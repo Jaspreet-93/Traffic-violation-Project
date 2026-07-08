@@ -7,6 +7,7 @@ import StorageSettings from '../components/settings/StorageSettings';
 import ThemeSettings from '../components/settings/ThemeSettings';
 import LanguageSettings from '../components/settings/LanguageSettings';
 import OfficerSettings from '../components/settings/OfficerSettings';
+import OfficerEmailManagement from '../components/settings/OfficerEmailManagement';
 import { Save } from 'lucide-react';
 
 export default function Settings() {
@@ -71,6 +72,7 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OfficerEmailManagement />
         <OfficerSettings />
         <SMTPSettings settings={settings} onChange={handleChange} />
         <AISettings settings={settings} onChange={handleChange} />

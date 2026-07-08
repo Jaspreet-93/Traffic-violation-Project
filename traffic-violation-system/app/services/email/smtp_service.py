@@ -92,6 +92,7 @@ class SMTPService:
         server = smtplib.SMTP(host, port)
         server.starttls()
         server.login(username, password)
-        server.sendmail(username, to_email, message.as_string())
+        recipients_list = [email.strip() for email in to_email.split(",") if email.strip()]
+        server.sendmail(username, recipients_list, message.as_string())
         server.quit()
         return True

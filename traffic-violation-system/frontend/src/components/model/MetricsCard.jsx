@@ -5,19 +5,10 @@ export default function MetricsCard({ metrics }) {
   if (!metrics) return null;
 
   const items = [
-    { label: 'Precision Rating', value: metrics.precision, isFloat: true },
-    { label: 'Recall Rating', value: metrics.recall, isFloat: true },
     { label: 'F1 Accuracy Score', value: metrics.f1_score, isFloat: true },
     { label: 'Model R2 score', value: metrics.r2_score, isFloat: true, highlight: true },
-    { label: 'Mean Squared Error (MSE)', value: metrics.mean_squared_error, isFloat: true },
-    { label: 'Mean Absolute Error (MAE)', value: metrics.mean_absolute_error, isFloat: true },
-    { label: 'Mean AP @50', value: metrics.map_50, isFloat: true },
-    { label: 'Mean AP @50-95', value: metrics.map_50_95, isFloat: true },
-    { label: 'Avg Inference latency', value: `${metrics.inference_speed_ms} ms`, isMono: true },
     { label: 'Pipeline Speed', value: `${metrics.fps} FPS`, isMono: true },
-    { label: 'RAM Memory Footprint', value: `${metrics.memory_usage_mb} MB`, isMono: true },
-    { label: 'GPU load utilization', value: `${metrics.gpu_usage_pct}%`, isMono: true },
-    { label: 'CPU load utilization', value: `${metrics.cpu_usage_pct}%`, isMono: true }
+    { label: 'RAM Memory Footprint', value: `${metrics.memory_usage_mb} MB`, isMono: true }
   ];
 
   return (

@@ -6,6 +6,7 @@ import CameraSettings from '../components/settings/CameraSettings';
 import StorageSettings from '../components/settings/StorageSettings';
 import ThemeSettings from '../components/settings/ThemeSettings';
 import LanguageSettings from '../components/settings/LanguageSettings';
+import OfficerSettings from '../components/settings/OfficerSettings';
 import { Save } from 'lucide-react';
 
 export default function Settings() {
@@ -70,6 +71,7 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <OfficerSettings />
         <SMTPSettings settings={settings} onChange={handleChange} />
         <AISettings settings={settings} onChange={handleChange} />
         <CameraSettings settings={settings} onChange={handleChange} />

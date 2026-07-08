@@ -1,15 +1,17 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Radio, AlertOctagon, FileVideo, BarChart3, Upload } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail } from 'lucide-react';
 
 export default function Sidebar() {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/live-monitoring', label: 'Live Monitoring', icon: Radio },
+    { path: '/upload-detection', label: 'Upload Detection', icon: Upload },
     { path: '/violations', label: 'Violations', icon: AlertOctagon },
-    { path: '/evidence', label: 'Evidence Vault', icon: FileVideo },
+    { path: '/evidence', label: 'Evidence', icon: FileVideo },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/upload', label: 'Upload Media', icon: Upload },
+    { path: '/settings', label: 'Email Settings', icon: Settings },
+    { path: '/email-logs', label: 'Email Logs', icon: Mail },
   ];
 
   return (

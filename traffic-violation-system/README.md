@@ -96,3 +96,9 @@ Execute all discoverable unit tests from the backend project root folder:
 $env:PYTHONPATH="."
 python -m unittest discover -s tests -p "test_*.py"
 ```
+
+---
+
+## 📧 Email Alerts Setup
+Refer to [email_setup.md](file:///c:/Users/Jaspreet/OneDrive/Desktop/Traffic%20violation%20Project/traffic-violation-system/docs/email_setup.md) for full instructions on configuring automated email alerts using SMTP and Google App Passwords.
+

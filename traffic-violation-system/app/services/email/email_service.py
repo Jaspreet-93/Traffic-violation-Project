@@ -1,0 +1,125 @@
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import os
+
+from app.database.models.email_log import EmailLog
+from app.database.models.violation import Violation
+from app.services.email.smtp_service import SMTPService, load_email_settings
+from app.services.email.email_templates import EmailTemplates
+from app.services.email.attachment_service import AttachmentService
+from app.core.logger import logger
+
+class EmailService:
+    @staticmethod
+    def send_test_email(recipient_email: str) -> dict:
+        """
+        Compiles and sends a test SMTP connectivity verification email.
+        """
+        settings = load_email_settings()
+        subject = f"[TEST] SMTP Connection Check - {settings.get('station_name')}"
+        
+        context = {
+            "station_name": settings.get("station_name"),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        body_html = EmailTemplates.render_template("test_email.html", context)
+        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = settings.get("smtp_email")
+        msg["To"] = recipient_email
+        msg.attach(MIMEText(body_html, "html"))
+        
+        try:
+            success = SMTPService.send_email(recipient_email, msg)
+            if success:
+                return {"status": "success", "message": f"Test email sent successfully to {recipient_email}"}
+            else:
+                return {"status": "failed", "message": "Notifications disabled in settings."}
+        except Exception as e:
+            logger.error(f"Test email failed: {e}")
+            return {"status": "failed", "message": str(e)}
+
+    @staticmethod
+    def send_violation_email(violation_id: int, db: Session) -> EmailLog:
+        """
+        Generates and sends an HTML report with proof attachments for a violation.
+        """
+        # Create initial pending log
+        settings = load_email_settings()
+        recipient = settings.get("station_email")
+        
+        if not recipient:
+            logger.error("Destination station_email is not configured in settings.")
+            raise ValueError("Destination station email missing.")
+            
+        violation = db.query(Violation).filter(Violation.id == violation_id).first()
+        if not violation:
+            logger.error(f"Violation ID {violation_id} not found in database.")
+            raise ValueError(f"Violation ID {violation_id} not found.")
+
+        subject = f"[ALERT] Traffic Violation Detected: {violation.violation_type} - ID: #{violation.vehicle_id}"
+        
+        context = {
+            "vehicle_id": violation.vehicle_id,
+            "vehicle_type": violation.vehicle_type,
+            "plate_number": violation.plate_number or violation.vehicle_number or "UNKNOWN",
+            "violation_type": violation.violation_type,
+            "confidence": f"{(violation.confidence * 100):.0f}%" if violation.confidence else "N/A",
+            "timestamp": violation.timestamp.strftime("%Y-%m-%d %H:%M:%S") if violation.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "station_name": settings.get("station_name")
+        }
+        
+        body_html = EmailTemplates.render_template("violation_alert.html", context)
+        
+        msg = MIMEMultipart()
+        msg["Subject"] = subject
+        msg["From"] = settings.get("smtp_email")
+        msg["To"] = recipient
+        msg.attach(MIMEText(body_html, "html"))
+        
+        # Attach snapshot image
+        if violation.snapshot_path:
+            img_part = AttachmentService.create_attachment(violation.snapshot_path)
+            if img_part:
+                msg.attach(img_part)
+                
+        # Attach video proof clip
+        if violation.evidence_path:
+            vid_part = AttachmentService.create_attachment(violation.evidence_path)
+            if vid_part:
+                msg.attach(vid_part)
+                
+        # Insert log
+        db_log = EmailLog(
+            violation_id=violation_id,
+            recipient_email=recipient,
+            subject=subject,
+            body=body_html,
+            status="PENDING",
+            sent_at=None,
+            error_message=None
+        )
+        db.add(db_log)
+        db.commit()
+        db.refresh(db_log)
+        
+        try:
+            success = SMTPService.send_email(recipient, msg)
+            if success:
+                db_log.status = "SENT"
+                db_log.sent_at = datetime.now(timezone.utc)
+            else:
+                db_log.status = "FAILED"
+                db_log.error_message = "Email alerts disabled in settings."
+        except Exception as e:
+            logger.error(f"Failed to deliver violation email {violation_id}: {e}")
+            db_log.status = "FAILED"
+            db_log.error_message = str(e)
+            
+        db.commit()
+        db.refresh(db_log)
+        return db_log

@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import LiveMonitoring from './pages/LiveMonitoring';
-import Violations from './pages/Violations';
-import Evidence from './pages/Evidence';
-import Analytics from './pages/Analytics';
+import { useLocation } from 'react-router-dom';
+import Navbar from './components/common/Navbar';
+import Sidebar from './components/common/Sidebar';
+import AppRoutes from './routes/AppRoutes';
 import { cameraAPI } from './services/api';
 
 export default function App() {
@@ -39,17 +34,7 @@ export default function App() {
         {!isLoginPage && <Sidebar />}
 
         <main className="flex-1 flex flex-col overflow-hidden bg-slate-950/20">
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/live-monitoring" element={<LiveMonitoring />} />
-            <Route path="/violations" element={<Violations />} />
-            <Route path="/evidence" element={<Evidence />} />
-            <Route path="/analytics" element={<Analytics />} />
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <AppRoutes />
         </main>
       </div>
     </div>

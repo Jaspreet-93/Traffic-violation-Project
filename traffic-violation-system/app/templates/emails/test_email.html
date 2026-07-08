@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SMTP Connectivity Test</title>
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; line-height: 1.5;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div style="display: inline-block; background-color: #f3e8ff; padding: 12px; border-radius: 50%; color: #9333ea; font-size: 24px; font-weight: bold; margin-bottom: 10px;">
+                ✓
+            </div>
+            <h2 style="margin: 0; color: #9333ea; font-size: 20px;">SMTP Connection Successful</h2>
+        </div>
+        
+        <p>Hello,</p>
+        <p>This is a test notification confirming that the SMTP server configuration is working correctly for <strong>{{ station_name }}</strong>.</p>
+        
+        <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 13px; margin: 20px 0;">
+            <strong>Test Timestamp:</strong> {{ timestamp }}
+        </div>
+        
+        <p>No further actions are required. Live alert streams are now authorized to route to this address.</p>
+        
+        {% include 'email_footer.html' %}
+    </div>
+</body>
+</html>

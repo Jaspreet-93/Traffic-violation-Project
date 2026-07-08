@@ -63,6 +63,13 @@ class ViolationService:
                             db_violation.evidence_path = res["image_path"]
                             db_violation.snapshot_path = res["image_path"]
                             db.commit()
+                            
+                            # Trigger background email alert
+                            try:
+                                from app.services.email.notification_service import NotificationService
+                                NotificationService.trigger_violation_notification(db_violation.id)
+                            except Exception as alert_err:
+                                logger.error(f"Failed to trigger email notification alert: {alert_err}")
             except Exception as e:
                 db.rollback()
                 logger.error(f"Error persisting violations: {e}")

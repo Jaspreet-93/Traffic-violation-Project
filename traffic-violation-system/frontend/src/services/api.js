@@ -63,6 +63,23 @@ export const evidenceAPI = {
   getByViolation: (violationId) => API.get(`/api/v1/evidence/${violationId}`),
 };
 
+export const detectionAPI = {
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return API.post('/api/v1/detection/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadVideo: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return API.post('/api/v1/detection/upload-video', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+};
+
 export const analyticsAPI = {
   getSummary: () => API.get('/api/v1/analytics/summary'),
   getDaily: () => API.get('/api/v1/analytics/daily'),

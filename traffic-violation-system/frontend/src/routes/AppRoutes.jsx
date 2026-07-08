@@ -14,6 +14,9 @@ import ConfidenceDashboard from '../pages/ConfidenceDashboard';
 import AIDecisionEngine from '../pages/AIDecisionEngine';
 import ReplayCenter from '../pages/ReplayCenter';
 import EvidenceLocker from '../pages/EvidenceLocker';
+import CameraManagement from '../pages/CameraManagement';
+import AIStatistics from '../pages/AIStatistics';
+import Reports from '../pages/Reports';
 
 export default function AppRoutes() {
   return (
@@ -26,6 +29,9 @@ export default function AppRoutes() {
       <Route path="/violations" element={<Violations />} />
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/evidence-locker" element={<EvidenceLocker />} />
+      <Route path="/camera-management" element={<CameraManagement />} />
+      <Route path="/ai-statistics" element={<AIStatistics />} />
+      <Route path="/reports" element={<Reports />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/email-logs" element={<EmailLogs />} />

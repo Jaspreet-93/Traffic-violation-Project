@@ -1,20 +1,20 @@
 import React from 'react';
-import { HardDrive, Cpu, Activity } from 'lucide-react';
+import { Cpu, HardDrive, Activity, ShieldCheck } from 'lucide-react';
 
-export default function SystemHealthCard({ overview }) {
-  if (!overview) return null;
+export default function SystemHealthCard({ health }) {
+  if (!health) return null;
 
   const metrics = [
-    { label: 'CPU Usage', value: overview.cpu_usage, color: 'bg-purple-500', text: 'text-purple-400', icon: Cpu },
-    { label: 'RAM Load', value: overview.ram_usage, color: 'bg-indigo-500', text: 'text-indigo-400', icon: Activity },
-    { label: 'Storage Volume', value: overview.storage_usage, color: 'bg-sky-500', text: 'text-sky-400', icon: HardDrive }
+    { label: 'CPU Usage', value: health.cpu_usage, color: 'bg-purple-500', text: 'text-purple-400', icon: Cpu },
+    { label: 'RAM Memory Load', value: health.ram_usage, color: 'bg-indigo-500', text: 'text-indigo-400', icon: Activity },
+    { label: 'Disk Storage Volume', value: health.disk_usage, color: 'bg-sky-500', text: 'text-sky-400', icon: HardDrive }
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col h-full justify-between">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col justify-between h-full">
       <h3 className="font-semibold text-sm text-slate-200 mb-4 flex items-center space-x-2">
-        <Cpu className="w-4.5 h-4.5 text-purple-400" />
-        <span>Resource Capacity Load</span>
+        <Activity className="w-4.5 h-4.5 text-purple-400" />
+        <span>Resource Capacity health</span>
       </h3>
 
       <div className="space-y-4 flex-1 flex flex-col justify-around">

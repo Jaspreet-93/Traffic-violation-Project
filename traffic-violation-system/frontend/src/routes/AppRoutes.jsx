@@ -10,7 +10,6 @@ import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
 import EmailLogs from '../pages/EmailLogs';
 import AICommandCenter from '../pages/AICommandCenter';
-import Reports from '../pages/Reports';
 
 export default function AppRoutes() {
   return (
@@ -26,7 +25,6 @@ export default function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/email-logs" element={<EmailLogs />} />
       <Route path="/ai-command-center" element={<AICommandCenter />} />
-      <Route path="/reports" element={<Reports />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu, FileText } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu } from 'lucide-react';
 
 export default function Sidebar() {
   const menuItems = [
@@ -11,7 +11,6 @@ export default function Sidebar() {
     { path: '/evidence', label: 'Evidence', icon: FileVideo },
     { path: '/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/ai-command-center', label: 'AI Command Center', icon: Cpu },
-    { path: '/reports', label: 'AI Reports', icon: FileText },
     { path: '/settings', label: 'Email Settings', icon: Settings },
     { path: '/email-logs', label: 'Email Logs', icon: Mail },
   ];
@@ -19,7 +18,7 @@ export default function Sidebar() {
   return (
     <aside className="w-64 border-r border-slate-800 bg-slate-950 flex flex-col justify-between py-6 overflow-y-auto">
       <div className="space-y-6 px-4">
-        <span className="text-xs font-bold text-slate-550 tracking-wider uppercase pl-2">Monitor Console</span>
+        <span className="text-xs font-bold text-slate-555 tracking-wider uppercase pl-2">Monitor Console</span>
         <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -44,7 +43,7 @@ export default function Sidebar() {
       </div>
 
       <div className="px-6 py-4 border-t border-slate-900 mt-6">
-        <div className="flex items-center space-x-2 text-xs text-slate-550">
+        <div className="flex items-center space-x-2 text-xs text-slate-555">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>AURA Engine v1.0.0</span>
         </div>
@@ -52,5 +51,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-// Import FileText from lucide
-import { FileText as LucideFileText } from 'lucide-react';

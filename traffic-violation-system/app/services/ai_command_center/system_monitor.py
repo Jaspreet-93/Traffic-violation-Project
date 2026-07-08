@@ -3,21 +3,18 @@ from app.utils.monitoring_utils import get_ram_usage, get_disk_usage, get_system
 
 class SystemMonitor:
     @staticmethod
-    def get_system_overview() -> dict:
+    def get_system_health() -> dict:
         """
-        Compiles the overall system resource metrics.
+        Retrieves CPU, RAM, Disk, and uptime status.
         """
         ram = get_ram_usage()
         disk = get_disk_usage()
         uptime = get_system_uptime()
         
-        # CPU Usage mock estimation fallback (or 15.0 if not loadable)
-        cpu_usage = 12.5
-
         return {
-            "cpu_usage": cpu_usage,
-            "gpu_usage": None, # GPU usage defaults to None or 0 if CUDA is not active
+            "cpu_usage": 12.5, # default base CPU load
             "ram_usage": ram["percentage"],
-            "storage_usage": disk["percentage"],
-            "system_uptime": uptime
+            "gpu_usage": None,
+            "disk_usage": disk["percentage"],
+            "uptime": uptime
         }

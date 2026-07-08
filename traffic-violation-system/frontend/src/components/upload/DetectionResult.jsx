@@ -1,63 +1,57 @@
 import React from 'react';
-import { ShieldAlert, Cpu, AlertTriangle } from 'lucide-react';
+import { Eye, ShieldAlert, Cpu } from 'lucide-react';
 
 export default function DetectionResult({ result }) {
   if (!result) return null;
 
+  const outUrl = result.evidence.processed_file_url || '';
+  const isVideo = result.file_type === 'video';
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col md:flex-row gap-6">
-      {/* 1. Vehicle Details Card */}
-      <div className="flex-1 space-y-4">
-        <h3 className="font-semibold text-sm text-slate-200 flex items-center space-x-2 pb-2 border-b border-slate-800">
-          <Cpu className="w-4 h-4 text-sky-400" />
-          <span>Vehicle Details</span>
-        </h3>
-        
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-slate-500 block uppercase font-bold tracking-wider text-[9px]">Vehicle Type</span>
-            <span className="font-semibold text-slate-200 capitalize">{result.violations && result.violations.length > 0 ? "Motorcycle/Car" : "Car"}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block uppercase font-bold tracking-wider text-[9px]">Vehicle ID</span>
-            <span className="font-semibold text-slate-200">#{result.vehicle_id}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block uppercase font-bold tracking-wider text-[9px]">License Plate</span>
-            <span className="font-semibold text-purple-400 font-mono">{result.plate_number || 'PB10AB1234'}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block uppercase font-bold tracking-wider text-[9px]">Inference Confidence</span>
-            <span className="font-semibold text-slate-200">{(result.confidence * 100).toFixed(0)}%</span>
-          </div>
-        </div>
-      </div>
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg space-y-4 p-5">
+      <h3 className="font-semibold text-sm text-slate-200 flex items-center space-x-2">
+        <Cpu className="w-4 h-4 text-purple-400" />
+        <span>Annotated AI Pipeline Outputs</span>
+      </h3>
 
-      {/* 2. Violations Details Card */}
-      <div className="flex-1 space-y-4">
-        <h3 className="font-semibold text-sm text-slate-200 flex items-center space-x-2 pb-2 border-b border-slate-800">
-          <ShieldAlert className="w-4.5 h-4.5 text-rose-500 animate-pulse" />
-          <span>Detected Infractions</span>
-        </h3>
-
-        <div className="space-y-2">
-          {(!result.violations || result.violations.length === 0) ? (
-            <div className="text-slate-500 text-xs py-4 text-center">
-              No traffic violations identified. Safe driving!
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Media Canvas (2 cols) */}
+        <div className="md:col-span-2 rounded-lg overflow-hidden border border-slate-850 bg-slate-950 flex items-center justify-center min-h-[300px]">
+          {isVideo ? (
+            <video
+              src={outUrl}
+              controls
+              className="w-full object-contain max-h-[400px]"
+            />
           ) : (
-            result.violations.map((violation, idx) => (
-              <div key={idx} className="bg-slate-950 border border-slate-850 px-4 py-2.5 rounded-lg flex items-center justify-between text-xs">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-500" />
-                  <span className="font-bold text-slate-200">{violation}</span>
-                </div>
-                <span className="text-[10px] font-bold text-rose-400 bg-rose-500/5 px-2.5 py-0.5 rounded border border-rose-500/10 uppercase">
-                  Infraction
-                </span>
-              </div>
-            ))
+            <img
+              src={outUrl}
+              alt="annotated-output"
+              className="w-full object-contain max-h-[400px]"
+            />
           )}
+        </div>
+
+        {/* Bboxes Audit Log (1 col) */}
+        <div className="space-y-4">
+          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Detected Objects & Classes</span>
+          <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+            {(!result.objects || result.objects.length === 0) ? (
+              <div className="text-slate-550 text-xs text-center py-12">No objects detected.</div>
+            ) : (
+              result.objects.map((obj, idx) => (
+                <div key={idx} className="bg-slate-955 border border-slate-850 p-2.5 rounded-lg flex flex-col space-y-1 text-xs">
+                  <div className="flex justify-between items-center font-bold">
+                    <span className="text-purple-400 capitalize">{obj.label}</span>
+                    <span className="text-slate-250 font-mono">{(obj.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="text-[10px] text-slate-550 font-mono">
+                    Bbox: [{obj.bbox.join(', ')}]
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

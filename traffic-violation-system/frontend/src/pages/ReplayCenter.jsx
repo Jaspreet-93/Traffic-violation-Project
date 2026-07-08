@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { replayAPI } from '../services/replayApi';
 import ReplayPlayer from '../components/replay/ReplayPlayer';
-import TimelineBar from '../components/replay/TimelineBar';
-import FrameViewer from '../components/replay/FrameViewer';
-import PlaybackControls from '../components/replay/PlaybackControls';
-import ReplayInformation from '../components/replay/ReplayInformation';
-import EvidencePanel from '../components/replay/EvidencePanel';
-import EventMarkers from '../components/replay/EventMarkers';
-import SpeedControl from '../components/replay/SpeedControl';
+import ReplayTelemetry from '../components/replay/ReplayTelemetry';
 import { Video } from 'lucide-react';
 
 export default function ReplayCenter() {
@@ -94,18 +88,13 @@ export default function ReplayCenter() {
             videoUrl={info?.processed_video_url}
             speed={speed}
             isPlaying={isPlaying}
+            progress={progress}
             onProgressUpdate={setProgress}
-          />
-
-          <TimelineBar progress={progress} onChange={setProgress} />
-
-          <PlaybackControls
-            isPlaying={isPlaying}
             onTogglePlay={handleTogglePlay}
             onStop={handleStop}
             onFrameBack={() => setProgress(prev => Math.max(0, prev - 1))}
             onFrameForward={() => setProgress(prev => Math.min(100, prev + 1))}
-            onFullscreen={() => {}}
+            onSpeedChange={setSpeed}
           />
 
           {/* List of replays */}
@@ -135,15 +124,12 @@ export default function ReplayCenter() {
 
         {/* Right (1 col) */}
         <div className="space-y-6">
-          <SpeedControl currentSpeed={speed} onSpeedChange={setSpeed} />
-
-          <ReplayInformation info={info} />
-
-          <FrameViewer frame={frame} />
-
-          <EvidencePanel violationId={activeId} />
-
-          <EventMarkers events={timeline} currentTimeOffset={(progress / 100) * 15.0} />
+          <ReplayTelemetry
+            info={info}
+            timeline={timeline}
+            frame={frame}
+            currentTimeOffset={(progress / 100) * 15.0}
+          />
         </div>
       </div>
     </div>

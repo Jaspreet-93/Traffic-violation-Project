@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, Settings, Cpu, Activity, Video, FileText, ShieldCheck, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, Cpu, Activity, Video, FileText, ShieldCheck, User, LogOut, X } from 'lucide-react';
 
 const translations = {
   en: {
@@ -53,7 +53,7 @@ const translations = {
   }
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const lang = localStorage.getItem('system_language') || 'en';
   const t = translations[lang] || translations.en;
@@ -80,9 +80,21 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 border-r border-slate-800 bg-slate-955 flex flex-col justify-between py-6 overflow-y-auto">
+    <aside 
+      className={`fixed lg:static top-0 bottom-0 left-0 w-64 border-r border-slate-800 bg-slate-955 flex flex-col justify-between py-6 overflow-y-auto z-40 transition-transform duration-300 lg:translate-x-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
       <div className="space-y-6 px-4">
-        <span className="text-[10px] font-bold text-slate-555 tracking-wider uppercase pl-2">{t.console}</span>
+        <div className="flex items-center justify-between pl-2">
+          <span className="text-[10px] font-bold text-slate-555 tracking-wider uppercase">{t.console}</span>
+          <button 
+            onClick={onClose}
+            className="p-1 rounded text-slate-500 hover:text-slate-350 lg:hidden cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
         <div className="space-y-1">
           {menuItems.map((item, idx) => {
             const Icon = item.icon;
@@ -90,6 +102,7 @@ export default function Sidebar() {
               <NavLink
                 key={idx}
                 to={item.path}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `w-full flex items-center space-x-3 px-4 py-2 rounded text-xs font-semibold transition-all ${
                     isActive

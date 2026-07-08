@@ -1,39 +1,47 @@
 import React from 'react';
-import { Shield, User } from 'lucide-react';
+import { Shield, User, Menu } from 'lucide-react';
 
-export default function Navbar({ cameraActive }) {
+export default function Navbar({ cameraActive, onToggleSidebar }) {
   return (
-    <nav className="h-16 border-b border-slate-800 bg-slate-950/80 px-6 flex items-center justify-between backdrop-blur-md sticky top-0 z-50">
+    <nav className="h-16 border-b border-slate-800 bg-slate-950/80 px-4 sm:px-6 flex items-center justify-between backdrop-blur-md sticky top-0 z-50">
       <div className="flex items-center space-x-3">
-        <div className="bg-purple-650/10 p-2 rounded-lg border border-purple-500/20">
-          <Shield className="w-6 h-6 text-purple-400" />
+        {/* Toggle button for responsive mobile view */}
+        <button
+          onClick={onToggleSidebar}
+          className="p-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 text-slate-400 hover:text-slate-200 lg:hidden cursor-pointer"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="bg-purple-650/10 p-2 rounded-lg border border-purple-500/20 hidden sm:block">
+          <Shield className="w-5 h-5 text-purple-400" />
         </div>
         <div>
-          <span className="font-bold text-sm sm:text-base bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider">
+          <span className="font-bold text-xs sm:text-sm bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent uppercase tracking-wider block sm:inline">
             AURA TRAFFIC MONITOR
           </span>
-          <span className="text-[10px] text-slate-550 block">AI Infraction System</span>
+          <span className="text-[9px] text-slate-550 block">AI Infraction System</span>
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         {/* Stream Status indicator */}
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-full">
+        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-850 px-2 sm:px-3 py-1.5 rounded-full">
           <span className="relative flex h-2 w-2">
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${cameraActive ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
             <span className={`relative inline-flex rounded-full h-2 w-2 ${cameraActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
           </span>
-          <span className="text-[10px] font-bold text-slate-400">
-            {cameraActive ? 'STREAM ACTIVE' : 'STREAM OFFLINE'}
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 whitespace-nowrap">
+            {cameraActive ? 'ACTIVE' : 'OFFLINE'}
           </span>
         </div>
 
         {/* User profile details */}
         <div className="flex items-center space-x-2 bg-slate-900 border border-slate-850 pl-2 pr-3 py-1 rounded-xl">
-          <div className="bg-purple-650 p-1.5 rounded-lg text-white">
+          <div className="bg-purple-650 p-1 rounded-lg text-white">
             <User className="w-3.5 h-3.5" />
           </div>
-          <div className="text-left leading-none">
+          <div className="text-left leading-none hidden sm:block">
             <span className="text-[10px] font-bold text-slate-200 block">Administrator</span>
             <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Admin Panel</span>
           </div>

@@ -9,6 +9,7 @@ export default function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
   const [cameraActive, setCameraActive] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -48,15 +49,35 @@ export default function App() {
     }
   }, [isLoginPage]);
 
+  // Close sidebar on route change on mobile
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location]);
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-650 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-955 text-slate-100 selection:bg-purple-650 selection:text-white">
       {/* Show navigation controls only outside Login panel */}
-      {!isLoginPage && <Navbar cameraActive={cameraActive} />}
+      {!isLoginPage && (
+        <Navbar 
+          cameraActive={cameraActive} 
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
+        />
+      )}
 
-      <div className="flex-1 flex overflow-hidden">
-        {!isLoginPage && <Sidebar />}
+      <div className="flex-1 flex overflow-hidden relative">
+        {!isLoginPage && (
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        )}
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-950/20">
+        {/* Mobile Backdrop overlay */}
+        {!isLoginPage && sidebarOpen && (
+          <div 
+            onClick={() => setSidebarOpen(false)} 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden cursor-pointer"
+          ></div>
+        )}
+
+        <main className="flex-1 flex flex-col overflow-hidden bg-slate-950/20 w-full">
           <AppRoutes />
         </main>
       </div>

@@ -10,6 +10,7 @@ import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
 import EmailLogs from '../pages/EmailLogs';
 import AICommandCenter from '../pages/AICommandCenter';
+import ConfidenceDashboard from '../pages/ConfidenceDashboard';
 
 export default function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export default function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/email-logs" element={<EmailLogs />} />
       <Route path="/ai-command-center" element={<AICommandCenter />} />
+      <Route path="/confidence-dashboard" element={<ConfidenceDashboard />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -6,12 +6,7 @@ import LiveMonitoring from '../pages/LiveMonitoring';
 import UploadDetection from '../pages/UploadDetection';
 import Violations from '../pages/Violations';
 import Evidence from '../pages/Evidence';
-import Analytics from '../pages/Analytics';
 import Settings from '../pages/Settings';
-import EmailLogs from '../pages/EmailLogs';
-import AICommandCenter from '../pages/AICommandCenter';
-import ConfidenceDashboard from '../pages/ConfidenceDashboard';
-import AIDecisionEngine from '../pages/AIDecisionEngine';
 import ReplayCenter from '../pages/ReplayCenter';
 import EvidenceLocker from '../pages/EvidenceLocker';
 import CameraManagement from '../pages/CameraManagement';
@@ -36,12 +31,7 @@ export default function AppRoutes() {
       <Route path="/reports" element={<Reports />} />
       <Route path="/model-verification" element={<ModelVerification />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/analytics" element={<Analytics />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="/email-logs" element={<EmailLogs />} />
-      <Route path="/ai-command-center" element={<AICommandCenter />} />
-      <Route path="/confidence-dashboard" element={<ConfidenceDashboard />} />
-      <Route path="/ai-decision-engine" element={<AIDecisionEngine />} />
       <Route path="/replay-center" element={<ReplayCenter />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

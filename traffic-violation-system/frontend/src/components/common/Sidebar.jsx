@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu, Activity, GitPullRequest, Video, FileText } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, BarChart3, Settings, Mail, Cpu, Activity, GitPullRequest, Video, FileText, ShieldCheck } from 'lucide-react';
 
 export default function Sidebar() {
   const menuItems = [
@@ -11,6 +11,7 @@ export default function Sidebar() {
     { path: '/violations', label: 'Violations', icon: AlertOctagon },
     { path: '/evidence-locker', label: 'Evidence Locker', icon: FileVideo },
     { path: '/ai-statistics', label: 'AI Statistics', icon: Activity },
+    { path: '/model-verification', label: 'AI Verification', icon: ShieldCheck },
     { path: '/reports', label: 'Reports Center', icon: FileText },
     { path: '/analytics', label: 'Analytics Insights', icon: BarChart3 },
     { path: '/ai-command-center', label: 'AI Command Center', icon: Cpu },

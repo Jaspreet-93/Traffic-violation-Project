@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, Cpu, Activity, Video, FileText, ShieldCheck, User, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, Settings, Cpu, Activity, Video, FileText, ShieldCheck, User, LogOut, X } from 'lucide-react';
 
 const translations = {
   en: {

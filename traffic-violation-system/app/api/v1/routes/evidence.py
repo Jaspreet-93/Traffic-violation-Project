@@ -88,7 +88,7 @@ def download_evidence(id: int):
     path = DownloadService.get_download_path(res["image_path"])
     if not os.path.exists(path):
         # Fallback to standard placeholder file
-        placeholder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "processed_snapshot_mock1.jpg"))
+        placeholder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads", "processed_snapshot_mock1.jpg"))
         if os.path.exists(placeholder):
             return FileResponse(placeholder, media_type="application/octet-stream", filename=f"evidence_{id}.jpg")
         raise HTTPException(
@@ -111,7 +111,7 @@ def preview_evidence(id: int):
         
     path = DownloadService.get_download_path(res["image_path"])
     if not os.path.exists(path):
-        placeholder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "processed_snapshot_mock1.jpg"))
+        placeholder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads", "processed_snapshot_mock1.jpg"))
         if os.path.exists(placeholder):
             return FileResponse(placeholder, media_type="image/jpeg")
         raise HTTPException(

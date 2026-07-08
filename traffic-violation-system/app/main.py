@@ -58,3 +58,8 @@ import os
 outputs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "outputs"))
 os.makedirs(outputs_dir, exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
+
+# Mount uploads folder statically to serve uploaded snapshots/videos
+uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads"))
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")

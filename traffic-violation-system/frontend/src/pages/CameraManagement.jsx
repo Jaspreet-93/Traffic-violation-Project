@@ -3,7 +3,6 @@ import { cameraAPI } from '../services/cameraApi';
 import CameraCard from '../components/camera/CameraCard';
 import CameraStatus from '../components/camera/CameraStatus';
 import CameraHealth from '../components/camera/CameraHealth';
-import CameraTable from '../components/camera/CameraTable';
 import { Plus } from 'lucide-react';
 
 export default function CameraManagement() {
@@ -110,13 +109,13 @@ export default function CameraManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
-          <CameraTable items={cameras} onSelect={handleSelect} />
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {cameras.map((c) => (
               <CameraCard
                 key={c.id}
                 item={c}
+                isActive={c.id === activeId}
+                onSelect={handleSelect}
                 onToggle={handleToggleRec}
                 onDelete={handleDelete}
               />

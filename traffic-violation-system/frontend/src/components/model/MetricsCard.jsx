@@ -34,7 +34,7 @@ export default function MetricsCard({ metrics }) {
             <span className={`font-mono ${
               item.highlight ? 'text-purple-400 font-bold' : 'text-slate-300'
             }`}>
-              {item.isFloat ? item.value.toFixed(2) : item.value}
+              {item.isFloat && typeof item.value === 'number' ? item.value.toFixed(2) : (item.value ?? 'N/A')}
             </span>
           </div>
         ))}

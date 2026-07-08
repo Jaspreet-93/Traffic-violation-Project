@@ -32,6 +32,9 @@ class MetricsResponse(BaseModel):
     memory_usage_mb: float
     gpu_usage_pct: float
     cpu_usage_pct: float
+    r2_score: float
+    mean_squared_error: float
+    mean_absolute_error: float
 
 class DatasetResponse(BaseModel):
     dataset_name: str

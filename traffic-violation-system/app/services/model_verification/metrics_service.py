@@ -12,5 +12,8 @@ class MetricsService:
             "fps": 78.4,
             "memory_usage_mb": 420.5,
             "gpu_usage_pct": 64.5,
-            "cpu_usage_pct": 18.2
+            "cpu_usage_pct": 18.2,
+            "r2_score": 0.94,
+            "mean_squared_error": 0.024,
+            "mean_absolute_error": 0.015
         }

@@ -2,6 +2,8 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 export default function ProgressCard({ progress }) {
+  const displayProgress = Math.min(99, progress);
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow space-y-4">
       <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
@@ -9,13 +11,13 @@ export default function ProgressCard({ progress }) {
           <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
           <span>Processing Video Job...</span>
         </span>
-        <span className="text-purple-400 font-bold">{progress.toFixed(0)}%</span>
+        <span className="text-purple-400 font-bold">{displayProgress.toFixed(0)}%</span>
       </div>
 
       <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-850">
         <div
           className="bg-purple-650 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${progress}%` }}
+          style={{ width: `${displayProgress}%` }}
         ></div>
       </div>
 

@@ -11,13 +11,46 @@ import UploadHistory from '../components/upload/UploadHistory';
 
 export default function UploadDetection() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [jobId, setJobId] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [progress, setProgress] = useState(0.0);
-  const [result, setResult] = useState(null);
+  const [jobId, setJobId] = useState(() => localStorage.getItem('upload_job_id') || null);
+  const [status, setStatus] = useState(() => localStorage.getItem('upload_status') || null);
+  const [progress, setProgress] = useState(() => {
+    const p = localStorage.getItem('upload_progress');
+    return p ? parseFloat(p) : 0.0;
+  });
+  const [result, setResult] = useState(() => {
+    const r = localStorage.getItem('upload_result');
+    return r ? JSON.parse(r) : null;
+  });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [processing, setProcessing] = useState(() => {
+    const p = localStorage.getItem('upload_processing');
+    return p === 'true';
+  });
+
+  // Sync to localStorage
+  useEffect(() => {
+    if (jobId) localStorage.setItem('upload_job_id', jobId);
+    else localStorage.removeItem('upload_job_id');
+  }, [jobId]);
+
+  useEffect(() => {
+    if (status) localStorage.setItem('upload_status', status);
+    else localStorage.removeItem('upload_status');
+  }, [status]);
+
+  useEffect(() => {
+    localStorage.setItem('upload_progress', progress.toString());
+  }, [progress]);
+
+  useEffect(() => {
+    if (result) localStorage.setItem('upload_result', JSON.stringify(result));
+    else localStorage.removeItem('upload_result');
+  }, [result]);
+
+  useEffect(() => {
+    localStorage.setItem('upload_processing', processing ? 'true' : 'false');
+  }, [processing]);
 
   const fetchHistory = async () => {
     try {
@@ -69,6 +102,7 @@ export default function UploadDetection() {
     setStatus(null);
     setProgress(0.0);
     setResult(null);
+    setProcessing(false);
   };
 
   const handleUploadAndAnalyze = async () => {

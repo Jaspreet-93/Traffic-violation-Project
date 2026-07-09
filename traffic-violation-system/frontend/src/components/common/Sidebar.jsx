@@ -65,8 +65,6 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: '/upload-detection', label: t.uploadDetection, icon: Upload },
     { path: '/violations', label: t.violations, icon: AlertOctagon },
     { path: '/evidence-locker', label: t.evidenceLocker, icon: FileVideo },
-    { path: '/ai-statistics', label: t.aiStatistics, icon: Activity },
-    { path: '/model-verification', label: t.aiVerification, icon: ShieldCheck },
     { path: '/reports', label: t.reportsCenter, icon: FileText },
     { path: '/replay-center', label: t.replayCenter, icon: Video },
     { path: '/profile', label: t.profile, icon: User },

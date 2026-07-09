@@ -61,7 +61,8 @@ class UploadService:
         # Update existing or append new
         updated = False
         for idx, item in enumerate(history):
-            if item["job_id"] == job_id:
+            if item["filename"].lower() == filename.lower():
+                # Overwrite history entry so each filename appears only one time
                 history[idx] = entry
                 updated = True
                 break

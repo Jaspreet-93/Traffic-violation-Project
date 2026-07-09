@@ -45,22 +45,23 @@ class PipelineRunner:
                 if crop.size == 0:
                     continue
 
-                # 2. Downstream Detections (Helmet, Number Plate, Seat Belt, Behaviors)
-                # Helmet
-                try:
-                    helmets = helmet_detector.detect_helmets(crop)
-                    for h_det in helmets:
-                        # Map crop coordinates back to full image size coordinates
-                        bx = h_det["bbox"]
-                        results.append({
-                            "label": h_det["helmet_status"],
-                            "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
-                            "confidence": h_det["confidence"]
-                        })
-                except Exception as e:
-                    logger.debug(f"Helmet detection skipped for crop: {e}")
+                # 2. Downstream Detections based on vehicle type
+                # Helmet check ONLY for motorcycles
+                if cls_name == "motorcycle":
+                    try:
+                        helmets = helmet_detector.detect_helmets(crop)
+                        for h_det in helmets:
+                            # Map crop coordinates back to full image size coordinates
+                            bx = h_det["bbox"]
+                            results.append({
+                                "label": h_det["helmet_status"],
+                                "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
+                                "confidence": h_det["confidence"]
+                            })
+                    except Exception as e:
+                        logger.debug(f"Helmet detection skipped for motorcycle crop: {e}")
 
-                # Number Plate + OCR
+                # Number Plate + OCR check for all vehicles
                 try:
                     plates = plate_detector.detect_plates(crop)
                     for p_det in plates:
@@ -84,31 +85,31 @@ class PipelineRunner:
                 except Exception as e:
                     logger.debug(f"Plate detection skipped: {e}")
 
-                # Seat Belt
-                try:
-                    belts = seat_belt_detector.detect_seatbelt(crop)
-                    for b_det in belts:
-                        bx = b_det["bbox"]
-                        results.append({
-                            "label": b_det["seatbelt_status"],
-                            "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
-                            "confidence": b_det["confidence"]
-                        })
-                except Exception as e:
-                    logger.debug(f"Seatbelt detection skipped: {e}")
+                # Seat Belt & Driver Behavior checks ONLY for cars/trucks/buses
+                if cls_name in {"car", "truck", "bus"}:
+                    try:
+                        belts = seat_belt_detector.detect_seatbelt(crop)
+                        for b_det in belts:
+                            bx = b_det["bbox"]
+                            results.append({
+                                "label": b_det["seatbelt_status"],
+                                "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
+                                "confidence": b_det["confidence"]
+                            })
+                    except Exception as e:
+                        logger.debug(f"Seatbelt detection skipped: {e}")
 
-                # Driver Behavior
-                try:
-                    behaviors = behavior_detector.detect_behavior(crop)
-                    for b_det in behaviors:
-                        bx = b_det["bbox"]
-                        results.append({
-                            "label": b_det["behavior_status"],
-                            "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
-                            "confidence": b_det["confidence"]
-                        })
-                except Exception as e:
-                    logger.debug(f"Driver behavior detection skipped: {e}")
+                    try:
+                        behaviors = behavior_detector.detect_behavior(crop)
+                        for b_det in behaviors:
+                            bx = b_det["bbox"]
+                            results.append({
+                                "label": b_det["behavior_status"],
+                                "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
+                                "confidence": b_det["confidence"]
+                            })
+                    except Exception as e:
+                        logger.debug(f"Driver behavior detection skipped: {e}")
 
         except Exception as e:
             logger.error(f"Error in PipelineRunner execution: {e}")

@@ -10,9 +10,7 @@ import Settings from '../pages/Settings';
 import ReplayCenter from '../pages/ReplayCenter';
 import EvidenceLocker from '../pages/EvidenceLocker';
 import CameraManagement from '../pages/CameraManagement';
-import AIStatistics from '../pages/AIStatistics';
 import Reports from '../pages/Reports';
-import ModelVerification from '../pages/ModelVerification';
 import Profile from '../pages/Profile';
 
 export default function AppRoutes() {
@@ -27,9 +25,7 @@ export default function AppRoutes() {
       <Route path="/evidence" element={<Evidence />} />
       <Route path="/evidence-locker" element={<EvidenceLocker />} />
       <Route path="/camera-management" element={<CameraManagement />} />
-      <Route path="/ai-statistics" element={<AIStatistics />} />
       <Route path="/reports" element={<Reports />} />
-      <Route path="/model-verification" element={<ModelVerification />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/replay-center" element={<ReplayCenter />} />

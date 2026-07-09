@@ -30,10 +30,13 @@ export default function ReplayPlayer({
     }
   }, [speed, isPlaying, videoUrl]);
 
+  const isAutoSlowedRef = useRef(false);
+
   // Clear triggers when video is stopped or starts over
   useEffect(() => {
     if (!isPlaying && progress === 0) {
       triggeredRef.current.clear();
+      isAutoSlowedRef.current = false;
     }
   }, [isPlaying, progress]);
 
@@ -46,22 +49,31 @@ export default function ReplayPlayer({
 
       // Auto-slowdown feature when a violation is detected in timeline!
       if (timeline && timeline.length > 0) {
-        timeline.forEach(event => {
-          const diff = Math.abs(current - event.time_offset_sec);
-          // If we are within 0.25s of the event, and speed is normal (>= 1.0x), auto-slowdown!
-          if (diff < 0.25 && speed >= 1.0) {
-            // Check if we already triggered slowdown for this offset recently
-            if (!triggeredRef.current.has(event.time_offset_sec)) {
-              triggeredRef.current.add(event.time_offset_sec);
-              if (onSpeedChange) {
-                onSpeedChange(0.25); // Slow down to 0.25x
-              }
-              // Show notification toast
-              setSlowToast(`⚠️ Auto-Slowing (0.25x): Violation Detected!`);
-              setTimeout(() => setSlowToast(null), 3000);
+        // Find if there is any violation event currently active (within 1.2s of playback head)
+        const activeEvent = timeline.find(event => Math.abs(current - event.time_offset_sec) < 1.2);
+
+        if (activeEvent) {
+          // If a violation is active and speed is normal, slow down!
+          if (speed >= 1.0 && !triggeredRef.current.has(activeEvent.time_offset_sec)) {
+            triggeredRef.current.add(activeEvent.time_offset_sec);
+            isAutoSlowedRef.current = true;
+            if (onSpeedChange) {
+              onSpeedChange(0.25); // Slow down to 0.25x
             }
+            setSlowToast(`⚠️ Auto-Slowing (0.25x): Violation Detected!`);
+            setTimeout(() => setSlowToast(null), 3000);
           }
-        });
+        } else {
+          // If no violation is active, but we were auto-slowed, automatically restore to normal speed!
+          if (isAutoSlowedRef.current) {
+            isAutoSlowedRef.current = false;
+            if (onSpeedChange) {
+              onSpeedChange(1.0); // Restore to 1.0x
+            }
+            setSlowToast(`✅ Restoring Normal Speed (1.0x)`);
+            setTimeout(() => setSlowToast(null), 2000);
+          }
+        }
       }
     }
   };

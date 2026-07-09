@@ -58,10 +58,10 @@ class VideoDetector:
                 if not ret or frame is None:
                     break
 
-                # Process every 5th frame for speed or every frame
-                # Let's process every 5th frame to run extremely fast in tests and runtime, while keeping tracking active
+                # Process every 15th frame for speed
+                # Let's process every 15th frame to run extremely fast on CPU
                 detections = []
-                if frame_idx % 5 == 0:
+                if frame_idx % 15 == 0:
                     detections = PipelineRunner.process_media_frame(frame)
                     all_detections.extend(detections)
 

@@ -11,11 +11,7 @@ export default function DetectionResult({ result }) {
   const processedUrl = result.evidence.processed_file_url || '';
   const activeUrl = useOriginal ? originalUrl : processedUrl;
 
-  // Filter out violation labels from the objects list as requested
-  const violationLabels = ['no helmet', 'no seatbelt', 'no seat belt', 'phone usage', 'smoking', 'distracted', 'phone', 'behavior'];
-  const filteredObjects = (result.objects || []).filter(
-    (obj) => !violationLabels.includes(obj.label.toLowerCase())
-  );
+
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg space-y-4 p-5">
@@ -76,10 +72,10 @@ export default function DetectionResult({ result }) {
         <div className="space-y-4">
           <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Detected Objects & Classes</span>
           <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-            {filteredObjects.length === 0 ? (
+            {(!result.objects || result.objects.length === 0) ? (
               <div className="text-slate-550 text-xs text-center py-12">No objects detected.</div>
             ) : (
-              filteredObjects.map((obj, idx) => (
+              result.objects.map((obj, idx) => (
                 <div key={idx} className="bg-slate-955 border border-slate-850 p-2.5 rounded-lg flex justify-between items-center text-xs font-bold">
                   <span className="text-purple-400 capitalize">{obj.label}</span>
                   <span className="text-slate-250 font-mono">{(obj.confidence * 100).toFixed(0)}%</span>

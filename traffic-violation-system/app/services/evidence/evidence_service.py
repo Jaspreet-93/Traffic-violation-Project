@@ -6,6 +6,8 @@ from app.database.models.evidence import Evidence
 from app.services.evidence.evidence_capture import evidence_capture
 from app.core.logger import logger
 
+fallback_evidence_cache = []
+
 class EvidenceService:
     def __init__(self):
         pass
@@ -84,13 +86,13 @@ class EvidenceService:
         except Exception as e:
             logger.error(f"Error querying all evidence, returning fallbacks: {e}")
             now = datetime.now()
-            return [
+            default_items = [
                 {
                     "evidence_id": 1,
                     "violation_id": 101,
                     "vehicle_id": 201,
                     "plate_number": "MH12DE1432",
-                    "violation": "Vehicle Detection",
+                    "violation": "No Helmet",
                     "image_path": "/uploads/processed_snapshot_mock1.jpg",
                     "video_path": "/uploads/processed_video_mock1.mp4",
                     "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
@@ -100,12 +102,13 @@ class EvidenceService:
                     "violation_id": 102,
                     "vehicle_id": 202,
                     "plate_number": "DL3CAN4839",
-                    "violation": "Vehicle Detection",
+                    "violation": "No Seat Belt",
                     "image_path": "/uploads/processed_snapshot_mock2.jpg",
                     "video_path": "/uploads/processed_video_mock2.mp4",
                     "timestamp": (now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                 }
             ]
+            return default_items + fallback_evidence_cache
         finally:
             db.close()
 
@@ -130,13 +133,17 @@ class EvidenceService:
             }
         except Exception as e:
             logger.error(f"Error querying evidence for violation {violation_id}: {e}")
+            # Search cache
+            for item in fallback_evidence_cache:
+                if item["violation_id"] == violation_id:
+                    return item
             # Mock fallback
             return {
                 "evidence_id": violation_id,
                 "violation_id": violation_id,
                 "vehicle_id": 100 + violation_id,
                 "plate_number": "MH12DE1432",
-                "violation": "Vehicle Detection",
+                "violation": "No Helmet",
                 "image_path": "/uploads/processed_snapshot_mock1.jpg",
                 "video_path": "/uploads/video_mock.avi",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -165,13 +172,17 @@ class EvidenceService:
             }
         except Exception as e:
             logger.error(f"Error querying evidence by ID {evidence_id}: {e}")
+            # Search cache
+            for item in fallback_evidence_cache:
+                if item["evidence_id"] == evidence_id:
+                    return item
             # Mock fallback
             return {
                 "evidence_id": evidence_id,
                 "violation_id": 101,
                 "vehicle_id": 102,
                 "plate_number": "MH12DE1432",
-                "violation": "Vehicle Detection",
+                "violation": "No Helmet",
                 "image_path": "/uploads/processed_snapshot_mock1.jpg",
                 "video_path": "/uploads/video_mock.avi",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -197,5 +208,11 @@ class EvidenceService:
             return True # Return true on fallback to allow mock list cleanup to proceed
         finally:
             db.close()
+
+    def add_fallback_evidence(self, item: dict):
+        """
+        Dynamically adds an evidence record to the local in-memory fallback cache.
+        """
+        fallback_evidence_cache.append(item)
 
 evidence_service = EvidenceService()

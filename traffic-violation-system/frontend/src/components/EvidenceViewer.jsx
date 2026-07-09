@@ -102,7 +102,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
               </div>
 
               {/* Meta details list */}
-              <div className="bg-slate-955/50 border border-slate-850 rounded-xl p-4 grid grid-cols-3 gap-4 text-xs text-slate-455">
+              <div className="bg-slate-955/50 border border-slate-850 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-455">
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Vehicle ID</span>
                   <span className="font-semibold text-slate-350">{evidence.vehicle_id || '99'}</span>
@@ -110,6 +110,10 @@ export default function EvidenceViewer({ violationId, onClose }) {
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Plate Number</span>
                   <span className="font-semibold text-slate-350">{evidence.plate_number || 'PB10AB1234'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Violation Type</span>
+                  <span className="font-semibold text-slate-350">{evidence.violation || 'No Helmet'}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Capture Time</span>

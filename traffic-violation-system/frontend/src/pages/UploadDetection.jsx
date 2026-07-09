@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uploadDetectionAPI } from '../services/uploadDetectionApi';
+import { useUpload } from '../context/UploadContext';
 import UploadArea from '../components/upload/UploadArea';
 import ImagePreview from '../components/upload/ImagePreview';
 import VideoPreview from '../components/upload/VideoPreview';
@@ -10,47 +11,19 @@ import DownloadCard from '../components/upload/DownloadCard';
 import UploadHistory from '../components/upload/UploadHistory';
 
 export default function UploadDetection() {
+  const {
+    jobId, setJobId,
+    status, setStatus,
+    progress,
+    result, setResult,
+    processing, setProcessing,
+    loading,
+    uploadAndAnalyze,
+    clearUploadState
+  } = useUpload();
+
   const [selectedFile, setSelectedFile] = useState(null);
-  const [jobId, setJobId] = useState(() => localStorage.getItem('upload_job_id') || null);
-  const [status, setStatus] = useState(() => localStorage.getItem('upload_status') || null);
-  const [progress, setProgress] = useState(() => {
-    const p = localStorage.getItem('upload_progress');
-    return p ? parseFloat(p) : 0.0;
-  });
-  const [result, setResult] = useState(() => {
-    const r = localStorage.getItem('upload_result');
-    return r ? JSON.parse(r) : null;
-  });
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(() => {
-    const p = localStorage.getItem('upload_processing');
-    return p === 'true';
-  });
-
-  // Sync to localStorage
-  useEffect(() => {
-    if (jobId) localStorage.setItem('upload_job_id', jobId);
-    else localStorage.removeItem('upload_job_id');
-  }, [jobId]);
-
-  useEffect(() => {
-    if (status) localStorage.setItem('upload_status', status);
-    else localStorage.removeItem('upload_status');
-  }, [status]);
-
-  useEffect(() => {
-    localStorage.setItem('upload_progress', progress.toString());
-  }, [progress]);
-
-  useEffect(() => {
-    if (result) localStorage.setItem('upload_result', JSON.stringify(result));
-    else localStorage.removeItem('upload_result');
-  }, [result]);
-
-  useEffect(() => {
-    localStorage.setItem('upload_processing', processing ? 'true' : 'false');
-  }, [processing]);
 
   const fetchHistory = async () => {
     try {
@@ -65,79 +38,15 @@ export default function UploadDetection() {
     fetchHistory();
   }, []);
 
-  // Poll video status
-  useEffect(() => {
-    if (!jobId || status !== 'Processing') return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await uploadDetectionAPI.getStatus(jobId);
-        setProgress(res.data.progress);
-        if (res.data.status === 'Completed') {
-          setStatus('Completed');
-          setProcessing(false);
-          clearInterval(interval);
-          // Fetch results
-          const resRes = await uploadDetectionAPI.getResult(jobId);
-          setResult(resRes.data);
-          fetchHistory();
-        } else if (res.data.status === 'Failed') {
-          setStatus('Failed');
-          setProcessing(false);
-          clearInterval(interval);
-          fetchHistory();
-        }
-      } catch (err) {
-        console.error("Error polling job status:", err);
-        clearInterval(interval);
-      }
-    }, 1500);
-
-    return () => clearInterval(interval);
-  }, [jobId, status]);
-
   const handleFileSelected = (file) => {
     setSelectedFile(file);
-    setJobId(null);
-    setStatus(null);
-    setProgress(0.0);
-    setResult(null);
-    setProcessing(false);
+    clearUploadState();
   };
 
   const handleUploadAndAnalyze = async () => {
     if (!selectedFile) return;
-    setLoading(true);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    const name = selectedFile.name.toLowerCase();
-    const isVideo = ['.mp4', '.avi', '.mov', '.mkv'].some(ext => name.endsWith(ext));
-
-    try {
-      let res;
-      if (isVideo) {
-        res = await uploadDetectionAPI.uploadVideo(formData);
-        setJobId(res.data.job_id);
-        setStatus('Processing');
-        setProcessing(true);
-      } else {
-        res = await uploadDetectionAPI.uploadImage(formData);
-        const jId = res.data.job_id;
-        setJobId(jId);
-        setStatus('Completed');
-        // Fetch results
-        const resRes = await uploadDetectionAPI.getResult(jId);
-        setResult(resRes.data);
-        fetchHistory();
-      }
-    } catch (err) {
-      console.error("Upload fail:", err);
-    } finally {
-      setLoading(false);
-    }
+    await uploadAndAnalyze(selectedFile);
+    fetchHistory();
   };
 
   const handleViewResult = async (jId) => {
@@ -147,6 +56,7 @@ export default function UploadDetection() {
       setJobId(jId);
       setStatus('Completed');
       setSelectedFile(null);
+      setProcessing(false);
     } catch (err) {
       console.error("View result fail:", err);
     }
@@ -156,9 +66,7 @@ export default function UploadDetection() {
     try {
       await uploadDetectionAPI.deleteHistory(jId);
       if (jobId === jId) {
-        setResult(null);
-        setJobId(null);
-        setStatus(null);
+        clearUploadState();
       }
       fetchHistory();
     } catch (err) {

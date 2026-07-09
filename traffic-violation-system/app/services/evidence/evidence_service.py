@@ -90,7 +90,7 @@ class EvidenceService:
                     "violation_id": 101,
                     "vehicle_id": 201,
                     "plate_number": "MH12DE1432",
-                    "violation": "No Helmet",
+                    "violation": "Vehicle Detection",
                     "image_path": "/uploads/processed_snapshot_mock1.jpg",
                     "video_path": "/uploads/processed_video_mock1.mp4",
                     "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
@@ -100,7 +100,7 @@ class EvidenceService:
                     "violation_id": 102,
                     "vehicle_id": 202,
                     "plate_number": "DL3CAN4839",
-                    "violation": "No Seat Belt",
+                    "violation": "Vehicle Detection",
                     "image_path": "/uploads/processed_snapshot_mock2.jpg",
                     "video_path": "/uploads/processed_video_mock2.mp4",
                     "timestamp": (now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
@@ -136,8 +136,8 @@ class EvidenceService:
                 "violation_id": violation_id,
                 "vehicle_id": 100 + violation_id,
                 "plate_number": "MH12DE1432",
-                "violation": "No Helmet",
-                "image_path": "/uploads/snapshot_mock.jpg",
+                "violation": "Vehicle Detection",
+                "image_path": "/uploads/processed_snapshot_mock1.jpg",
                 "video_path": "/uploads/video_mock.avi",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
@@ -171,8 +171,8 @@ class EvidenceService:
                 "violation_id": 101,
                 "vehicle_id": 102,
                 "plate_number": "MH12DE1432",
-                "violation": "No Helmet",
-                "image_path": "/uploads/snapshot_mock.jpg",
+                "violation": "Vehicle Detection",
+                "image_path": "/uploads/processed_snapshot_mock1.jpg",
                 "video_path": "/uploads/video_mock.avi",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }

@@ -48,47 +48,28 @@ export default function DetectionResult({ result }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Media Canvas (2 cols) */}
-        <div className="md:col-span-2 space-y-4">
-          <div className="rounded-lg overflow-hidden border border-slate-850 bg-slate-955 flex flex-col items-center justify-center min-h-[300px] relative">
-            {isVideo ? (
-              <video
-                key={activeUrl}
-                src={activeUrl}
-                controls
-                autoPlay
-                muted
-                className="w-full object-contain max-h-[400px]"
-              />
-            ) : (
-              <img
-                src={activeUrl}
-                alt="annotated-output"
-                className="w-full object-contain max-h-[400px]"
-              />
-            )}
-
-            <div className="absolute top-3 left-3 bg-slate-950/80 border border-slate-850 text-slate-300 text-[9px] font-bold px-2 py-0.5 rounded flex items-center space-x-1">
-              {isVideo ? <Film className="w-3 h-3 text-purple-400" /> : <Image className="w-3 h-3 text-purple-400" />}
-              <span>{useOriginal ? 'Original Video Stream' : 'AI Processed Overlay'}</span>
-            </div>
-          </div>
-
-          {/* Captured Violation Proof Snapshot */}
-          {isVideo && result.evidence.snapshot_url && (
-            <div className="bg-slate-950 border border-slate-850 p-4 rounded-lg space-y-2">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block flex items-center space-x-1.5">
-                <Eye className="w-3.5 h-3.5 text-purple-400" />
-                <span>Captured Violation Proof Screenshot</span>
-              </span>
-              <div className="rounded overflow-hidden border border-slate-850 bg-slate-955 flex justify-center max-h-[220px]">
-                <img
-                  src={result.evidence.snapshot_url}
-                  alt="violation-proof"
-                  className="w-full object-contain max-h-[220px]"
-                />
-              </div>
-            </div>
+        <div className="md:col-span-2 rounded-lg overflow-hidden border border-slate-850 bg-slate-955 flex flex-col items-center justify-center min-h-[300px] relative">
+          {isVideo ? (
+            <video
+              key={activeUrl}
+              src={activeUrl}
+              controls
+              autoPlay
+              muted
+              className="w-full object-contain max-h-[400px]"
+            />
+          ) : (
+            <img
+              src={activeUrl}
+              alt="annotated-output"
+              className="w-full object-contain max-h-[400px]"
+            />
           )}
+
+          <div className="absolute top-3 left-3 bg-slate-950/80 border border-slate-850 text-slate-300 text-[9px] font-bold px-2 py-0.5 rounded flex items-center space-x-1">
+            {isVideo ? <Film className="w-3 h-3 text-purple-400" /> : <Image className="w-3 h-3 text-purple-400" />}
+            <span>{useOriginal ? 'Original Video Stream' : 'AI Processed Overlay'}</span>
+          </div>
         </div>
 
         {/* Bboxes Audit Log (1 col) */}
@@ -99,7 +80,7 @@ export default function DetectionResult({ result }) {
               <div className="text-slate-550 text-xs text-center py-12">No objects detected.</div>
             ) : (
               filteredObjects.map((obj, idx) => (
-                <div key={idx} className="bg-slate-955 border border-slate-850 p-2.5 rounded-lg flex justify-between items-center text-xs font-semibold">
+                <div key={idx} className="bg-slate-955 border border-slate-850 p-2.5 rounded-lg flex justify-between items-center text-xs font-bold">
                   <span className="text-purple-400 capitalize">{obj.label}</span>
                   <span className="text-slate-250 font-mono">{(obj.confidence * 100).toFixed(0)}%</span>
                 </div>

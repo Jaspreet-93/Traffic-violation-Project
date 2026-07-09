@@ -16,7 +16,7 @@ class ReplayService:
                 results.append({
                     "violation_id": item["job_id"],
                     "filename": item["filename"],
-                    "violation_type": "No Helmet",
+                    "violation_type": "Vehicle Detection",
                     "timestamp": item["upload_date"],
                     "duration_sec": 15.0
                 })
@@ -27,14 +27,14 @@ class ReplayService:
             results.append({
                 "violation_id": "violation-mock-1",
                 "filename": "camera_feed_intersection_12.mp4",
-                "violation_type": "No Helmet",
+                "violation_type": "Vehicle Detection",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "duration_sec": 24.5
             })
             results.append({
                 "violation_id": "violation-mock-2",
                 "filename": "highway_monitoring_clip.mp4",
-                "violation_type": "No Seat Belt",
+                "violation_type": "Vehicle Detection",
                 "timestamp": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
                 "duration_sec": 18.0
             })

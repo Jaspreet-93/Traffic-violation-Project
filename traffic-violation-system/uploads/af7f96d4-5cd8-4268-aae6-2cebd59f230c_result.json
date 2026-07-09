@@ -1,0 +1,25 @@
+{
+  "job_id": "af7f96d4-5cd8-4268-aae6-2cebd59f230c",
+  "filename": "snapshot.jpg",
+  "file_type": "image",
+  "objects": [
+    {
+      "label": "motorcycle",
+      "confidence": 0.94,
+      "bbox": [120, 200, 340, 580]
+    },
+    {
+      "label": "no helmet",
+      "confidence": 0.89,
+      "bbox": [180, 80, 290, 190]
+    }
+  ],
+  "evidence": {
+    "violations_count": 1,
+    "vehicles_count": 1,
+    "processing_time_sec": 4.19,
+    "frame_count": 1,
+    "processed_file_url": "/uploads/processed_snapshot_mock1.jpg",
+    "summary_text": "Detected 1 vehicle and 1 violation in 4.19 seconds."
+  }
+}

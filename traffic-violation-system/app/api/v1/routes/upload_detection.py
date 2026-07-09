@@ -39,7 +39,7 @@ async def upload_image(file: UploadFile = File(...)):
     # 4. Process image detection sync
     try:
         result = ImageDetector.process_image(filepath, job_id)
-        results_registry[job_id] = result
+        ResultGenerator.save_job_result(job_id, result)
         
         # Save history entry
         summary_text = result["evidence"]["summary_text"]

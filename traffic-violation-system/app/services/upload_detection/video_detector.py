@@ -65,9 +65,6 @@ class VideoDetector:
                     detections = PipelineRunner.process_media_frame(frame)
                     all_detections.extend(detections)
 
-                # Draw bboxes onto this frame
-                MediaProcessor.draw_bounding_boxes(filepath, out_path, detections) # draws boxes
-                # Wait, draw_bounding_boxes loads file, draws and writes. Let's draw in memory instead to be super fast!
                 # We can draw directly on `frame` in memory and write to `out`:
                 colors = {"car": (170, 59, 255), "motorcycle": (99, 102, 241), "helmet": (16, 185, 129), "no helmet": (244, 63, 94)}
                 for det in detections:
@@ -101,8 +98,8 @@ class VideoDetector:
 
         summary_text = f"Analyzed {frame_idx} frames. Detected {vehicles} vehicles and {violations} violations."
 
-        # Cache results in registry
-        results_registry[job_id] = {
+        # Cache results in registry persistently
+        result_dict = {
             "job_id": job_id,
             "filename": file_name,
             "file_type": "video",
@@ -116,6 +113,9 @@ class VideoDetector:
                 "summary_text": summary_text
             }
         }
+
+        from app.services.upload_detection.result_generator import ResultGenerator
+        ResultGenerator.save_job_result(job_id, result_dict)
 
         # Save to history log
         UploadService.add_history_entry(job_id, file_name, "video", "Completed", summary_text)

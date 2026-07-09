@@ -52,6 +52,8 @@ class VideoDetector:
 
         all_detections = []
         frame_idx = 0
+        fallback_frame = None
+        saved_snapshot = False
 
         try:
             while cap.isOpened():
@@ -59,11 +61,36 @@ class VideoDetector:
                 if not ret or frame is None:
                     break
 
+                if fallback_frame is None:
+                    fallback_frame = frame.copy()
+
                 # Process dynamically scaled frames for speed
                 detections = []
                 if frame_idx % step == 0:
                     detections = PipelineRunner.process_media_frame(frame)
                     all_detections.extend(detections)
+
+                    # Capture violation screenshot if any violation is found in this frame
+                    has_violation = any(
+                        "no helmet" in d["label"] or "no seat belt" in d["label"] or "phone" in d["label"] or "distracted" in d["label"]
+                        for d in detections
+                    )
+                    if has_violation and not saved_snapshot:
+                        snapshot_name = f"snapshot_{job_id}.jpg"
+                        snapshot_path = os.path.join(os.path.dirname(filepath), snapshot_name)
+
+                        # Annotate the screenshot with bounding boxes
+                        colors = {"car": (170, 59, 255), "motorcycle": (99, 102, 241), "helmet": (16, 185, 129), "no helmet": (244, 63, 94)}
+                        annotated_frame = frame.copy()
+                        for det in detections:
+                            bx = det.get("bbox")
+                            if bx and len(bx) == 4:
+                                cv2.rectangle(annotated_frame, (bx[0], bx[1]), (bx[2], bx[3]), colors.get(det["label"], (99, 102, 241)), 2)
+                                text = f"{det['label']} {det.get('confidence', 1.0)*100:.0f}%"
+                                cv2.putText(annotated_frame, text, (bx[0], max(15, bx[1] - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, colors.get(det["label"], (99, 102, 241)), 1, cv2.LINE_AA)
+
+                        cv2.imwrite(snapshot_path, annotated_frame)
+                        saved_snapshot = True
 
                 # We can draw directly on `frame` in memory and write to `out`:
                 colors = {"car": (170, 59, 255), "motorcycle": (99, 102, 241), "helmet": (16, 185, 129), "no helmet": (244, 63, 94)}
@@ -78,6 +105,12 @@ class VideoDetector:
                 # Update progress
                 progress = min(99.0, (frame_idx / total_frames) * 100.0)
                 jobs_registry[job_id]["progress"] = round(progress, 1)
+
+            # Write fallback frame snapshot if no violation was captured
+            if not saved_snapshot and fallback_frame is not None:
+                snapshot_name = f"snapshot_{job_id}.jpg"
+                snapshot_path = os.path.join(os.path.dirname(filepath), snapshot_name)
+                cv2.imwrite(snapshot_path, fallback_frame)
 
         except Exception as e:
             logger.error(f"Error in video processing worker thread: {e}")
@@ -110,6 +143,7 @@ class VideoDetector:
                 "processing_time_sec": round(elapsed, 2),
                 "frame_count": frame_idx,
                 "processed_file_url": f"/uploads/{out_name}",
+                "snapshot_url": f"/uploads/snapshot_{job_id}.jpg",
                 "summary_text": summary_text
             }
         }

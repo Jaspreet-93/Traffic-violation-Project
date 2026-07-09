@@ -45,6 +45,7 @@ class VideoDetector:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+        step = max(15, total_frames // 100) # process max 100 frames to run fast even on large videos
 
         fourcc = cv2.VideoWriter_fourcc(*'mp4v') # standard mp4 output
         out = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
@@ -58,10 +59,9 @@ class VideoDetector:
                 if not ret or frame is None:
                     break
 
-                # Process every 15th frame for speed
-                # Let's process every 15th frame to run extremely fast on CPU
+                # Process dynamically scaled frames for speed
                 detections = []
-                if frame_idx % 15 == 0:
+                if frame_idx % step == 0:
                     detections = PipelineRunner.process_media_frame(frame)
                     all_detections.extend(detections)
 

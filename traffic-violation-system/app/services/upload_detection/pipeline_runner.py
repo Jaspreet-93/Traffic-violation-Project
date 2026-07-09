@@ -78,7 +78,7 @@ class PipelineRunner:
                                 pass
                                 
                         results.append({
-                            "label": f"license plate ({ocr_text})",
+                            "label": "license plate",
                             "bbox": [x1 + bx[0], y1 + bx[1], x1 + bx[2], y1 + bx[3]],
                             "confidence": ocr_conf
                         })

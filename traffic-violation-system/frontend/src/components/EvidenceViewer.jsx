@@ -33,10 +33,10 @@ export default function EvidenceViewer({ violationId, onClose }) {
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="bg-slate-950 px-6 py-4 border-b border-slate-850 flex items-center justify-between">
+        <div className="bg-slate-955 px-6 py-4 border-b border-slate-850 flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-lg text-slate-100">Infraction Evidence Review</h3>
-            <span className="text-xs text-slate-500">Violation ID: #{violationId}</span>
+            <h3 className="font-bold text-lg text-slate-100">Media Evidence Review</h3>
+            <span className="text-xs text-slate-500">Record ID: #{violationId}</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-850 transition-colors">
             <X className="w-5 h-5" />
@@ -61,13 +61,13 @@ export default function EvidenceViewer({ violationId, onClose }) {
               <div className="bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex-1 min-h-[250px] flex items-center justify-center relative">
                 {activeMode === 'image' ? (
                   <img
-                    src={`/${evidence.image_path}`}
+                    src={evidence.image_path}
                     alt="Infraction snapshot"
                     className="w-full h-full object-contain max-h-[400px]"
                   />
                 ) : (
                   <video
-                    src={`/${evidence.video_path}`}
+                    src={evidence.video_path}
                     controls
                     autoPlay
                     className="w-full h-full object-contain max-h-[400px]"
@@ -102,7 +102,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
               </div>
 
               {/* Meta details list */}
-              <div className="bg-slate-950/50 border border-slate-850 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-450">
+              <div className="bg-slate-955/50 border border-slate-850 rounded-xl p-4 grid grid-cols-3 gap-4 text-xs text-slate-455">
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Vehicle ID</span>
                   <span className="font-semibold text-slate-350">{evidence.vehicle_id || '99'}</span>
@@ -110,10 +110,6 @@ export default function EvidenceViewer({ violationId, onClose }) {
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Plate Number</span>
                   <span className="font-semibold text-slate-350">{evidence.plate_number || 'PB10AB1234'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Violation Type</span>
-                  <span className="font-semibold text-slate-350">{evidence.violation}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Capture Time</span>

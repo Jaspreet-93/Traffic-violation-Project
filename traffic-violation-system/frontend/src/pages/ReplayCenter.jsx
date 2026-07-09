@@ -73,6 +73,12 @@ export default function ReplayCenter() {
     setProgress(0.0);
   };
 
+  const handleEventClick = (timeOffset) => {
+    const pct = (timeOffset / 15.0) * 100;
+    setProgress(pct);
+    setIsPlaying(true);
+  };
+
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
       {/* Header */}
@@ -89,6 +95,7 @@ export default function ReplayCenter() {
             speed={speed}
             isPlaying={isPlaying}
             progress={progress}
+            timeline={timeline}
             onProgressUpdate={setProgress}
             onTogglePlay={handleTogglePlay}
             onStop={handleStop}
@@ -129,6 +136,7 @@ export default function ReplayCenter() {
             timeline={timeline}
             frame={frame}
             currentTimeOffset={(progress / 100) * 15.0}
+            onEventClick={handleEventClick}
           />
         </div>
       </div>

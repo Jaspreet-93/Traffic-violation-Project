@@ -6,6 +6,7 @@ export default function ReplayPlayer({
   speed = 1.0,
   isPlaying = false,
   progress = 0.0,
+  timeline = [],
   onProgressUpdate,
   onTogglePlay,
   onStop,
@@ -15,6 +16,8 @@ export default function ReplayPlayer({
 }) {
   const videoRef = useRef(null);
   const [useProcessed, setUseProcessed] = useState(true);
+  const triggeredRef = useRef(new Set());
+  const [slowToast, setSlowToast] = useState(null);
 
   // Sync speed and play state
   useEffect(() => {
@@ -27,12 +30,39 @@ export default function ReplayPlayer({
     }
   }, [speed, isPlaying, videoUrl]);
 
+  // Clear triggers when video is stopped or starts over
+  useEffect(() => {
+    if (!isPlaying && progress === 0) {
+      triggeredRef.current.clear();
+    }
+  }, [isPlaying, progress]);
+
   // Handle video element timeupdate to update progress bar
   const handleTimeUpdate = () => {
     if (videoRef.current && onProgressUpdate) {
       const current = videoRef.current.currentTime;
       const duration = videoRef.current.duration || 1.0;
       onProgressUpdate((current / duration) * 100);
+
+      // Auto-slowdown feature when a violation is detected in timeline!
+      if (timeline && timeline.length > 0) {
+        timeline.forEach(event => {
+          const diff = Math.abs(current - event.time_offset_sec);
+          // If we are within 0.25s of the event, and speed is normal (>= 1.0x), auto-slowdown!
+          if (diff < 0.25 && speed >= 1.0) {
+            // Check if we already triggered slowdown for this offset recently
+            if (!triggeredRef.current.has(event.time_offset_sec)) {
+              triggeredRef.current.add(event.time_offset_sec);
+              if (onSpeedChange) {
+                onSpeedChange(0.25); // Slow down to 0.25x
+              }
+              // Show notification toast
+              setSlowToast(`⚠️ Auto-Slowing (0.25x): Violation Detected!`);
+              setTimeout(() => setSlowToast(null), 3000);
+            }
+          }
+        });
+      }
     }
   };
 
@@ -90,6 +120,11 @@ export default function ReplayPlayer({
           <div className="absolute top-3 left-3 bg-rose-500/10 border border-rose-500/20 text-rose-450 text-[9px] font-bold px-2 py-0.5 rounded flex items-center space-x-1">
             <ShieldAlert className="w-3 h-3 animate-pulse" />
             <span>AI Bounding Boxes Active</span>
+          </div>
+        )}
+        {slowToast && (
+          <div className="absolute bottom-3 left-3 bg-purple-650/90 border border-purple-550 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg flex items-center space-x-1.5 animate-bounce">
+            <span>{slowToast}</span>
           </div>
         )}
       </div>

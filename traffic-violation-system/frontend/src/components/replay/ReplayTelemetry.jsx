@@ -1,7 +1,7 @@
 import React from 'react';
 import { Info, Radio, Eye, ShieldAlert } from 'lucide-react';
 
-export default function ReplayTelemetry({ info, timeline, frame, currentTimeOffset = 0 }) {
+export default function ReplayTelemetry({ info, timeline, frame, currentTimeOffset = 0, onEventClick }) {
   if (!info) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-slate-500 text-xs">
@@ -52,11 +52,13 @@ export default function ReplayTelemetry({ info, timeline, frame, currentTimeOffs
               return (
                 <div
                   key={idx}
-                  className={`flex items-start space-x-2 text-[10px] p-2 rounded-lg border transition-all ${
+                  onClick={() => onEventClick && onEventClick(e.time_offset_sec)}
+                  className={`flex items-start space-x-2 text-[10px] p-2 rounded-lg border transition-all cursor-pointer hover:border-purple-500/50 ${
                     isPassed
                       ? 'bg-purple-500/5 border-purple-500/20 text-slate-200'
                       : 'bg-slate-950/20 border-slate-850 text-slate-550'
                   }`}
+                  title="Click to jump to event and resume"
                 >
                   <span className="font-mono text-[9px] text-purple-400 mt-0.5 font-bold">{e.time_offset_sec.toFixed(1)}s</span>
                   <div className="space-y-0.5">

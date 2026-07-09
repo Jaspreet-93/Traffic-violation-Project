@@ -19,6 +19,10 @@ export function UploadProvider({ children }) {
     return p === 'true';
   });
   const [loading, setLoading] = useState(false);
+  const [viewedResult, setViewedResult] = useState(() => {
+    const vr = localStorage.getItem('upload_viewed_result');
+    return vr ? JSON.parse(vr) : null;
+  });
 
   // Sync to localStorage
   useEffect(() => {
@@ -41,6 +45,11 @@ export function UploadProvider({ children }) {
   }, [result]);
 
   useEffect(() => {
+    if (viewedResult) localStorage.setItem('upload_viewed_result', JSON.stringify(viewedResult));
+    else localStorage.removeItem('upload_viewed_result');
+  }, [viewedResult]);
+
+  useEffect(() => {
     localStorage.setItem('upload_processing', processing ? 'true' : 'false');
   }, [processing]);
 
@@ -58,6 +67,7 @@ export function UploadProvider({ children }) {
           clearInterval(interval);
           const resRes = await uploadDetectionAPI.getResult(jobId);
           setResult(resRes.data);
+          setViewedResult(resRes.data); // Set viewed result to completed output
         } else if (res.data.status === 'Failed') {
           setStatus('Failed');
           setProcessing(false);
@@ -76,6 +86,7 @@ export function UploadProvider({ children }) {
     if (!file) return;
     setLoading(true);
     setResult(null);
+    setViewedResult(null);
     setJobId(null);
     setStatus(null);
     setProgress(0.0);
@@ -101,6 +112,7 @@ export function UploadProvider({ children }) {
         setStatus('Completed');
         const resRes = await uploadDetectionAPI.getResult(jId);
         setResult(resRes.data);
+        setViewedResult(resRes.data);
       }
     } catch (err) {
       console.error("Global upload error:", err);
@@ -114,6 +126,7 @@ export function UploadProvider({ children }) {
     setStatus(null);
     setProgress(0.0);
     setResult(null);
+    setViewedResult(null);
     setProcessing(false);
     setLoading(false);
   };
@@ -124,6 +137,7 @@ export function UploadProvider({ children }) {
       status, setStatus,
       progress, setProgress,
       result, setResult,
+      viewedResult, setViewedResult,
       processing, setProcessing,
       loading, setLoading,
       uploadAndAnalyze,

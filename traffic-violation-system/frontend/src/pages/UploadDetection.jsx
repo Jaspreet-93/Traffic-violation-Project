@@ -12,11 +12,10 @@ import UploadHistory from '../components/upload/UploadHistory';
 
 export default function UploadDetection() {
   const {
-    jobId, setJobId,
-    status, setStatus,
+    jobId,
     progress,
-    result, setResult,
-    processing, setProcessing,
+    viewedResult, setViewedResult,
+    processing,
     loading,
     uploadAndAnalyze,
     clearUploadState
@@ -52,11 +51,8 @@ export default function UploadDetection() {
   const handleViewResult = async (jId) => {
     try {
       const res = await uploadDetectionAPI.getResult(jId);
-      setResult(res.data);
-      setJobId(jId);
-      setStatus('Completed');
+      setViewedResult(res.data); // Set viewed result only, do not touch active upload states!
       setSelectedFile(null);
-      setProcessing(false);
     } catch (err) {
       console.error("View result fail:", err);
     }
@@ -103,13 +99,13 @@ export default function UploadDetection() {
           {processing && <ProgressCard progress={progress} />}
 
           {/* Results Canvas */}
-          {result && <DetectionResult result={result} />}
+          {viewedResult && <DetectionResult result={viewedResult} />}
         </div>
 
         {/* Right (1 col) */}
         <div className="space-y-6">
           {/* Preview */}
-          {selectedFile && !result && !processing && (
+          {selectedFile && !viewedResult && !processing && (
             selectedFile.name.toLowerCase().endsWith('.mp4') ||
             selectedFile.name.toLowerCase().endsWith('.avi') ||
             selectedFile.name.toLowerCase().endsWith('.mov') ||
@@ -121,10 +117,10 @@ export default function UploadDetection() {
           )}
 
           {/* Summary counters */}
-          {result && <DetectionSummary evidence={result.evidence} />}
+          {viewedResult && <DetectionSummary evidence={viewedResult.evidence} />}
 
           {/* Download card */}
-          {result && <DownloadCard result={result} />}
+          {viewedResult && <DownloadCard result={viewedResult} />}
         </div>
       </div>
 

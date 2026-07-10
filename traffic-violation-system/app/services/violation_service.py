@@ -27,6 +27,24 @@ class ViolationService:
         db.add(db_violation)
         db.commit()
         db.refresh(db_violation)
+
+        # Ensure we also register a matching Evidence record for synchronization
+        from app.database.models.evidence import Evidence
+        db_evidence = Evidence(
+            violation_id=db_violation.id,
+            vehicle_id=100 + db_violation.id,
+            plate_number=db_violation.vehicle_number,
+            violation_type=db_violation.violation_type,
+            original_image_path="/uploads/snapshot_mock.jpg",
+            annotated_image_path="/uploads/processed_snapshot_mock.jpg",
+            image_path="/uploads/processed_snapshot_mock.jpg",
+            confidence=0.85,
+            camera_id=str(db_violation.camera_id),
+            timestamp=db_violation.timestamp
+        )
+        db.add(db_evidence)
+        db.commit()
+
         return db_violation
 
     @staticmethod

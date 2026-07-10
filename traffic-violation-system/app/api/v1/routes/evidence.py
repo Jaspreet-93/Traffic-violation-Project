@@ -33,7 +33,13 @@ def get_all_evidence():
             violation=item["violation"],
             image_path=item["image_path"],
             video_path=item.get("video_path"),
-            timestamp=item["timestamp"]
+            timestamp=item["timestamp"],
+            original_image_path=item.get("original_image_path"),
+            original_video_path=item.get("original_video_path"),
+            annotated_image_path=item.get("annotated_image_path"),
+            annotated_video_path=item.get("annotated_video_path"),
+            confidence=item.get("confidence"),
+            camera_id=item.get("camera_id")
         )
         for item in raw
     ]
@@ -57,7 +63,13 @@ def get_evidence_by_id(id: int):
         violation=res["violation"],
         image_path=res.get("image_path"),
         video_path=res.get("video_path"),
-        timestamp=res["timestamp"]
+        timestamp=res["timestamp"],
+        original_image_path=res.get("original_image_path"),
+        original_video_path=res.get("original_video_path"),
+        annotated_image_path=res.get("annotated_image_path"),
+        annotated_video_path=res.get("annotated_video_path"),
+        confidence=res.get("confidence"),
+        camera_id=res.get("camera_id")
     )
 
 @router.get("/metadata/{id}", response_model=EvidenceMetadataResponse)
@@ -254,3 +266,91 @@ def delete_evidence(id: int):
         "success": True,
         "message": f"Evidence record {id} successfully purged from locker."
     }
+
+@router.get("/search", response_model=List[EvidenceResponse])
+def search_evidence(
+    plate_number: Optional[str] = None,
+    vehicle_id: Optional[int] = None,
+    evidence_id: Optional[int] = None,
+    violation_type: Optional[str] = None,
+    date: Optional[str] = None,
+    camera: Optional[str] = None
+):
+    """
+    Search evidence by various query params.
+    """
+    all_records = evidence_service.get_all_evidence()
+    filtered = []
+    for item in all_records:
+        if plate_number and plate_number.lower() not in item.get("plate_number", "").lower():
+            continue
+        if vehicle_id and item.get("vehicle_id") != vehicle_id:
+            continue
+        if evidence_id and item.get("evidence_id") != evidence_id:
+            continue
+        if violation_type and violation_type.lower() not in item.get("violation", "").lower():
+            continue
+        if date and date not in item.get("timestamp", ""):
+            continue
+        if camera and camera.lower() not in item.get("camera_id", "").lower():
+            continue
+        filtered.append(item)
+    return [
+        EvidenceResponse(
+            evidence_id=item["evidence_id"],
+            violation_id=item["violation_id"],
+            vehicle_id=item.get("vehicle_id"),
+            violation=item["violation"],
+            image_path=item["image_path"],
+            video_path=item.get("video_path"),
+            timestamp=item["timestamp"],
+            original_image_path=item.get("original_image_path"),
+            original_video_path=item.get("original_video_path"),
+            annotated_image_path=item.get("annotated_image_path"),
+            annotated_video_path=item.get("annotated_video_path"),
+            confidence=item.get("confidence"),
+            camera_id=item.get("camera_id")
+        )
+        for item in filtered
+    ]
+
+@router.get("/download/original/{id}")
+def download_original(id: int):
+    """
+    Downloads original media attachment.
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Evidence not found.")
+    media_path = res.get("original_video_path") or res.get("original_image_path") or res.get("image_path")
+    if media_path and "/processed_" in media_path:
+        directory, filename = os.path.split(media_path)
+        if filename.startswith("processed_"):
+            filename = filename.replace("processed_", "", 1)
+        media_path = os.path.join(directory, filename).replace('\\', '/')
+    if not media_path:
+        raise HTTPException(status_code=404, detail="Original media path is missing.")
+    path = DownloadService.get_download_path(media_path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Original media file not found on disk.")
+    return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))
+
+@router.get("/download/annotated/{id}")
+def download_annotated(id: int):
+    """
+    Downloads annotated media attachment.
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Evidence not found.")
+    media_path = res.get("annotated_video_path") or res.get("annotated_image_path") or res.get("image_path")
+    if media_path and not os.path.basename(media_path).startswith("processed_"):
+        directory, filename = os.path.split(media_path)
+        filename = f"processed_{filename}"
+        media_path = os.path.join(directory, filename).replace('\\', '/')
+    if not media_path:
+        raise HTTPException(status_code=404, detail="Annotated media path is missing.")
+    path = DownloadService.get_download_path(media_path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Annotated media file not found on disk.")
+    return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))

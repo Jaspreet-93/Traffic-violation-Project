@@ -50,19 +50,18 @@ class ViolationService:
                     db.refresh(db_violation)
                     
                     # Trigger evidence capture
-                    if frame is not None:
-                        from app.services.evidence.evidence_service import evidence_service
-                        res = evidence_service.record_evidence(
-                            violation_id=db_violation.id,
-                            vehicle_id=db_violation.vehicle_id,
-                            plate_number=db_violation.plate_number,
-                            violation_type=db_violation.violation_type,
-                            annotated_frame=frame
-                        )
-                        if res and res.get("image_path"):
-                            db_violation.evidence_path = res["image_path"]
-                            db_violation.snapshot_path = res["image_path"]
-                            db.commit()
+                    from app.services.evidence.evidence_service import evidence_service
+                    res = evidence_service.record_evidence(
+                        violation_id=db_violation.id,
+                        vehicle_id=db_violation.vehicle_id,
+                        plate_number=db_violation.plate_number,
+                        violation_type=db_violation.violation_type,
+                        annotated_frame=frame
+                    )
+                    if res and res.get("image_path"):
+                        db_violation.evidence_path = res["image_path"]
+                        db_violation.snapshot_path = res["image_path"]
+                        db.commit()
                             
                             # Trigger background email alert
                             try:

@@ -16,11 +16,15 @@ export default function EvidenceLocker() {
 
   const fetchEvidenceDetails = async (id) => {
     try {
-      const [resMeta, resInteg] = await Promise.all([
+      const [resDetail, resMeta, resInteg] = await Promise.all([
+        evidenceAPI.getById(id),
         evidenceAPI.getMetadata(id),
         evidenceAPI.getIntegrity(id)
       ]);
-      setMetadata(resMeta.data);
+      setMetadata({
+        ...resDetail.data,
+        ...resMeta.data
+      });
       setIntegrity(resInteg.data);
     } catch (err) {
       console.error("Failed to load evidence inspect details:", err);
@@ -29,13 +33,42 @@ export default function EvidenceLocker() {
 
   const fetchEvidenceList = async () => {
     try {
-      const res = await evidenceAPI.getAll();
+      let res;
+      if (search.trim() || filterClass !== 'All') {
+        const params = {};
+        if (search.trim()) {
+          const q = search.trim();
+          params.plate_number = q;
+          params.violation_type = q;
+          params.date = q;
+          params.camera = q;
+          if (!isNaN(q)) {
+            params.evidence_id = parseInt(q);
+            params.vehicle_id = parseInt(q);
+          }
+        }
+        if (filterClass !== 'All') {
+          params.violation_type = filterClass;
+        }
+        res = await evidenceAPI.search(params);
+      } else {
+        res = await evidenceAPI.getAll();
+      }
       const raw = res.data || [];
       setItems(raw);
+      setFiltered(raw);
+      
       if (raw.length > 0) {
-        const firstId = raw[0].evidence_id;
-        setActiveId(firstId);
-        await fetchEvidenceDetails(firstId);
+        const exists = raw.some(item => item.evidence_id === activeId);
+        if (!exists) {
+          const firstId = raw[0].evidence_id;
+          setActiveId(firstId);
+          await fetchEvidenceDetails(firstId);
+        }
+      } else {
+        setActiveId(null);
+        setMetadata(null);
+        setIntegrity(null);
       }
     } catch (err) {
       console.error("Failed to list evidence logs:", err);
@@ -45,27 +78,12 @@ export default function EvidenceLocker() {
   };
 
   useEffect(() => {
-    fetchEvidenceList();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchEvidenceList();
+    }, 200);
 
-  // Sync search and filters
-  useEffect(() => {
-    let result = items;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(item =>
-        item.plate_number?.toLowerCase().includes(q) ||
-        String(item.vehicle_id).includes(q) ||
-        item.violation?.toLowerCase().includes(q)
-      );
-    }
-    if (filterClass !== 'All') {
-      result = result.filter(item =>
-        item.violation?.toLowerCase() === filterClass.toLowerCase()
-      );
-    }
-    setFiltered(result);
-  }, [items, search, filterClass]);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, filterClass]);
 
   const handleSelect = async (id) => {
     setActiveId(id);
@@ -77,6 +95,7 @@ export default function EvidenceLocker() {
       await evidenceAPI.deleteEvidence(id);
       const updated = items.filter(item => item.evidence_id !== id);
       setItems(updated);
+      setFiltered(updated);
       if (updated.length > 0) {
         const nextId = updated[0].evidence_id;
         setActiveId(nextId);

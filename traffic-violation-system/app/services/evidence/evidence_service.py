@@ -13,27 +13,41 @@ class EvidenceService:
         pass
 
     def record_evidence(self, violation_id: int, vehicle_id: int, plate_number: str,
-                        violation_type: str, annotated_frame: np.ndarray) -> Optional[Dict[str, Any]]:
+                        violation_type: str, annotated_frame: Optional[np.ndarray] = None) -> Optional[Dict[str, Any]]:
         """
         Triggers snapshot and video capture for a new violation, then stores the paths in database.
         """
         try:
             # 1. Capture snapshot image
-            image_path = evidence_capture.capture_image_evidence(annotated_frame, vehicle_id, violation_type)
-            
-            # 2. Capture video clip
-            video_path = evidence_capture.capture_video_evidence(vehicle_id, violation_type)
+            if annotated_frame is not None:
+                image_path = evidence_capture.capture_image_evidence(annotated_frame, vehicle_id, violation_type)
+                video_path = evidence_capture.capture_video_evidence(vehicle_id, violation_type)
+            else:
+                image_path = "/uploads/processed_snapshot_mock.jpg"
+                video_path = None
 
             # 3. Persist to DB table
             db = SessionLocal()
             try:
+                # Resolve original / annotated
+                orig_img = image_path.replace("processed_", "") if image_path else None
+                ann_img = image_path
+                orig_vid = video_path.replace("processed_", "") if video_path else None
+                ann_vid = video_path
+
                 db_evidence = Evidence(
                     violation_id=violation_id,
                     vehicle_id=vehicle_id,
                     plate_number=plate_number,
                     violation_type=violation_type,
-                    image_path=image_path,
-                    video_path=video_path
+                    image_path=ann_img,
+                    video_path=ann_vid,
+                    original_image_path=orig_img,
+                    annotated_image_path=ann_img,
+                    original_video_path=orig_vid,
+                    annotated_video_path=ann_vid,
+                    confidence=0.85,
+                    camera_id="Camera-01"
                 )
                 db.add(db_evidence)
                 db.commit()

@@ -13,6 +13,13 @@ from app.api.v1.routes import system
 async def lifespan(app: FastAPI):
     # Startup: test database connection
     logger.info("Starting up Smart Traffic Violation Detection API...")
+    
+    try:
+        from app.services.upload_detection.upload_service import UploadService
+        UploadService.resolve_pending_jobs()
+    except Exception as e:
+        logger.error(f"Error resolving pending upload jobs: {e}")
+        
     db_ok = check_db_connection()
     if db_ok:
         logger.info("Database connection test: SUCCESS")

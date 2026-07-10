@@ -16,12 +16,39 @@ class AuthService:
     def _load_db() -> List[Dict[str, Any]]:
         if not os.path.exists(DB_PATH):
             os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            default_hashed = hashlib.sha256("123456".encode()).hexdigest()
+            now_str = datetime.now(timezone.utc).isoformat()
+            default_user = {
+                "id": str(uuid.uuid4()),
+                "full_name": "Jaspreet Muskan",
+                "email_address": "jaspreetmuskan93@gmail.com",
+                "phone_number": "1234567890",
+                "password_hash": default_hashed,
+                "created_at": now_str,
+                "updated_at": now_str
+            }
             with open(DB_PATH, 'w') as f:
-                json.dump([], f)
-            return []
+                json.dump([default_user], f, indent=2)
+            return [default_user]
         try:
             with open(DB_PATH, 'r') as f:
-                return json.load(f)
+                content = json.load(f)
+                if not content:
+                    default_hashed = hashlib.sha256("123456".encode()).hexdigest()
+                    now_str = datetime.now(timezone.utc).isoformat()
+                    default_user = {
+                        "id": str(uuid.uuid4()),
+                        "full_name": "Jaspreet Muskan",
+                        "email_address": "jaspreetmuskan93@gmail.com",
+                        "phone_number": "1234567890",
+                        "password_hash": default_hashed,
+                        "created_at": now_str,
+                        "updated_at": now_str
+                    }
+                    with open(DB_PATH, 'w') as f:
+                        json.dump([default_user], f, indent=2)
+                    return [default_user]
+                return content
         except Exception:
             return []
 

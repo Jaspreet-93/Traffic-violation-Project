@@ -53,6 +53,15 @@ export default function UploadDetection() {
       const res = await uploadDetectionAPI.getResult(jId);
       setViewedResult(res.data); // Set viewed result only, do not touch active upload states!
       setSelectedFile(null);
+      
+      // Smooth scroll to top of the scrollable container
+      setTimeout(() => {
+        const scrollContainer = document.querySelector('.overflow-y-auto');
+        if (scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
     } catch (err) {
       console.error("View result fail:", err);
     }

@@ -10,6 +10,19 @@ class EvidenceResponse(BaseModel):
     video_path: Optional[str] = None
     timestamp: str = Field(..., description="Standard UTC format timestamp")
 
+    # Real Media Verification Fields
+    original_image_path: Optional[str] = None
+    original_video_path: Optional[str] = None
+    processed_image_path: Optional[str] = None
+    processed_video_path: Optional[str] = None
+    thumbnail_path: Optional[str] = None
+    capture_time: Optional[str] = None
+    camera_id: Optional[str] = None
+    violation_type: Optional[str] = None
+    confidence: Optional[float] = None
+    vehicle_number: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
     model_config = {
         "from_attributes": True
     }
@@ -23,6 +36,19 @@ class EvidenceDetail(BaseModel):
     image_path: Optional[str] = None
     video_path: Optional[str] = None
     timestamp: str
+
+    # Real Media Verification Fields
+    original_image_path: Optional[str] = None
+    original_video_path: Optional[str] = None
+    processed_image_path: Optional[str] = None
+    processed_video_path: Optional[str] = None
+    thumbnail_path: Optional[str] = None
+    capture_time: Optional[str] = None
+    camera_id: Optional[str] = None
+    violation_type: Optional[str] = None
+    confidence: Optional[float] = None
+    vehicle_number: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
 
     model_config = {
         "from_attributes": True

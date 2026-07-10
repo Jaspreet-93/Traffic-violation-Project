@@ -23,10 +23,18 @@ class LegacyViolationResponse(ViolationBase):
 
 # New schemas (for Stage 15 decision engine)
 class ViolationResponse(BaseModel):
+    id: Optional[int] = None
     vehicle_id: int = Field(..., description="ID of the tracked vehicle")
     plate_number: str = Field(..., description="Extracted plate registration number")
     violation: str = Field(..., description="Detected traffic violation type")
     confidence: float = Field(..., description="Model confidence score")
+    vehicle_type: Optional[str] = "car"
+    timestamp: Optional[str] = None
+    camera_id: Optional[str] = "Camera-01"
+    evidence_id: Optional[int] = None
+    original_image_path: Optional[str] = None
+    annotated_image_path: Optional[str] = None
+    status: Optional[str] = "processed"
 
     model_config = {
         "from_attributes": True

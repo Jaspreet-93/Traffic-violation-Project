@@ -56,6 +56,7 @@ export const pipelineAPI = {
 export const violationAPI = {
   getAll: () => API.get('/api/v1/violations'),
   getByVehicle: (vehicleId) => API.get(`/api/v1/violations/${vehicleId}`),
+  delete: (id) => API.delete(`/api/v1/violations/${id}`),
 };
 
 export const evidenceAPI = {

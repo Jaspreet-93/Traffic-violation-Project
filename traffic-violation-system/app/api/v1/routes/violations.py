@@ -12,39 +12,38 @@ def get_violations():
     """
     try:
         raw_violations = violation_service.get_all_violations()
-        if not raw_violations:
-            raw_violations = [
-                {
-                    "vehicle_id": 101,
-                    "plate_number": "PB10AB1234",
-                    "violation_type": "No Helmet",
-                    "confidence": 0.88
-                },
-                {
-                    "vehicle_id": 102,
-                    "plate_number": "MH12DE1432",
-                    "violation_type": "No Seat Belt",
-                    "confidence": 0.91
-                },
-                {
-                    "vehicle_id": 103,
-                    "plate_number": "DL01CA9999",
-                    "violation_type": "Red Light Violation",
-                    "confidence": 0.95
-                }
-            ]
-        # Map raw database results to matching schema format requested in the prompt
         return [
             ViolationResponse(
+                id=item.get("id"),
                 vehicle_id=item["vehicle_id"],
                 plate_number=item["plate_number"],
-                violation=item["violation_type"],
-                confidence=item["confidence"]
+                violation=item.get("violation_type") or item.get("violation") or "No Helmet",
+                confidence=item["confidence"],
+                vehicle_type=item.get("vehicle_type", "car"),
+                timestamp=item.get("timestamp"),
+                camera_id=item.get("camera_id"),
+                evidence_id=item.get("evidence_id"),
+                original_image_path=item.get("original_image_path"),
+                annotated_image_path=item.get("annotated_image_path"),
+                status=item.get("status")
             )
             for item in raw_violations
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{id}")
+def delete_violation(id: int):
+    """
+    Purges a violation record by ID.
+    """
+    res = violation_service.delete_violation(id)
+    if not res:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Violation with ID {id} not found."
+        )
+    return {"message": "Violation record purged successfully."}
 
 @router.get("/{vehicle_id}", response_model=List[ViolationDetail])
 def get_vehicle_violations(vehicle_id: int):

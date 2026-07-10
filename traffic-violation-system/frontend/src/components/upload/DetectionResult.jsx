@@ -8,8 +8,8 @@ export default function DetectionResult({ result }) {
   // Default to false (Annotated) so browser-playable re-encoded video plays natively!
   const [useOriginal, setUseOriginal] = useState(false); 
 
-  const originalUrl = `/uploads/${result.filename}`;
-  const processedUrl = result.evidence.processed_file_url || '';
+  const originalUrl = encodeURI(`/uploads/${result.filename}`);
+  const processedUrl = encodeURI(result.evidence.processed_file_url || '');
   const activeUrl = useOriginal ? originalUrl : processedUrl;
 
   // Extract license plates

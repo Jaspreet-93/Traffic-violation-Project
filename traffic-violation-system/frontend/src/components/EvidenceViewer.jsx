@@ -32,20 +32,20 @@ export default function EvidenceViewer({ violationId, onClose }) {
     if (!path) return '';
     let normalized = path.startsWith('/') ? path : `/${path}`;
     
+    let resultPath = normalized;
     if (useOriginal) {
       if (normalized.includes('/processed_')) {
-        return normalized.replace('/processed_', '/');
+        resultPath = normalized.replace('/processed_', '/');
       }
-      return normalized;
     } else {
       const parts = normalized.split('/');
       const filename = parts[parts.length - 1];
       if (!filename.startsWith('processed_')) {
         parts[parts.length - 1] = `processed_${filename}`;
-        return parts.join('/');
+        resultPath = parts.join('/');
       }
-      return normalized;
     }
+    return encodeURI(resultPath);
   };
 
   if (!violationId) return null;

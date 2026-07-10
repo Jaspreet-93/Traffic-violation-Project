@@ -19,6 +19,15 @@ class ReportService:
                 "download_url": "/api/v1/reports/1"
             }
         ]
+        # Pre-generate the daily_report_2026_07_08.pdf if missing to prevent 44-byte corrupt PDF download!
+        try:
+            reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "reports"))
+            filepath = os.path.join(reports_dir, "daily_report_2026_07_08.pdf")
+            if not os.path.exists(filepath):
+                PDFReportGenerator.generate(1, "daily_report_2026_07_08")
+        except Exception as e:
+            from app.core.logger import logger
+            logger.error(f"Failed to pre-generate initial report: {e}")
 
     def list_reports(self) -> List[Dict[str, Any]]:
         return self.reports

@@ -84,10 +84,16 @@ class VideoDetector:
                                 cv2.rectangle(snap_frame, (bx[0], bx[1]), (bx[2], bx[3]), color, 2)
                                 cv2.putText(snap_frame, lbl, (bx[0], max(15, bx[1] - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
                         
+                        # Save untouched original snapshot image first
+                        orig_snap_filename = f"snapshot_{job_id}.jpg"
+                        orig_snap_path = os.path.join(os.path.dirname(filepath), orig_snap_filename)
+                        cv2.imwrite(orig_snap_path, frame)
+
+                        # Save annotated snapshot image
                         snap_filename = f"processed_snapshot_{job_id}.jpg"
                         snap_path = os.path.join(os.path.dirname(filepath), snap_filename)
                         cv2.imwrite(snap_path, snap_frame)
-
+ 
                         violation_lbl = "No Helmet"
                         for det in detections:
                             lbl_lower = det.get("label", "").lower()
@@ -100,8 +106,8 @@ class VideoDetector:
                             elif "phone" in lbl_lower or "distract" in lbl_lower:
                                 violation_lbl = "Distracted Driving"
                                 break
-
-                        # Register to fallback evidence locker
+ 
+                        # Register to fallback evidence locker with original & annotated versions
                         from app.services.evidence.evidence_service import evidence_service, fallback_evidence_cache
                         evidence_service.add_fallback_evidence({
                             "evidence_id": len(fallback_evidence_cache) + 3,
@@ -110,8 +116,15 @@ class VideoDetector:
                             "plate_number": "MH12DE1432",
                             "violation": violation_lbl,
                             "image_path": f"/uploads/{snap_filename}",
-                            "video_path": f"/uploads/processed_{out_name}",
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            "video_path": f"/uploads/{out_name}",
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            # Store only original and annotated media
+                            "original_image_path": f"/uploads/{orig_snap_filename}",
+                            "annotated_image_path": f"/uploads/{snap_filename}",
+                            "original_video_path": f"/uploads/{file_name}",
+                            "annotated_video_path": f"/uploads/{out_name}",
+                            "confidence": 0.86,
+                            "camera_id": "Upload-Center"
                         })
                         snapshot_saved = True
                     except Exception as snap_err:

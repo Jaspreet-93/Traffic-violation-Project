@@ -60,7 +60,14 @@ class ImageDetector:
                     "violation": violation_lbl,
                     "image_path": f"/uploads/{out_name}",
                     "video_path": None,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    # Store only original and annotated media
+                    "original_image_path": f"/uploads/{file_name}",
+                    "annotated_image_path": f"/uploads/{out_name}",
+                    "original_video_path": None,
+                    "annotated_video_path": None,
+                    "confidence": 0.88,
+                    "camera_id": "Upload-Center"
                 })
             except Exception as e:
                 logger.error(f"Failed to save image evidence to locker: {e}")

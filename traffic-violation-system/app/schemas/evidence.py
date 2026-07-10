@@ -15,6 +15,8 @@ class EvidenceResponse(BaseModel):
     original_video_path: Optional[str] = None
     processed_image_path: Optional[str] = None
     processed_video_path: Optional[str] = None
+    annotated_image_path: Optional[str] = None
+    annotated_video_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
     capture_time: Optional[str] = None
     camera_id: Optional[str] = None
@@ -42,6 +44,8 @@ class EvidenceDetail(BaseModel):
     original_video_path: Optional[str] = None
     processed_image_path: Optional[str] = None
     processed_video_path: Optional[str] = None
+    annotated_image_path: Optional[str] = None
+    annotated_video_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
     capture_time: Optional[str] = None
     camera_id: Optional[str] = None

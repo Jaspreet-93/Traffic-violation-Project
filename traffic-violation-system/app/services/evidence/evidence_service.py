@@ -64,15 +64,18 @@ class EvidenceService:
     def _map_evidence_dict(self, id: int, violation_id: int, vehicle_id: Optional[int],
                            plate_number: Optional[str], violation_type: str,
                            image_path: Optional[str], video_path: Optional[str],
-                           timestamp_str: str) -> dict:
+                           timestamp_str: str,
+                           original_image_path: Optional[str] = None,
+                           annotated_image_path: Optional[str] = None,
+                           original_video_path: Optional[str] = None,
+                           annotated_video_path: Optional[str] = None,
+                           confidence: Optional[float] = None,
+                           camera_id: Optional[str] = None) -> dict:
         import os
-        def get_processed_path(path: Optional[str]) -> Optional[str]:
-            if not path:
-                return None
-            directory, filename = os.path.split(path)
-            if not filename.startswith("processed_"):
-                filename = f"processed_{filename}"
-            return os.path.join(directory, filename).replace('\\', '/')
+        orig_img = original_image_path or (image_path.replace("/processed_", "/") if image_path else None)
+        ann_img = annotated_image_path or image_path
+        orig_vid = original_video_path or (video_path.replace("/processed_", "/") if video_path else None)
+        ann_vid = annotated_video_path or video_path
 
         return {
             "evidence_id": id,
@@ -80,21 +83,19 @@ class EvidenceService:
             "vehicle_id": vehicle_id,
             "plate_number": plate_number,
             "violation": violation_type,
-            "image_path": image_path,
-            "video_path": video_path,
+            "image_path": ann_img,
+            "video_path": ann_vid,
             "timestamp": timestamp_str,
-            # Verified columns
-            "original_image_path": image_path,
-            "original_video_path": video_path,
-            "processed_image_path": get_processed_path(image_path),
-            "processed_video_path": get_processed_path(video_path),
-            "thumbnail_path": image_path,
+            # Strict original/annotated required properties
+            "original_image_path": orig_img,
+            "annotated_image_path": ann_img,
+            "original_video_path": orig_vid,
+            "annotated_video_path": ann_vid,
+            "confidence": confidence or 0.85,
+            "camera_id": camera_id or "Camera-01",
             "capture_time": timestamp_str,
-            "camera_id": "Camera-01",
             "violation_type": violation_type,
-            "confidence": 0.92,
-            "vehicle_number": plate_number,
-            "metadata": {"frame_number": 4843, "fps": 25.0}
+            "vehicle_number": plate_number
         }
 
     def get_all_evidence(self) -> List[Dict[str, Any]]:
@@ -115,7 +116,13 @@ class EvidenceService:
                     violation_type=r.violation_type,
                     image_path=r.image_path,
                     video_path=r.video_path,
-                    timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    original_image_path=r.original_image_path,
+                    annotated_image_path=r.annotated_image_path,
+                    original_video_path=r.original_video_path,
+                    annotated_video_path=r.annotated_video_path,
+                    confidence=r.confidence,
+                    camera_id=r.camera_id
                 )
                 for r in results
             ]
@@ -155,7 +162,13 @@ class EvidenceService:
                     violation_type=item.get("violation", "No Helmet"),
                     image_path=item.get("image_path"),
                     video_path=item.get("video_path"),
-                    timestamp_str=item.get("timestamp", now.strftime("%Y-%m-%d %H:%M:%S"))
+                    timestamp_str=item.get("timestamp", now.strftime("%Y-%m-%d %H:%M:%S")),
+                    original_image_path=item.get("original_image_path"),
+                    annotated_image_path=item.get("annotated_image_path"),
+                    original_video_path=item.get("original_video_path"),
+                    annotated_video_path=item.get("annotated_video_path"),
+                    confidence=item.get("confidence"),
+                    camera_id=item.get("camera_id")
                 ))
             return formatted_cache + default_items
         finally:
@@ -178,7 +191,13 @@ class EvidenceService:
                 violation_type=r.violation_type,
                 image_path=r.image_path,
                 video_path=r.video_path,
-                timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                original_image_path=r.original_image_path,
+                annotated_image_path=r.annotated_image_path,
+                original_video_path=r.original_video_path,
+                annotated_video_path=r.annotated_video_path,
+                confidence=r.confidence,
+                camera_id=r.camera_id
             )
         except Exception as e:
             logger.error(f"Error querying evidence for violation {violation_id}: {e}")
@@ -192,7 +211,13 @@ class EvidenceService:
                         violation_type=item.get("violation", "No Helmet"),
                         image_path=item.get("image_path"),
                         video_path=item.get("video_path"),
-                        timestamp_str=item.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        timestamp_str=item.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        original_image_path=item.get("original_image_path"),
+                        annotated_image_path=item.get("annotated_image_path"),
+                        original_video_path=item.get("original_video_path"),
+                        annotated_video_path=item.get("annotated_video_path"),
+                        confidence=item.get("confidence"),
+                        camera_id=item.get("camera_id")
                     )
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return self._map_evidence_dict(
@@ -225,7 +250,13 @@ class EvidenceService:
                 violation_type=r.violation_type,
                 image_path=r.image_path,
                 video_path=r.video_path,
-                timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                original_image_path=r.original_image_path,
+                annotated_image_path=r.annotated_image_path,
+                original_video_path=r.original_video_path,
+                annotated_video_path=r.annotated_video_path,
+                confidence=r.confidence,
+                camera_id=r.camera_id
             )
         except Exception as e:
             logger.error(f"Error querying evidence by ID {evidence_id}: {e}")
@@ -239,7 +270,13 @@ class EvidenceService:
                         violation_type=item.get("violation", "No Helmet"),
                         image_path=item.get("image_path"),
                         video_path=item.get("video_path"),
-                        timestamp_str=item.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        timestamp_str=item.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                        original_image_path=item.get("original_image_path"),
+                        annotated_image_path=item.get("annotated_image_path"),
+                        original_video_path=item.get("original_video_path"),
+                        annotated_video_path=item.get("annotated_video_path"),
+                        confidence=item.get("confidence"),
+                        camera_id=item.get("camera_id")
                     )
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             return self._map_evidence_dict(

@@ -143,9 +143,24 @@ def get_original_media(id: int, type: str = "image"):
     if not res:
         raise HTTPException(status_code=404, detail="Evidence record not found.")
     
-    media_path = res.get("image_path") if type == "image" else (res.get("video_path") or res.get("image_path"))
+    if type == "image":
+        media_path = res.get("original_image_path") or res.get("image_path")
+        if media_path and "/processed_" in media_path:
+            # strip processed_ prefix for original
+            directory, filename = os.path.split(media_path)
+            if filename.startswith("processed_"):
+                filename = filename.replace("processed_", "", 1)
+            media_path = os.path.join(directory, filename).replace('\\', '/')
+    else:
+        media_path = res.get("original_video_path") or res.get("video_path") or res.get("original_image_path") or res.get("image_path")
+        if media_path and "/processed_" in media_path:
+            directory, filename = os.path.split(media_path)
+            if filename.startswith("processed_"):
+                filename = filename.replace("processed_", "", 1)
+            media_path = os.path.join(directory, filename).replace('\\', '/')
+
     if not media_path:
-        raise HTTPException(status_code=404, detail="Media path is missing.")
+        raise HTTPException(status_code=404, detail="Original media path is missing.")
         
     path = DownloadService.get_download_path(media_path)
     if not os.path.exists(path):
@@ -163,18 +178,27 @@ def get_processed_media(id: int, type: str = "image"):
     if not res:
         raise HTTPException(status_code=404, detail="Evidence record not found.")
         
-    media_path = res.get("image_path") if type == "image" else (res.get("video_path") or res.get("image_path"))
+    if type == "image":
+        media_path = res.get("annotated_image_path") or res.get("image_path")
+        if media_path and not os.path.basename(media_path).startswith("processed_"):
+            directory, filename = os.path.split(media_path)
+            filename = f"processed_{filename}"
+            media_path = os.path.join(directory, filename).replace('\\', '/')
+    else:
+        media_path = res.get("annotated_video_path") or res.get("video_path") or res.get("annotated_image_path") or res.get("image_path")
+        if media_path and not os.path.basename(media_path).startswith("processed_"):
+            directory, filename = os.path.split(media_path)
+            filename = f"processed_{filename}"
+            media_path = os.path.join(directory, filename).replace('\\', '/')
+
     if not media_path:
-        raise HTTPException(status_code=404, detail="Media path is missing.")
+        raise HTTPException(status_code=404, detail="Processed media path is missing.")
         
-    directory, filename = os.path.split(media_path)
-    if not filename.startswith("processed_"):
-        filename = f"processed_{filename}"
-    processed_media_path = os.path.join(directory, filename).replace('\\', '/')
-    
-    path = DownloadService.get_download_path(processed_media_path)
+    path = DownloadService.get_download_path(media_path)
     if not os.path.exists(path):
-        path = DownloadService.get_download_path(media_path)
+        # Fallback to original if processed version doesn't exist
+        fallback_path = res.get("original_image_path") or res.get("image_path")
+        path = DownloadService.get_download_path(fallback_path)
         if not os.path.exists(path):
             raise HTTPException(status_code=404, detail="Processed media file not found on disk.")
             

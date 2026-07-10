@@ -35,8 +35,14 @@ export default function ConfidenceMonitor({ confidence }) {
           >
             <span className="text-slate-450 font-medium">{item.label}</span>
             <div className="flex items-center space-x-1.5 font-bold">
-              <span className={item.color}>{(item.value * 100).toFixed(0)}%</span>
-              {item.value >= 0.90 && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
+              <span className={item.color}>
+                {typeof item.value === 'number'
+                  ? `${(item.value * 100).toFixed(0)}%`
+                  : (typeof item.value === 'string' && item.value.endsWith('%'))
+                    ? item.value
+                    : item.value}
+              </span>
+              {typeof item.value === 'number' && item.value >= 0.90 && <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
             </div>
           </div>
         ))}

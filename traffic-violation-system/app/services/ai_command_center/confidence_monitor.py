@@ -44,7 +44,7 @@ class ConfidenceMonitor:
                             elif "ocr" in vtype or "plate" in vtype:
                                 metrics["ocr"] = pct
                             elif "belt" in vtype:
-                                metrics["seat_belt"] = pct
+                                metrics["seat_belt"] = "Detected"
                             elif "light" in vtype:
                                 metrics["traffic_light"] = pct
                             elif "behavior" in vtype or "phone" in vtype:
@@ -59,5 +59,27 @@ class ConfidenceMonitor:
             logger.warning(f"Database offline or empty. Returning 'Not Available' for confidence scores: {e}")
         finally:
             db.close()
+
+        # Dynamic Seat Belt Status Mapping
+        from app.services.seat_belt.seat_belt_service import seat_belt_service
+        if seat_belt_service.get_status():
+            results = list(seat_belt_service.latest_seat_belt_results.values()) if getattr(seat_belt_service, "latest_seat_belt_results", None) else []
+            if results:
+                statuses = [r["status"] for r in results]
+                if "no seatbelt" in statuses or "unbelted" in statuses:
+                    metrics["seat_belt"] = "Detected"
+                elif "seatbelt" in statuses:
+                    metrics["seat_belt"] = "Not Detected"
+                elif "not visible" in statuses:
+                    metrics["seat_belt"] = "Not Visible"
+                elif "not detectable" in statuses:
+                    metrics["seat_belt"] = "Not Detectable"
+                else:
+                    metrics["seat_belt"] = "Unknown"
+            else:
+                metrics["seat_belt"] = "Not Detectable"
+        else:
+            if metrics["seat_belt"] == "Not Available":
+                metrics["seat_belt"] = "Not Detectable"
             
         return metrics

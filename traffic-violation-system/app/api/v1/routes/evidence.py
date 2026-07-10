@@ -134,6 +134,87 @@ def verify_integrity(id: int):
     path = DownloadService.get_download_path(res.get("image_path", ""))
     return IntegrityService.get_integrity_status(id, path)
 
+@router.get("/{id}/original")
+def get_original_media(id: int, type: str = "image"):
+    """
+    Returns the original uploaded or captured media file.
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Evidence record not found.")
+    
+    media_path = res.get("image_path") if type == "image" else (res.get("video_path") or res.get("image_path"))
+    if not media_path:
+        raise HTTPException(status_code=404, detail="Media path is missing.")
+        
+    path = DownloadService.get_download_path(media_path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Original media file not found on disk.")
+        
+    media_type = "video/mp4" if path.endswith(".mp4") else "image/jpeg"
+    return FileResponse(path, media_type=media_type)
+
+@router.get("/{id}/processed")
+def get_processed_media(id: int, type: str = "image"):
+    """
+    Returns the AI-processed media file with overlays.
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Evidence record not found.")
+        
+    media_path = res.get("image_path") if type == "image" else (res.get("video_path") or res.get("image_path"))
+    if not media_path:
+        raise HTTPException(status_code=404, detail="Media path is missing.")
+        
+    directory, filename = os.path.split(media_path)
+    if not filename.startswith("processed_"):
+        filename = f"processed_{filename}"
+    processed_media_path = os.path.join(directory, filename).replace('\\', '/')
+    
+    path = DownloadService.get_download_path(processed_media_path)
+    if not os.path.exists(path):
+        path = DownloadService.get_download_path(media_path)
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="Processed media file not found on disk.")
+            
+    media_type = "video/mp4" if path.endswith(".mp4") else "image/jpeg"
+    return FileResponse(path, media_type=media_type)
+
+@router.get("/{id}/snapshot")
+def get_snapshot(id: int):
+    """
+    Returns the snapshot frame (processed image).
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res or not res.get("image_path"):
+        raise HTTPException(status_code=404, detail="Snapshot not available.")
+        
+    path = DownloadService.get_download_path(res["image_path"])
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Snapshot file not found.")
+        
+    return FileResponse(path, media_type="image/jpeg")
+
+@router.get("/{id}/download")
+def download_evidence_attachment(id: int):
+    """
+    Triggers direct file download.
+    """
+    res = evidence_service.get_evidence_by_id(id)
+    if not res:
+        raise HTTPException(status_code=404, detail="Evidence record not found.")
+        
+    media_path = res.get("video_path") or res.get("image_path")
+    if not media_path:
+        raise HTTPException(status_code=404, detail="Media file not found.")
+        
+    path = DownloadService.get_download_path(media_path)
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File is missing on disk.")
+        
+    return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))
+
 @router.delete("/{id}", response_model=DeleteEvidenceResponse)
 def delete_evidence(id: int):
     """

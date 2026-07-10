@@ -8,6 +8,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [useOriginal, setUseOriginal] = useState(true); // Default to original for raw stream preview
+  const [mediaError, setMediaError] = useState(false);
 
   useEffect(() => {
     if (violationId) {
@@ -15,12 +16,21 @@ export default function EvidenceViewer({ violationId, onClose }) {
     }
   }, [violationId]);
 
+  useEffect(() => {
+    setMediaError(false);
+  }, [useOriginal, activeMode, evidence]);
+
   const fetchEvidence = async () => {
     try {
       setLoading(true);
       setError(null);
       const res = await evidenceAPI.getByViolation(violationId);
       setEvidence(res.data);
+      if (res.data && res.data.video_path) {
+        setActiveMode('video'); // default to video if available
+      } else {
+        setActiveMode('image');
+      }
     } catch (err) {
       setError(err.response?.data?.detail || "No evidence file records found for this violation ID.");
     } finally {
@@ -28,24 +38,10 @@ export default function EvidenceViewer({ violationId, onClose }) {
     }
   };
 
-  const getMediaPath = (path) => {
-    if (!path) return '';
-    let normalized = path.startsWith('/') ? path : `/${path}`;
-    
-    let resultPath = normalized;
-    if (useOriginal) {
-      if (normalized.includes('/processed_')) {
-        resultPath = normalized.replace('/processed_', '/');
-      }
-    } else {
-      const parts = normalized.split('/');
-      const filename = parts[parts.length - 1];
-      if (!filename.startsWith('processed_')) {
-        parts[parts.length - 1] = `processed_${filename}`;
-        resultPath = parts.join('/');
-      }
-    }
-    return encodeURI(resultPath);
+  const getMediaSrc = () => {
+    if (!evidence) return '';
+    const mode = useOriginal ? 'original' : 'processed';
+    return `/api/v1/evidence/${evidence.evidence_id}/${mode}?type=${activeMode}`;
   };
 
   if (!violationId) return null;
@@ -59,9 +55,22 @@ export default function EvidenceViewer({ violationId, onClose }) {
             <h3 className="font-bold text-lg text-slate-100">Media Evidence Review</h3>
             <span className="text-xs text-slate-500">Record ID: #{violationId}</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-850 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-3">
+            {evidence && (
+              <a
+                href={getMediaSrc()}
+                download
+                className="text-slate-350 hover:text-purple-400 p-1.5 rounded-lg border border-slate-800 bg-slate-950/80 flex items-center space-x-1.5 text-[10px] font-bold uppercase transition-all"
+                title="Download currently viewed media file"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Media</span>
+              </a>
+            )}
+            <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-850 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -104,21 +113,28 @@ export default function EvidenceViewer({ violationId, onClose }) {
               </div>
 
               {/* Media viewer window */}
-              <div className="bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex-1 min-h-[250px] flex items-center justify-center relative">
-                {activeMode === 'image' ? (
+              <div className="bg-slate-955 border border-slate-850 rounded-xl overflow-hidden flex-1 min-h-[300px] flex items-center justify-center relative">
+                {mediaError ? (
+                  <div className="text-slate-500 text-xs font-semibold text-center py-12 flex flex-col items-center justify-center space-y-2">
+                    <FileText className="w-10 h-10 text-slate-700" />
+                    <span>Evidence file not available.</span>
+                  </div>
+                ) : activeMode === 'image' ? (
                   <img
                     key={useOriginal ? 'orig-img' : 'ann-img'}
-                    src={getMediaPath(evidence.image_path)}
+                    src={getMediaSrc()}
                     alt="Infraction snapshot"
                     className="w-full h-full object-contain max-h-[400px]"
+                    onError={() => setMediaError(true)}
                   />
                 ) : (
                   <video
                     key={useOriginal ? 'orig-vid' : 'ann-vid'}
-                    src={getMediaPath(evidence.video_path)}
+                    src={getMediaSrc()}
                     controls
                     autoPlay
                     className="w-full h-full object-contain max-h-[400px]"
+                    onError={() => setMediaError(true)}
                   />
                 )}
               </div>
@@ -127,7 +143,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => setActiveMode('image')}
-                  className={`flex items-center justify-center space-x-2 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                  className={`flex items-center justify-center space-x-2 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                     activeMode === 'image'
                       ? 'bg-purple-650/10 border-purple-500 text-purple-400'
                       : 'border-slate-800 bg-slate-950/40 hover:bg-slate-850 text-slate-400'
@@ -138,7 +154,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
                 </button>
                 <button
                   onClick={() => setActiveMode('video')}
-                  className={`flex items-center justify-center space-x-2 py-3 rounded-xl border text-sm font-semibold transition-all ${
+                  className={`flex items-center justify-center space-x-2 py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                     activeMode === 'video'
                       ? 'bg-purple-650/10 border-purple-500 text-purple-400'
                       : 'border-slate-800 bg-slate-950/40 hover:bg-slate-850 text-slate-400'
@@ -150,7 +166,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
               </div>
 
               {/* Meta details list */}
-              <div className="bg-slate-955/50 border border-slate-850 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-455">
+              <div className="bg-slate-955/50 border border-slate-850 rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-400">
                 <div>
                   <span className="text-slate-500 block uppercase font-bold tracking-wider text-[10px]">Vehicle ID</span>
                   <span className="font-semibold text-slate-350">{evidence.vehicle_id || '99'}</span>

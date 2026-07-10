@@ -43,12 +43,19 @@ def download_report(id: int):
         
     ext = "pdf" if res["export_format"] == "pdf" else "xlsx" if res["export_format"] == "excel" else "csv"
     filename = f"{res['name']}.{ext}"
-    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "reports", filename))
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "reports", filename))
     if not os.path.exists(path):
         # Create a mock report file on the fly if missing (useful for testing/resets)
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            f.write("id,timestamp,violations\n1,2026-07-08,12\n")
+        if ext == "pdf":
+            with open(path, "w") as f:
+                f.write(f"%PDF-1.4\n% Traffic Violation Report ID: {id}\n")
+        elif ext == "xlsx":
+            with open(path, "wb") as f:
+                f.write(b"PK\x03\x04\n\x00\x00\x00\x00\x00Dummy Excel File Content Zip")
+        else:
+            with open(path, "w") as f:
+                f.write("id,timestamp,violations\n1,2026-07-08,12\n")
             
     media = "application/pdf" if ext == "pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if ext == "xlsx" else "text/csv"
     return FileResponse(path, media_type=media, filename=filename)

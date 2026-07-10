@@ -1,4 +1,5 @@
 import uuid
+import os
 from datetime import datetime
 from fastapi import APIRouter, File, UploadFile, status, HTTPException
 from typing import List
@@ -43,17 +44,18 @@ async def upload_image(file: UploadFile = File(...)):
         
         # Save history entry
         summary_text = result["evidence"]["summary_text"]
-        UploadService.add_history_entry(job_id, file.filename, "image", "Completed", summary_text)
+        safe_filename = os.path.basename(filepath)
+        UploadService.add_history_entry(job_id, safe_filename, "image", "Completed", summary_text)
         
         return {
             "job_id": job_id,
-            "filename": file.filename,
+            "filename": safe_filename,
             "file_type": "image",
             "status": "Completed",
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     except Exception as e:
-        UploadService.add_history_entry(job_id, file.filename, "image", "Failed", str(e))
+        UploadService.add_history_entry(job_id, os.path.basename(filepath), "image", "Failed", str(e))
         raise HTTPException(
             status_code=status.HTTP_550_INTERNAL_SERVER_ERROR,
             detail=f"Inference execution failure: {str(e)}"
@@ -78,11 +80,12 @@ async def upload_video(file: UploadFile = File(...)):
     
     # 4. Trigger video processing thread
     VideoDetector.start_video_processing(filepath, job_id)
-    UploadService.add_history_entry(job_id, file.filename, "video", "Processing", "Worker initialized.")
+    safe_filename = os.path.basename(filepath)
+    UploadService.add_history_entry(job_id, safe_filename, "video", "Processing", "Worker initialized.")
 
     return {
         "job_id": job_id,
-        "filename": file.filename,
+        "filename": safe_filename,
         "file_type": "video",
         "status": "Processing",
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")

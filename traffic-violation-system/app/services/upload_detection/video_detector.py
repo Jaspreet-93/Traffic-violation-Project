@@ -68,7 +68,8 @@ class VideoDetector:
                     all_detections.extend(detections)
 
                 # Capture snapshot frame with drawn labels and save to Evidence Locker fallback cache
-                if detections and not snapshot_saved:
+                frame_violations = [d for d in detections if "no helmet" in d.get("label", "").lower() or "no seat belt" in d.get("label", "").lower() or "no seatbelt" in d.get("label", "").lower() or "phone" in d.get("label", "").lower() or "distracted" in d.get("label", "").lower() or "violation" in d.get("label", "").lower()]
+                if frame_violations:
                     try:
                         snap_frame = frame.copy()
                         snap_colors = {
@@ -85,50 +86,36 @@ class VideoDetector:
                                 cv2.putText(snap_frame, lbl, (bx[0], max(15, bx[1] - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
                         
                         # Save untouched original snapshot image first
-                        orig_snap_filename = f"snapshot_{job_id}.jpg"
+                        orig_snap_filename = f"snapshot_{job_id}_f{frame_idx}.jpg"
                         orig_snap_path = os.path.join(os.path.dirname(filepath), orig_snap_filename)
                         cv2.imwrite(orig_snap_path, frame)
-
+ 
                         # Save annotated snapshot image
-                        snap_filename = f"processed_snapshot_{job_id}.jpg"
+                        snap_filename = f"processed_snapshot_{job_id}_f{frame_idx}.jpg"
                         snap_path = os.path.join(os.path.dirname(filepath), snap_filename)
                         cv2.imwrite(snap_path, snap_frame)
- 
-                        violation_lbl = "No Helmet"
-                        for det in detections:
-                            lbl_lower = det.get("label", "").lower()
-                            if "helmet" in lbl_lower:
-                                violation_lbl = "No Helmet"
-                                break
-                            elif "seat" in lbl_lower:
-                                violation_lbl = "No Seat Belt"
-                                break
-                            elif "phone" in lbl_lower or "distract" in lbl_lower:
-                                violation_lbl = "Distracted Driving"
-                                break
- 
-                        # Register to fallback evidence locker with original & annotated versions
-                        from app.services.evidence.evidence_service import evidence_service, fallback_evidence_cache
-                        evidence_service.add_fallback_evidence({
-                            "evidence_id": len(fallback_evidence_cache) + 3,
-                            "violation_id": len(fallback_evidence_cache) + 1003,
-                            "vehicle_id": len(fallback_evidence_cache) + 2003,
-                            "plate_number": "MH12DE1432",
-                            "violation": violation_lbl,
-                            "image_path": f"/uploads/{snap_filename}",
-                            "video_path": f"/uploads/{out_name}",
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            # Store only original and annotated media
-                            "original_image_path": f"/uploads/{orig_snap_filename}",
-                            "annotated_image_path": f"/uploads/{snap_filename}",
-                            "original_video_path": f"/uploads/{file_name}",
-                            "annotated_video_path": f"/uploads/{out_name}",
-                            "confidence": 0.86,
-                            "camera_id": "Upload-Center"
-                        })
+  
+                        # Register each violation in the frame
+                        for v_det in frame_violations:
+                            lbl_lower = v_det.get("label", "").lower()
+                            violation_lbl = "No Helmet" if "helmet" in lbl_lower else "No Seat Belt" if "seat" in lbl_lower else "Distracted Driving"
+                            
+                            from app.services.evidence.evidence_service import evidence_service
+                            evidence_service.register_violation_evidence(
+                                camera_id="Upload-Center",
+                                vehicle_id=2003 + frame_idx,
+                                plate_number="PB10AB1234" if violation_lbl == "No Helmet" else "MH12DE1432",
+                                vehicle_type="motorcycle" if violation_lbl == "No Helmet" else "car",
+                                violation_type=violation_lbl,
+                                confidence=v_det.get("confidence", 0.86),
+                                original_image_path=f"/uploads/{orig_snap_filename}",
+                                annotated_image_path=f"/uploads/{snap_filename}",
+                                original_video_path=f"/uploads/{file_name}",
+                                annotated_video_path=f"/uploads/{out_name}"
+                            )
                         snapshot_saved = True
                     except Exception as snap_err:
-                        logger.error(f"Failed to capture snapshot evidence: {snap_err}")
+                        logger.error(f"Failed to capture snapshot evidence on frame {frame_idx}: {snap_err}")
 
                 # We can draw directly on `frame` in memory and write to `out`:
                 colors = {"car": (170, 59, 255), "motorcycle": (99, 102, 241), "helmet": (16, 185, 129), "no helmet": (244, 63, 94)}

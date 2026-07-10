@@ -34,43 +34,26 @@ class ImageDetector:
         violations = sum(1 for d in detections if "no helmet" in d["label"] or "no seat belt" in d["label"] or "phone" in d["label"] or "distracted" in d["label"])
 
         # Save to Evidence Locker fallback if there is a violation
-        if violations > 0:
-            try:
-                from datetime import datetime
-                from app.services.evidence.evidence_service import evidence_service, fallback_evidence_cache
-                
-                violation_lbl = "No Helmet"
-                for det in detections:
-                    lbl_lower = det.get("label", "").lower()
-                    if "helmet" in lbl_lower:
-                        violation_lbl = "No Helmet"
-                        break
-                    elif "seat" in lbl_lower:
-                        violation_lbl = "No Seat Belt"
-                        break
-                    elif "phone" in lbl_lower or "distract" in lbl_lower:
-                        violation_lbl = "Distracted Driving"
-                        break
-                        
-                evidence_service.add_fallback_evidence({
-                    "evidence_id": len(fallback_evidence_cache) + 3,
-                    "violation_id": len(fallback_evidence_cache) + 1003,
-                    "vehicle_id": len(fallback_evidence_cache) + 2003,
-                    "plate_number": "PB10AB1234" if violation_lbl == "No Helmet" else "MH12DE1432",
-                    "violation": violation_lbl,
-                    "image_path": f"/uploads/{out_name}",
-                    "video_path": None,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    # Store only original and annotated media
-                    "original_image_path": f"/uploads/{file_name}",
-                    "annotated_image_path": f"/uploads/{out_name}",
-                    "original_video_path": None,
-                    "annotated_video_path": None,
-                    "confidence": 0.88,
-                    "camera_id": "Upload-Center"
-                })
-            except Exception as e:
-                logger.error(f"Failed to save image evidence to locker: {e}")
+        for det in detections:
+            lbl_lower = det.get("label", "").lower()
+            if "no helmet" in lbl_lower or "no seat belt" in lbl_lower or "phone" in lbl_lower or "distracted" in lbl_lower or "violation" in lbl_lower:
+                violation_lbl = "No Helmet" if "helmet" in lbl_lower else "No Seat Belt" if "seat" in lbl_lower else "Distracted Driving"
+                try:
+                    from app.services.evidence.evidence_service import evidence_service
+                    evidence_service.register_violation_evidence(
+                        camera_id="Upload-Center",
+                        vehicle_id=2003,
+                        plate_number="PB10AB1234" if violation_lbl == "No Helmet" else "MH12DE1432",
+                        vehicle_type="motorcycle" if violation_lbl == "No Helmet" else "car",
+                        violation_type=violation_lbl,
+                        confidence=det.get("confidence", 0.88),
+                        original_image_path=f"/uploads/{file_name}",
+                        annotated_image_path=f"/uploads/{out_name}",
+                        original_video_path=None,
+                        annotated_video_path=None
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to register image violation evidence: {e}")
 
         summary_text = f"Detected {vehicles} vehicles and {violations} violations in {elapsed:.2f} seconds."
 

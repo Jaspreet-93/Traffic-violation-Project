@@ -93,8 +93,8 @@ class EvidenceService:
                     "vehicle_id": 201,
                     "plate_number": "MH12DE1432",
                     "violation": "No Helmet",
-                    "image_path": "/uploads/processed_snapshot_mock1.jpg",
-                    "video_path": "/uploads/processed_video_mock1.mp4",
+                    "image_path": "/uploads/violation images_8532058e.jpeg",
+                    "video_path": "/uploads/violation video 3_94eeeb0b.mp4",
                     "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
                 },
                 {
@@ -103,8 +103,8 @@ class EvidenceService:
                     "vehicle_id": 202,
                     "plate_number": "DL3CAN4839",
                     "violation": "No Seat Belt",
-                    "image_path": "/uploads/processed_snapshot_mock2.jpg",
-                    "video_path": "/uploads/processed_video_mock2.mp4",
+                    "image_path": "/uploads/violation images_9f18fcea.jpeg",
+                    "video_path": "/uploads/violation video 3_b19035d6.mp4",
                     "timestamp": (now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                 }
             ]
@@ -144,8 +144,8 @@ class EvidenceService:
                 "vehicle_id": 100 + violation_id,
                 "plate_number": "MH12DE1432",
                 "violation": "No Helmet",
-                "image_path": "/uploads/processed_snapshot_mock1.jpg",
-                "video_path": "/uploads/video_mock.avi",
+                "image_path": "/uploads/violation images_8532058e.jpeg",
+                "video_path": "/uploads/violation video 3_94eeeb0b.mp4",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         finally:
@@ -183,8 +183,8 @@ class EvidenceService:
                 "vehicle_id": 102,
                 "plate_number": "MH12DE1432",
                 "violation": "No Helmet",
-                "image_path": "/uploads/processed_snapshot_mock1.jpg",
-                "video_path": "/uploads/video_mock.avi",
+                "image_path": "/uploads/violation images_8532058e.jpeg",
+                "video_path": "/uploads/violation video 3_94eeeb0b.mp4",
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         finally:

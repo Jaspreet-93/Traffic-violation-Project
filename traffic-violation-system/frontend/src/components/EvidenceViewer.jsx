@@ -7,6 +7,7 @@ export default function EvidenceViewer({ violationId, onClose }) {
   const [activeMode, setActiveMode] = useState('image'); // 'image' or 'video'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [useOriginal, setUseOriginal] = useState(true); // Default to original for raw stream preview
 
   useEffect(() => {
     if (violationId) {
@@ -27,10 +28,30 @@ export default function EvidenceViewer({ violationId, onClose }) {
     }
   };
 
+  const getMediaPath = (path) => {
+    if (!path) return '';
+    let normalized = path.startsWith('/') ? path : `/${path}`;
+    
+    if (useOriginal) {
+      if (normalized.includes('/processed_')) {
+        return normalized.replace('/processed_', '/');
+      }
+      return normalized;
+    } else {
+      const parts = normalized.split('/');
+      const filename = parts[parts.length - 1];
+      if (!filename.startsWith('processed_')) {
+        parts[parts.length - 1] = `processed_${filename}`;
+        return parts.join('/');
+      }
+      return normalized;
+    }
+  };
+
   if (!violationId) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-955/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-slate-955 px-6 py-4 border-b border-slate-850 flex items-center justify-between">
@@ -56,18 +77,45 @@ export default function EvidenceViewer({ violationId, onClose }) {
               <p className="text-xs text-slate-600 mt-1">If the stream is running, trigger a live violation to create evidence.</p>
             </div>
           ) : (
-            <div className="space-y-6 flex-1 flex flex-col justify-between">
+            <div className="space-y-5 flex-1 flex flex-col justify-between">
+              {/* Original vs Annotated toggle */}
+              <div className="flex justify-between items-center bg-slate-950/40 p-2.5 rounded-xl border border-slate-850/60">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                  Source Stream Mode
+                </span>
+                <div className="flex items-center bg-slate-950 border border-slate-850 p-1 rounded-lg">
+                  <button
+                    onClick={() => setUseOriginal(true)}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                      useOriginal ? 'bg-purple-650 text-white' : 'text-slate-500 hover:text-slate-350'
+                    }`}
+                  >
+                    Original
+                  </button>
+                  <button
+                    onClick={() => setUseOriginal(false)}
+                    className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                      !useOriginal ? 'bg-purple-650 text-white' : 'text-slate-500 hover:text-slate-350'
+                    }`}
+                  >
+                    Annotated AI
+                  </button>
+                </div>
+              </div>
+
               {/* Media viewer window */}
               <div className="bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex-1 min-h-[250px] flex items-center justify-center relative">
                 {activeMode === 'image' ? (
                   <img
-                    src={evidence.image_path}
+                    key={useOriginal ? 'orig-img' : 'ann-img'}
+                    src={getMediaPath(evidence.image_path)}
                     alt="Infraction snapshot"
                     className="w-full h-full object-contain max-h-[400px]"
                   />
                 ) : (
                   <video
-                    src={evidence.video_path}
+                    key={useOriginal ? 'orig-vid' : 'ann-vid'}
+                    src={getMediaPath(evidence.video_path)}
                     controls
                     autoPlay
                     className="w-full h-full object-contain max-h-[400px]"

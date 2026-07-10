@@ -390,6 +390,12 @@ class EvidenceService:
                     camera_id=item.get("camera_id")
                 )
 
+        # Fallback: check if evidence_id matches vehicle_id or violation_id in any records
+        all_rec = self.get_all_evidence()
+        for item in all_rec:
+            if str(item.get("vehicle_id")) == str(evidence_id) or str(item.get("violation_id")) == str(evidence_id):
+                return item
+
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return self._map_evidence_dict(
             id=evidence_id,

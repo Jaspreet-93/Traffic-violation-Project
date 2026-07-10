@@ -108,7 +108,7 @@ class EvidenceService:
                     "timestamp": (now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                 }
             ]
-            return default_items + fallback_evidence_cache
+            return fallback_evidence_cache + default_items
         finally:
             db.close()
 

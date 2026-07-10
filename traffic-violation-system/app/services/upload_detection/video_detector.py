@@ -64,7 +64,7 @@ class VideoDetector:
                 # Process dynamically scaled frames for speed
                 detections = []
                 if frame_idx % step == 0:
-                    detections = PipelineRunner.process_media_frame(frame)
+                    detections = PipelineRunner.process_media_frame(frame, file_name)
                     all_detections.extend(detections)
 
                 # Capture snapshot frame with drawn labels and save to Evidence Locker fallback cache

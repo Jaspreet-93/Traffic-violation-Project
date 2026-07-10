@@ -26,14 +26,14 @@ class ReplayService:
             now = datetime.now()
             results.append({
                 "violation_id": "violation-mock-1",
-                "filename": "camera_feed_intersection_12.mp4",
+                "filename": "violation video 3_b19035d6.mp4",
                 "violation_type": "No Helmet",
                 "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
                 "duration_sec": 24.5
             })
             results.append({
                 "violation_id": "violation-mock-2",
-                "filename": "highway_monitoring_clip.mp4",
+                "filename": "violation video 3_b19035d6.mp4",
                 "violation_type": "No Seat Belt",
                 "timestamp": (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
                 "duration_sec": 18.0
@@ -53,10 +53,18 @@ class ReplayService:
         if not target:
             target = replays[0]
 
+        filename = target['filename']
+        if filename.startswith("processed_"):
+            processed_url = f"/uploads/{filename}"
+            original_url = f"/uploads/{filename.replace('processed_', '')}"
+        else:
+            processed_url = f"/uploads/processed_{filename}"
+            original_url = f"/uploads/{filename}"
+
         return {
             "violation_id": violation_id,
-            "original_video_url": f"/uploads/processed_{target['filename']}",
-            "processed_video_url": f"/uploads/processed_{target['filename']}",
+            "original_video_url": original_url,
+            "processed_video_url": processed_url,
             "violation_type": target["violation_type"],
             "timestamp": target["timestamp"],
             "processing_time_sec": 4.82,

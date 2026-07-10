@@ -41,7 +41,7 @@ class StorageManager:
         dest_path = os.path.join(self.videos_dir, filename)
         ensure_dir(dest_path)
         
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # standard mp4 codec
+        fourcc = cv2.VideoWriter_fourcc(*'avc1') # H.264 browser-playable codec
         writer = cv2.VideoWriter(dest_path, fourcc, fps, size)
         rel_path = os.path.relpath(dest_path, self.root_dir).replace(os.sep, '/')
         return writer, rel_path

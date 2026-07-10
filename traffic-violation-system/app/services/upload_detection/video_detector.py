@@ -48,7 +48,7 @@ class VideoDetector:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
         step = max(15, total_frames // 100) # process max 100 frames to run fast even on large videos
 
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # standard mp4 output
+        fourcc = cv2.VideoWriter_fourcc(*'avc1') # H.264 browser-playable codec
         out = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
 
         all_detections = []

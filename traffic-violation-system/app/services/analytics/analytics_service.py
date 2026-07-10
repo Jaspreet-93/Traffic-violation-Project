@@ -9,7 +9,7 @@ from app.core.logger import logger
 class AnalyticsService:
     def get_summary(self) -> Dict[str, int]:
         """
-        Retrieves violation metrics totals. Falls back to 0s if database is down.
+        Retrieves violation metrics totals. Falls back to evidence locker cache count if database is down.
         """
         db = SessionLocal()
         try:
@@ -21,12 +21,7 @@ class AnalyticsService:
             red_light = db.query(Violation).filter(Violation.violation_type.ilike("%red%light%")).count()
             
             if total == 0:
-                return {
-                    "total_violations": 3,
-                    "helmet_cases": 1,
-                    "seatbelt_cases": 1,
-                    "red_light_cases": 1
-                }
+                raise ValueError("No violation records in DB")
             
             return {
                 "total_violations": total,
@@ -35,13 +30,28 @@ class AnalyticsService:
                 "red_light_cases": red_light
             }
         except Exception as e:
-            logger.error(f"Error generating summary analytics: {e}")
-            return {
-                "total_violations": 3,
-                "helmet_cases": 1,
-                "seatbelt_cases": 1,
-                "red_light_cases": 1
-            }
+            logger.warning(f"DB offline/empty for analytics summary, falling back to evidence cache: {e}")
+            try:
+                from app.services.evidence.evidence_service import evidence_service
+                all_ev = evidence_service.get_all_evidence()
+                total = len(all_ev)
+                helmet = sum(1 for e in all_ev if "helmet" in e.get("violation", "").lower())
+                seatbelt = sum(1 for e in all_ev if "seat" in e.get("violation", "").lower())
+                red_light = sum(1 for e in all_ev if "red" in e.get("violation", "").lower() or "light" in e.get("violation", "").lower())
+                return {
+                    "total_violations": total,
+                    "helmet_cases": helmet,
+                    "seatbelt_cases": seatbelt,
+                    "red_light_cases": red_light
+                }
+            except Exception as inner_err:
+                logger.error(f"Failed to generate summary from evidence service fallback: {inner_err}")
+                return {
+                    "total_violations": 0,
+                    "helmet_cases": 0,
+                    "seatbelt_cases": 0,
+                    "red_light_cases": 0
+                }
         finally:
             db.close()
 

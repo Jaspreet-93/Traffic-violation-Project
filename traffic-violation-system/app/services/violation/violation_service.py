@@ -246,7 +246,27 @@ class ViolationService:
         try:
             r = db.query(Violation).filter(Violation.id == violation_id).first()
             if not r:
-                for v in self.recorded_violations:
+                # Merge local list with evidence fallback cache
+                candidates = list(self.recorded_violations)
+                try:
+                    from app.services.evidence.evidence_service import evidence_service
+                    for item in evidence_service.fallback_evidence_cache:
+                        # Avoid duplicates
+                        if not any(str(c.get("id")) == str(item.get("violation_id")) for c in candidates):
+                            candidates.append({
+                                "id": item.get("violation_id"),
+                                "camera_id": item.get("camera_id"),
+                                "vehicle_id": item.get("vehicle_id"),
+                                "plate_number": item.get("plate_number"),
+                                "violation_type": item.get("violation"),
+                                "confidence": item.get("confidence"),
+                                "evidence_path": item.get("image_path"),
+                                "timestamp": item.get("timestamp")
+                            })
+                except Exception as ex:
+                    logger.error(f"Error querying fallback cache: {ex}")
+
+                for v in candidates:
                     if str(v.get("id")) == str(violation_id):
                         import re
                         path = v.get("evidence_path") or ""

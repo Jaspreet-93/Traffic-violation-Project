@@ -22,6 +22,10 @@ export default defineConfig({
       '/uploads': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+      },
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       }
     }
   }

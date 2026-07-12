@@ -44,6 +44,15 @@ function ModuleViolationContent({ moduleName }) {
   const [imageErrors, setImageErrors] = useState({});
   const [activeDetails, setActiveDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState({
+    original: true,
+    annotated: true,
+    vehicle: true,
+    helmet: true,
+    plate: true,
+    seatbelt: true,
+    trafficlight: true
+  });
 
   const handleImageError = (key) => {
     setImageErrors(prev => ({ ...prev, [key]: true }));
@@ -114,15 +123,37 @@ function ModuleViolationContent({ moduleName }) {
       if (!activeViolation) return;
       const id = activeViolation.violation_id || activeViolation.evidence_id;
       if (!id) return;
+      
+      // Reset image loading states
+      setImageLoading({
+        original: true,
+        annotated: true,
+        vehicle: true,
+        helmet: true,
+        plate: true,
+        seatbelt: true,
+        trafficlight: true
+      });
+      
+      const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              return await res.json();
+            }
+          } catch (err) {
+            if (i === retries - 1) throw err;
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+        throw new Error("Failed to fetch after multiple retries");
+      };
+
       try {
         setDetailsLoading(true);
-        const res = await fetch(`/api/violations/${id}`);
-        if (res.ok) {
-          const details = await res.json();
-          setActiveDetails(details);
-        } else {
-          setActiveDetails(null);
-        }
+        const details = await fetchWithRetry(`/api/violations/${id}`);
+        setActiveDetails(details);
       } catch (err) {
         console.error("Failed to load violation details:", err);
         setActiveDetails(null);
@@ -311,6 +342,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="bg-slate-955/20 border border-slate-850 p-3 rounded-lg flex flex-col justify-between h-full min-h-[220px]">
                 <span className="text-[9px] text-slate-555 font-extrabold block uppercase tracking-wider mb-2">Original Frame</span>
                 <div className="flex-1 flex items-center justify-center overflow-hidden min-h-[180px] bg-slate-955/20 rounded-lg relative">
+                  {imageLoading.original && !imageErrors['original'] && displayViolation.original_image && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
+                      <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['original'] || !displayViolation.original_image ? (
                     <span className="text-[10px] text-slate-550 font-bold">Not Available</span>
                   ) : (
@@ -318,6 +354,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.original_image}
                       alt="original"
                       className="max-h-[220px] object-contain rounded-lg border border-slate-900"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, original: false }))}
                       onError={() => handleImageError('original')}
                     />
                   )}
@@ -327,6 +364,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="bg-slate-955/20 border border-slate-850 p-3 rounded-lg flex flex-col justify-between h-full min-h-[220px]">
                 <span className="text-[9px] text-slate-555 font-extrabold block uppercase tracking-wider mb-2 text-purple-400">Annotated Frame</span>
                 <div className="flex-1 flex items-center justify-center overflow-hidden min-h-[180px] bg-slate-955/20 rounded-lg relative">
+                  {imageLoading.annotated && !imageErrors['annotated'] && displayViolation.annotated_image && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
+                      <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['annotated'] || !displayViolation.annotated_image ? (
                     <span className="text-[10px] text-slate-550 font-bold">Not Available</span>
                   ) : (
@@ -334,6 +376,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.annotated_image}
                       alt="annotated"
                       className="max-h-[220px] object-contain rounded-lg border border-slate-900"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, annotated: false }))}
                       onError={() => handleImageError('annotated')}
                     />
                   )}
@@ -365,6 +408,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
                 <span className="truncate block">Vehicle</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageLoading.vehicle && !imageErrors['vehicle'] && displayViolation.vehicle_crop && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
+                      <div className="w-3.5 h-3.5 border border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['vehicle'] || !displayViolation.vehicle_crop ? (
                     <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
@@ -372,6 +420,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.vehicle_crop}
                       alt="veh-crop"
                       className="object-cover w-full h-full"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, vehicle: false }))}
                       onError={() => handleImageError('vehicle')}
                     />
                   )}
@@ -382,6 +431,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
                 <span className="truncate block">Helmet</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageLoading.helmet && !imageErrors['violation'] && displayViolation.helmet_crop && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-955/80 z-10">
+                      <div className="w-3.5 h-3.5 border border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['violation'] || !displayViolation.helmet_crop ? (
                     <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
@@ -389,6 +443,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.helmet_crop}
                       alt="viol-crop"
                       className="object-cover w-full h-full"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, helmet: false }))}
                       onError={() => handleImageError('violation')}
                     />
                   )}
@@ -399,6 +454,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
                 <span className="truncate block">Seat Belt</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageLoading.seatbelt && !imageErrors['seatbelt'] && displayViolation.seatbelt_crop && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
+                      <div className="w-3.5 h-3.5 border border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['seatbelt'] || !displayViolation.seatbelt_crop ? (
                     <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
@@ -406,6 +466,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.seatbelt_crop}
                       alt="sb-crop"
                       className="object-cover w-full h-full"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, seatbelt: false }))}
                       onError={() => handleImageError('seatbelt')}
                     />
                   )}
@@ -416,6 +477,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
                 <span className="truncate block">Plate</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageLoading.plate && !imageErrors['plate'] && displayViolation.plate_crop && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10">
+                      <div className="w-3.5 h-3.5 border border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['plate'] || !displayViolation.plate_crop ? (
                     <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
@@ -423,6 +489,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.plate_crop}
                       alt="plate-crop"
                       className="object-cover w-full h-full"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, plate: false }))}
                       onError={() => handleImageError('plate')}
                     />
                   )}
@@ -433,6 +500,11 @@ function ModuleViolationContent({ moduleName }) {
               <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
                 <span className="truncate block">Light</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageLoading.trafficlight && !imageErrors['trafficlight'] && displayViolation.trafficlight_crop && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-955/80 z-10">
+                      <div className="w-3.5 h-3.5 border border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                   {imageErrors['trafficlight'] || !displayViolation.trafficlight_crop ? (
                     <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
@@ -440,6 +512,7 @@ function ModuleViolationContent({ moduleName }) {
                       src={displayViolation.trafficlight_crop}
                       alt="tl-crop"
                       className="object-cover w-full h-full"
+                      onLoad={() => setImageLoading(prev => ({ ...prev, trafficlight: false }))}
                       onError={() => handleImageError('trafficlight')}
                     />
                   )}

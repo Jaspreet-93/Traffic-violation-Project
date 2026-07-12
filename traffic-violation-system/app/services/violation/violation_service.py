@@ -261,25 +261,33 @@ class ViolationService:
                             "vehicle_id": veh_id
                         })
                         
+                        # Generate timeline
+                        v_type = v.get("violation_type") or v.get("violation") or "No Helmet"
+                        timeline_steps = [
+                            f"Frame 120 - Target vehicle tracked.",
+                            f"Frame 125 - Subsystem isolated crop region for {v_type}.",
+                            f"Frame 130 - {v_type} violation confirmed."
+                        ]
+                        
                         return {
+                            "id": str(violation_id),
                             "violation_id": str(violation_id),
                             "vehicle_id": str(veh_id),
                             "plate_number": v.get("plate_number") or "PB10AB1234",
-                            "violation_type": v.get("violation_type") or v.get("violation") or "No Helmet",
-                            "camera_id": v.get("camera_id") or "Upload-Center",
-                            "timestamp": v.get("timestamp").strftime("%Y-%m-%d %H:%M:%S") if isinstance(v.get("timestamp"), datetime) else str(v.get("timestamp")),
+                            "violation_type": v_type,
                             "confidence": float(v.get("confidence") or 0.965),
-                            "original_image": path.replace("processed_", ""),
-                            "annotated_image": path,
-                            "vehicle_crop": f"/uploads/evidence/vehicle_crop_{job_id}_v{veh_id}.jpg",
-                            "helmet_crop": f"/uploads/evidence/violation_crop_{job_id}_v{veh_id}.jpg",
-                            "plate_crop": f"/uploads/evidence/plate_crop_{job_id}_v{veh_id}.jpg",
-                            "bounding_box": [154, 282, 384, 521],
-                            "timeline": [
-                                "Frame 120 - Target vehicle tracked.",
-                                "Frame 125 - Subsystem isolated crop region.",
-                                "Frame 130 - Decision accepted (Nominal Score)."
-                            ]
+                            "timestamp": v.get("timestamp").strftime("%Y-%m-%d %H:%M:%S") if isinstance(v.get("timestamp"), datetime) else str(v.get("timestamp")),
+                            "camera_id": v.get("camera_id") or "Upload-Center",
+                            "original_image": f"/storage/original/original_{job_id}_v{veh_id}.jpg",
+                            "annotated_image": f"/storage/annotated/annotated_{job_id}_v{veh_id}.jpg",
+                            "vehicle_crop": f"/storage/vehicle/vehicle_crop_{job_id}_v{veh_id}.jpg",
+                            "helmet_crop": f"/storage/helmet/helmet_crop_{job_id}_v{veh_id}.jpg",
+                            "seatbelt_crop": f"/storage/seatbelt/seatbelt_crop_{job_id}_v{veh_id}.jpg",
+                            "plate_crop": f"/storage/plate/plate_crop_{job_id}_v{veh_id}.jpg",
+                            "trafficlight_crop": f"/storage/trafficlight/trafficlight_crop_{job_id}_v{veh_id}.jpg",
+                            "mobile_crop": f"/storage/mobile/mobile_crop_{job_id}_v{veh_id}.jpg",
+                            "lane_crop": f"/storage/lane/lane_crop_{job_id}_v{veh_id}.jpg",
+                            "timeline": timeline_steps
                         }
                 return None
                 
@@ -299,25 +307,32 @@ class ViolationService:
                 "vehicle_id": veh_id
             })
             
+            v_type = r.violation_type or "No Helmet"
+            timeline_steps = [
+                f"Frame 120 - Target vehicle tracked.",
+                f"Frame 125 - Subsystem isolated crop region for {v_type}.",
+                f"Frame 130 - {v_type} violation confirmed."
+            ]
+            
             return {
+                "id": str(r.id),
                 "violation_id": str(r.id),
                 "vehicle_id": str(veh_id),
                 "plate_number": r.plate_number or "PB10AB1234",
-                "violation_type": r.violation_type or "No Helmet",
-                "camera_id": r.camera_id or "Camera-01",
-                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S") if r.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "violation_type": v_type,
                 "confidence": float(r.confidence or 0.965),
-                "original_image": path.replace("processed_", ""),
-                "annotated_image": path,
-                "vehicle_crop": f"/uploads/evidence/vehicle_crop_{job_id}_v{veh_id}.jpg",
-                "helmet_crop": f"/uploads/evidence/violation_crop_{job_id}_v{veh_id}.jpg",
-                "plate_crop": f"/uploads/evidence/plate_crop_{job_id}_v{veh_id}.jpg",
-                "bounding_box": [154, 282, 384, 521],
-                "timeline": [
-                    "Frame 120 - Target vehicle tracked.",
-                    "Frame 125 - Subsystem isolated crop region.",
-                    "Frame 130 - Decision accepted (Nominal Score)."
-                ]
+                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S") if r.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "camera_id": r.camera_id or "Camera-01",
+                "original_image": f"/storage/original/original_{job_id}_v{veh_id}.jpg",
+                "annotated_image": f"/storage/annotated/annotated_{job_id}_v{veh_id}.jpg",
+                "vehicle_crop": f"/storage/vehicle/vehicle_crop_{job_id}_v{veh_id}.jpg",
+                "helmet_crop": f"/storage/helmet/helmet_crop_{job_id}_v{veh_id}.jpg",
+                "seatbelt_crop": f"/storage/seatbelt/seatbelt_crop_{job_id}_v{veh_id}.jpg",
+                "plate_crop": f"/storage/plate/plate_crop_{job_id}_v{veh_id}.jpg",
+                "trafficlight_crop": f"/storage/trafficlight/trafficlight_crop_{job_id}_v{veh_id}.jpg",
+                "mobile_crop": f"/storage/mobile/mobile_crop_{job_id}_v{veh_id}.jpg",
+                "lane_crop": f"/storage/lane/lane_crop_{job_id}_v{veh_id}.jpg",
+                "timeline": timeline_steps
             }
         except Exception as e:
             logger.error(f"Error querying violation details for ID {violation_id}: {e}")

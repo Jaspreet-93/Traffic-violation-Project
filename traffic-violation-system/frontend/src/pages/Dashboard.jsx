@@ -3,8 +3,10 @@ import { AlertCircle, Camera, Cpu, Activity, ShieldAlert } from 'lucide-react';
 import ViolationCard from '../components/ViolationCard';
 import EvidenceViewer from '../components/EvidenceViewer';
 import { violationAPI, analyticsAPI, cameraAPI } from '../services/api';
+import { useSystem } from '../context/SystemContext';
 
 export default function Dashboard() {
+  const { healthData } = useSystem();
   const [violations, setViolations] = useState([]);
   const [selectedViolationId, setSelectedViolationId] = useState(null);
   const [cameraActive, setCameraActive] = useState(false);
@@ -36,6 +38,11 @@ export default function Dashboard() {
     }
   };
 
+  const status = healthData.status || 'Healthy';
+  const systemStatusVal = status === 'Healthy' ? 'Operational' : status === 'Warning' ? 'Warning' : 'Degraded';
+  const systemStatusColor = status === 'Healthy' ? 'text-emerald-500' : status === 'Warning' ? 'text-amber-500' : 'text-rose-500';
+  const systemStatusBg = status === 'Healthy' ? 'bg-emerald-500/10' : status === 'Warning' ? 'bg-amber-500/10' : 'bg-rose-500/10';
+
   return (
     <div className="flex-1 p-6 space-y-6 overflow-y-auto">
       {/* Page Header */}
@@ -50,7 +57,7 @@ export default function Dashboard() {
           { title: 'Total Violations', value: summary.total_violations, icon: AlertCircle, color: 'text-purple-500', bg: 'bg-purple-500/10' },
           { title: 'Active Cameras', value: cameraActive ? '1 Active' : '0 Active', icon: Camera, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
           { title: 'Detected Vehicles', value: violations.length > 0 ? `${violations.length * 2 + 1} Tracked` : '0 Tracked', icon: Cpu, color: 'text-sky-500', bg: 'bg-sky-500/10' },
-          { title: 'System Status', value: 'Operational', icon: Activity, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+          { title: 'System Status', value: systemStatusVal, icon: Activity, color: systemStatusColor, bg: systemStatusBg },
         ].map((card, idx) => {
           const Icon = card.icon;
           return (

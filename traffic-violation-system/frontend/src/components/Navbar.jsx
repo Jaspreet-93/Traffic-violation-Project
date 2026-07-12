@@ -1,7 +1,25 @@
 import React from 'react';
-import { Shield, Activity, User } from 'lucide-react';
+import { Shield, User } from 'lucide-react';
+import { useSystem } from '../context/SystemContext';
 
-export default function Navbar({ cameraActive }) {
+export default function Navbar() {
+  const { healthData } = useSystem();
+  
+  const status = healthData.status || 'Healthy';
+  const displayStatus = status === 'Healthy' ? 'ONLINE' : status === 'Warning' ? 'WARNING' : 'OFFLINE';
+  
+  const badgeColor = status === 'Healthy' 
+    ? 'bg-emerald-500' 
+    : status === 'Warning' 
+      ? 'bg-amber-500' 
+      : 'bg-rose-500';
+      
+  const pingColor = status === 'Healthy' 
+    ? 'bg-emerald-400' 
+    : status === 'Warning' 
+      ? 'bg-amber-400' 
+      : 'bg-rose-400';
+
   return (
     <nav className="h-16 border-b border-slate-800 bg-slate-950/80 px-6 flex items-center justify-between backdrop-blur-md sticky top-0 z-50">
       <div className="flex items-center space-x-3">
@@ -18,13 +36,13 @@ export default function Navbar({ cameraActive }) {
 
       <div className="flex items-center space-x-4">
         {/* Stream Status indicator */}
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-full">
+        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-full select-none">
           <span className="relative flex h-2 w-2">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${cameraActive ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${cameraActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pingColor}`}></span>
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${badgeColor}`}></span>
           </span>
           <span className="text-[10px] font-bold text-slate-400">
-            {cameraActive ? 'STREAM ACTIVE' : 'STREAM OFFLINE'}
+            {displayStatus}
           </span>
         </div>
 

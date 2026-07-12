@@ -87,4 +87,8 @@ export const analyticsAPI = {
   getTypes: () => API.get('/api/v1/analytics/types'),
 };
 
+export const systemAPI = {
+  getHealth: () => API.get('/health'),
+};
+
 export default API;

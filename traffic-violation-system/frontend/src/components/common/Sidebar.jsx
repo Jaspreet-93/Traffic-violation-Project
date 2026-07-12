@@ -17,7 +17,8 @@ const translations = {
     profile: "Edit Profile / PW",
     settings: "System Settings",
     logout: "Logout Session",
-    console: "Monitor Console"
+    console: "Monitor Console",
+    systemDiagnostics: "System Diagnostics"
   },
   hi: {
     dashboard: "डैशबोर्ड",
@@ -33,7 +34,8 @@ const translations = {
     profile: "प्रोफ़ाइल संपादित करें",
     settings: "सिस्टम सेटिंग्स",
     logout: "लॉगआउट",
-    console: "निगरानी कंसोल"
+    console: "निगरानी कंसोल",
+    systemDiagnostics: "सिस्टम डायग्नोस्टिक्स"
   },
   es: {
     dashboard: "Tablero",
@@ -49,7 +51,8 @@ const translations = {
     profile: "Editar Perfil / Contraseña",
     settings: "Configuración del Sistema",
     logout: "Cerrar Sesión",
-    console: "Consola de Monitoreo"
+    console: "Consola de Monitoreo",
+    systemDiagnostics: "Diagnósticos del Sistema"
   }
 };
 
@@ -67,6 +70,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { path: '/evidence-locker', label: t.evidenceLocker, icon: FileVideo },
     { path: '/reports', label: t.reportsCenter, icon: FileText },
     { path: '/replay-center', label: t.replayCenter, icon: Video },
+    { path: '/system-diagnostics', label: t.systemDiagnostics, icon: Activity },
     { path: '/profile', label: t.profile, icon: User },
     { path: '/settings', label: t.settings, icon: Settings },
   ];

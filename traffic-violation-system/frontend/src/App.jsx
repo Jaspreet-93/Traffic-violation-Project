@@ -8,7 +8,6 @@ import { cameraAPI } from './services/api';
 export default function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
-  const [cameraActive, setCameraActive] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -34,32 +33,16 @@ export default function App() {
     loadSettings();
   }, []);
 
-  // Poll status occasionally to keep Navbar sync active
-  useEffect(() => {
-    if (!isLoginPage) {
-      const fetchCamStatus = async () => {
-        try {
-          const res = await cameraAPI.getStatus();
-          setCameraActive(res.data.running);
-        } catch {}
-      };
-      fetchCamStatus();
-      const interval = setInterval(fetchCamStatus, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isLoginPage]);
-
   // Close sidebar on route change on mobile
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-purple-650 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-slate-955 text-slate-100 selection:bg-purple-650 selection:text-white">
       {/* Show navigation controls only outside Login panel */}
       {!isLoginPage && (
         <Navbar 
-          cameraActive={cameraActive} 
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
         />
       )}

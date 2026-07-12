@@ -12,6 +12,7 @@ import EvidenceLocker from '../pages/EvidenceLocker';
 import CameraManagement from '../pages/CameraManagement';
 import Reports from '../pages/Reports';
 import Profile from '../pages/Profile';
+import SystemDiagnostics from '../pages/SystemDiagnostics';
 
 export default function AppRoutes() {
   return (
@@ -29,6 +30,7 @@ export default function AppRoutes() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/replay-center" element={<ReplayCenter />} />
+      <Route path="/system-diagnostics" element={<SystemDiagnostics />} />
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

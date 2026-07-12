@@ -81,6 +81,12 @@ app.include_router(violations_router, prefix="/api")
 from app.api.v1.routes.license_plates import router as license_plates_router
 app.include_router(license_plates_router, prefix="/api")
 
+# Register AI Verification and Seatbelt routers
+from app.api.v1.routes.verification import router as verification_router
+from app.api.v1.routes.seatbelt import router as seatbelt_router
+app.include_router(verification_router, prefix="/api")
+app.include_router(seatbelt_router, prefix="/api")
+
 # Mount outputs folder statically to serve violation images/videos
 from fastapi.staticfiles import StaticFiles
 import os

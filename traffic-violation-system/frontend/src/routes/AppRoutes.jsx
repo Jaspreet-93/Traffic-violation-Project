@@ -13,6 +13,7 @@ import CameraManagement from '../pages/CameraManagement';
 import Reports from '../pages/Reports';
 import Profile from '../pages/Profile';
 import SystemDiagnostics from '../pages/SystemDiagnostics';
+import ModuleViolationPage from '../pages/ModuleViolationPage';
 
 export default function AppRoutes() {
   return (
@@ -31,6 +32,19 @@ export default function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/replay-center" element={<ReplayCenter />} />
       <Route path="/system-diagnostics" element={<SystemDiagnostics />} />
+      
+      {/* AI Decision Engine Subsystem Routes */}
+      <Route path="/helmet-detection" element={<ModuleViolationPage moduleName="Helmet Detection" />} />
+      <Route path="/seatbelt-detection" element={<ModuleViolationPage moduleName="Seat Belt Detection" />} />
+      <Route path="/traffic-light" element={<ModuleViolationPage moduleName="Traffic Light" />} />
+      <Route path="/speed-detection" element={<ModuleViolationPage moduleName="Speed Detection" />} />
+      <Route path="/mobile-phone" element={<ModuleViolationPage moduleName="Mobile Phone" />} />
+      <Route path="/triple-riding" element={<ModuleViolationPage moduleName="Triple Riding" />} />
+      <Route path="/wrong-lane" element={<ModuleViolationPage moduleName="Wrong Lane" />} />
+      <Route path="/stop-line" element={<ModuleViolationPage moduleName="Stop Line" />} />
+      <Route path="/parking-violation" element={<ModuleViolationPage moduleName="Parking Violation" />} />
+      <Route path="/number-plate-ocr" element={<ModuleViolationPage moduleName="Number Plate OCR" />} />
+      
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -126,7 +126,7 @@ export default function UploadDetection() {
           )}
 
           {/* Summary counters */}
-          {viewedResult && <DetectionSummary evidence={viewedResult.evidence} />}
+          {viewedResult && <DetectionSummary result={viewedResult} />}
 
           {/* Download card */}
           {viewedResult && <DownloadCard result={viewedResult} />}

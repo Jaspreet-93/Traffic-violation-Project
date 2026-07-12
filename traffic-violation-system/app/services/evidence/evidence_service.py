@@ -466,6 +466,8 @@ class EvidenceService:
                         cv2.rectangle(img_ann, (int(w*0.35), int(h*0.3)), (int(w*0.65), int(h*0.65)), (0, 0, 255), 3)
                         cv2.putText(img_ann, f"Violation: No Helmet (Conf: 96%)", (int(w*0.35), int(h*0.28)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
                         cv2.imwrite(ann_path, img_ann)
+                        if candidate_ann:
+                            cv2.imwrite(candidate_ann, img_ann)
             
             img = cv2.imread(orig_path)
             if img is None:
@@ -721,6 +723,7 @@ class EvidenceService:
         # Load formatted cache from persistent fallback list first
         formatted_cache = []
         for item in fallback_evidence_cache:
+            self.verify_and_regenerate_evidence(item)
             formatted_cache.append(self._map_evidence_dict(
                 id=item.get("evidence_id", 3),
                 violation_id=item.get("violation_id", 103),

@@ -77,6 +77,10 @@ app.include_router(api_router, prefix=constants.API_V1_STR)
 from app.api.v1.routes.violations import router as violations_router
 app.include_router(violations_router, prefix="/api")
 
+# Register license-plates router under /api prefix
+from app.api.v1.routes.license_plates import router as license_plates_router
+app.include_router(license_plates_router, prefix="/api")
+
 # Mount outputs folder statically to serve violation images/videos
 from fastapi.staticfiles import StaticFiles
 import os

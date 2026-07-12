@@ -1,9 +1,30 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Download, Trash2, Calendar, Camera, Info, Tv } from 'lucide-react';
 import { evidenceAPI } from '../../services/evidenceApi';
 
 export default function EvidenceDetails({ activeId, metadata, integrity, onDelete }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('annotated');
+
+  const handleOpenAudit = () => {
+    if (!metadata) return;
+    const routeMap = {
+      "No Helmet": "/helmet-detection",
+      "No Seat Belt": "/seatbelt-detection",
+      "Distracted Driving": "/mobile-phone",
+      "Red Light": "/traffic-light",
+      "Speeding": "/speed-detection",
+      "Triple Riding": "/triple-riding",
+      "Wrong Lane": "/wrong-lane",
+      "Stop Line Crossing": "/stop-line",
+      "Illegal Parking": "/parking-violation"
+    };
+    const path = routeMap[metadata.violation || metadata.violation_type];
+    if (path) {
+      navigate(path, { state: { evidenceList: [metadata] } });
+    }
+  };
 
   if (!activeId || !metadata) return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-slate-500 text-xs">
@@ -138,10 +159,17 @@ export default function EvidenceDetails({ activeId, metadata, integrity, onDelet
 
       {/* Action buttons */}
       <div className="flex flex-col gap-2 pt-2 border-t border-slate-850">
+        <button
+          onClick={handleOpenAudit}
+          className="w-full py-2 bg-slate-950 border border-slate-850 hover:bg-slate-850 text-slate-200 rounded-xl transition-all cursor-pointer text-xs flex items-center justify-center space-x-2 font-semibold"
+        >
+          <Tv className="w-3.5 h-3.5 text-purple-400" />
+          <span>Open Full Audit Page</span>
+        </button>
         <div className="flex gap-2">
           <a
             href={downloadOriginalUrl}
-            className="flex-1 bg-slate-950 hover:bg-slate-850 text-slate-200 border border-slate-850 font-semibold py-2 rounded-xl text-[10px] flex items-center justify-center space-x-1 transition-all cursor-pointer text-center"
+            className="flex-1 bg-slate-955 hover:bg-slate-850 text-slate-200 border border-slate-850 font-semibold py-2 rounded-xl text-[10px] flex items-center justify-center space-x-1 transition-all cursor-pointer text-center"
           >
             <Download className="w-3 h-3 text-slate-400" />
             <span>Download Original</span>

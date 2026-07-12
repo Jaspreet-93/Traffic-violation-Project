@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Camera, Cpu, Activity, ShieldAlert } from 'lucide-react';
 import ViolationCard from '../components/ViolationCard';
 import EvidenceViewer from '../components/EvidenceViewer';
@@ -6,6 +7,7 @@ import { violationAPI, analyticsAPI, cameraAPI } from '../services/api';
 import { useSystem } from '../context/SystemContext';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { healthData } = useSystem();
   const [violations, setViolations] = useState([]);
   const [selectedViolationId, setSelectedViolationId] = useState(null);
@@ -94,7 +96,25 @@ export default function Dashboard() {
               <ViolationCard
                 key={idx}
                 item={v}
-                onViewEvidence={() => setSelectedViolationId(v.vehicle_id)}
+                onViewEvidence={() => {
+                  const routeMap = {
+                    "No Helmet": "/helmet-detection",
+                    "No Seat Belt": "/seatbelt-detection",
+                    "Distracted Driving": "/mobile-phone",
+                    "Red Light": "/traffic-light",
+                    "Speeding": "/speed-detection",
+                    "Triple Riding": "/triple-riding",
+                    "Wrong Lane": "/wrong-lane",
+                    "Stop Line Crossing": "/stop-line",
+                    "Illegal Parking": "/parking-violation"
+                  };
+                  const path = routeMap[v.violation || v.violation_type];
+                  if (path) {
+                    navigate(path, { state: { evidenceList: [v] } });
+                  } else {
+                    setSelectedViolationId(v.vehicle_id);
+                  }
+                }}
               />
             ))
           )}

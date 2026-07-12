@@ -27,8 +27,22 @@ async def lifespan(app: FastAPI):
             logger.info("Creating database tables if they do not exist...")
             Base.metadata.create_all(bind=engine)
             logger.info("Database tables initialized successfully.")
+            
+            # Ensure new columns exist in database table violations
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                for col in ["original_image", "annotated_image", "vehicle_crop", "helmet_crop", "seatbelt_crop", "plate_crop", "trafficlight_crop", "mobile_crop", "lane_crop"]:
+                    try:
+                        conn.execute(text(f"ALTER TABLE violations ADD COLUMN {col} VARCHAR"))
+                        # Commit transaction for SQLite/Postgres
+                        try:
+                            conn.commit()
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
         except Exception as e:
-            logger.error(f"Error creating database tables: {e}")
+            logger.error(f"Error creating/altering database tables: {e}")
     else:
         logger.error("Database connection test: FAILED. Ensure database is running and credentials in .env are correct.")
     yield
@@ -74,3 +88,10 @@ app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
 uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads"))
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+# Mount storage folder statically to serve real validation crops
+storage_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage"))
+os.makedirs(storage_dir, exist_ok=True)
+for sub in ["evidence", "original", "annotated", "vehicle", "helmet", "seatbelt", "plate", "trafficlight", "mobile", "lane"]:
+    os.makedirs(os.path.join(storage_dir, sub), exist_ok=True)
+app.mount("/storage", StaticFiles(directory=storage_dir), name="storage")

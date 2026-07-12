@@ -360,12 +360,13 @@ function ModuleViolationContent({ moduleName }) {
           <div className="space-y-4">
             <span className="text-[10px] text-slate-400 font-extrabold block uppercase tracking-wider border-b border-slate-850 pb-2">Active Infraction Metadata</span>
             
-            <div className="grid grid-cols-3 gap-2 text-center text-[9px] font-bold text-slate-500">
-              <div className="space-y-1 bg-slate-955 p-1.5 rounded-lg border border-slate-850/50">
-                <span>Vehicle Crop</span>
+            <div className="grid grid-cols-5 gap-1.5 text-center text-[8px] font-bold text-slate-500">
+              {/* Vehicle Crop */}
+              <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
+                <span className="truncate block">Vehicle</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
                   {imageErrors['vehicle'] || !displayViolation.vehicle_crop ? (
-                    <span className="text-[8px] text-slate-600 font-bold">Not Available</span>
+                    <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
                     <img 
                       src={displayViolation.vehicle_crop}
@@ -377,11 +378,12 @@ function ModuleViolationContent({ moduleName }) {
                 </div>
               </div>
 
-              <div className="space-y-1 bg-slate-955 p-1.5 rounded-lg border border-slate-850/50">
-                <span>Helmet Crop</span>
+              {/* Helmet Crop */}
+              <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
+                <span className="truncate block">Helmet</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
                   {imageErrors['violation'] || !displayViolation.helmet_crop ? (
-                    <span className="text-[8px] text-slate-600 font-bold">Not Available</span>
+                    <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
                     <img 
                       src={displayViolation.helmet_crop}
@@ -393,17 +395,52 @@ function ModuleViolationContent({ moduleName }) {
                 </div>
               </div>
 
-              <div className="space-y-1 bg-slate-955 p-1.5 rounded-lg border border-slate-850/50">
-                <span>Plate Crop</span>
+              {/* Seat Belt Crop */}
+              <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
+                <span className="truncate block">Seat Belt</span>
+                <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageErrors['seatbelt'] || !displayViolation.seatbelt_crop ? (
+                    <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
+                  ) : (
+                    <img 
+                      src={displayViolation.seatbelt_crop}
+                      alt="sb-crop"
+                      className="object-cover w-full h-full"
+                      onError={() => handleImageError('seatbelt')}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* License Plate Crop */}
+              <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
+                <span className="truncate block">Plate</span>
                 <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
                   {imageErrors['plate'] || !displayViolation.plate_crop ? (
-                    <span className="text-[8px] text-slate-600 font-bold">Not Available</span>
+                    <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
                   ) : (
                     <img 
                       src={displayViolation.plate_crop}
                       alt="plate-crop"
                       className="object-cover w-full h-full"
                       onError={() => handleImageError('plate')}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Traffic Light Crop */}
+              <div className="space-y-1 bg-slate-955 p-1 rounded-lg border border-slate-850/50">
+                <span className="truncate block">Light</span>
+                <div className="aspect-square bg-slate-950 rounded overflow-hidden flex items-center justify-center border border-slate-900 relative">
+                  {imageErrors['trafficlight'] || !displayViolation.trafficlight_crop ? (
+                    <span className="text-[7px] text-slate-600 font-bold">Not Available</span>
+                  ) : (
+                    <img 
+                      src={displayViolation.trafficlight_crop}
+                      alt="tl-crop"
+                      className="object-cover w-full h-full"
+                      onError={() => handleImageError('trafficlight')}
                     />
                   )}
                 </div>
@@ -458,22 +495,29 @@ function ModuleViolationContent({ moduleName }) {
             </div>
           </div>
 
-          <div className="flex space-x-2 pt-2 border-t border-slate-850/50">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-850/50">
             <a 
               href={displayViolation.original_image}
-              download={`original_${displayViolation.violation_id}.jpg`}
-              className="flex-1 py-2 text-[10px] font-bold text-center text-slate-300 hover:text-white bg-slate-955 border border-slate-850 rounded-lg flex items-center justify-center space-x-1 hover:bg-slate-800 transition-all"
+              download={`original_${displayViolation.id}.jpg`}
+              className="py-2 text-[8px] font-bold text-center text-slate-350 hover:text-white bg-slate-955 border border-slate-850 rounded-lg flex items-center justify-center space-x-1 hover:bg-slate-800 transition-all"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Raw</span>
+              <Download className="w-2.5 h-2.5" />
+              <span>Original</span>
             </a>
             <a 
               href={displayViolation.annotated_image}
-              download={`annotated_${displayViolation.violation_id}.jpg`}
-              className="flex-1 py-2 text-[10px] font-bold text-center text-white bg-purple-650 hover:bg-purple-750 border border-purple-550 rounded-lg flex items-center justify-center space-x-1 transition-all"
+              download={`annotated_${displayViolation.id}.jpg`}
+              className="py-2 text-[8px] font-bold text-center text-slate-350 hover:text-white bg-slate-955 border border-slate-850 rounded-lg flex items-center justify-center space-x-1 hover:bg-slate-800 transition-all"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download Ann</span>
+              <Download className="w-2.5 h-2.5" />
+              <span>Annotated</span>
+            </a>
+            <a 
+              href={`/api/violations/${displayViolation.id}/download`}
+              className="py-2 text-[8px] font-bold text-center text-white bg-purple-650 hover:bg-purple-750 border border-purple-550 rounded-lg flex items-center justify-center space-x-1 transition-all"
+            >
+              <Download className="w-2.5 h-2.5" />
+              <span>Package</span>
             </a>
           </div>
         </div>

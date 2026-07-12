@@ -71,3 +71,34 @@ def get_violation_or_vehicle(id: int):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{id}/download")
+def download_evidence_package(id: int):
+    """
+    Downloads all evidence crops, original, and annotated frames as a single ZIP file.
+    """
+    import zipfile
+    import io
+    import os
+    from fastapi.responses import StreamingResponse
+    
+    single = violation_service.get_violation_by_id(id)
+    if not single:
+        raise HTTPException(status_code=404, detail="Violation package not found")
+        
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for key in ["original_image", "annotated_image", "vehicle_crop", "helmet_crop", "seatbelt_crop", "plate_crop", "trafficlight_crop", "mobile_crop", "lane_crop"]:
+            rel_path = single.get(key)
+            if rel_path:
+                # Strip leading slash
+                clean_path = rel_path.lstrip("/")
+                if os.path.exists(clean_path):
+                    zip_file.write(clean_path, os.path.basename(clean_path))
+                    
+    zip_buffer.seek(0)
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename=evidence_package_{id}.zip"}
+    )

@@ -13,6 +13,7 @@ class JobStatusResponse(BaseModel):
     status: str
     progress: float
     error_message: Optional[str] = None
+    metrics: Optional[Dict[str, Any]] = None
 
 class DetectionItem(BaseModel):
     label: str

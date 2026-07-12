@@ -45,13 +45,18 @@ def delete_violation(id: int):
         )
     return {"message": "Violation record purged successfully."}
 
-@router.get("/{vehicle_id}", response_model=List[ViolationDetail])
-def get_vehicle_violations(vehicle_id: int):
+@router.get("/{id}")
+def get_violation_or_vehicle(id: int):
     """
-    Returns list of violations for a specific vehicle by ID.
+    If the ID corresponds to a Violation, returns details of that single violation.
+    Otherwise, returns list of violations for that vehicle ID.
     """
     try:
-        raw_violations = violation_service.get_violations_by_vehicle(vehicle_id)
+        single = violation_service.get_violation_by_id(id)
+        if single:
+            return single
+            
+        raw_violations = violation_service.get_violations_by_vehicle(id)
         return [
             ViolationDetail(
                 camera_id=item["camera_id"],

@@ -59,6 +59,10 @@ app.include_router(system.router)
 # Register routers under version 1 prefix
 app.include_router(api_router, prefix=constants.API_V1_STR)
 
+# Register violations router directly under /api prefix for compatibility
+from app.api.v1.routes.violations import router as violations_router
+app.include_router(violations_router, prefix="/api")
+
 # Mount outputs folder statically to serve violation images/videos
 from fastapi.staticfiles import StaticFiles
 import os

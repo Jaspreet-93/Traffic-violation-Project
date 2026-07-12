@@ -88,12 +88,14 @@ from app.api.v1.routes.mobile_phone import router as mobile_phone_router
 from app.api.v1.routes.red_light import router as red_light_router
 from app.api.v1.routes.wrong_lane import router as wrong_lane_router
 from app.api.v1.routes.rules import router as rules_router
+from app.api.v1.routes.accuracy import router as accuracy_router
 app.include_router(verification_router, prefix="/api")
 app.include_router(seatbelt_router, prefix="/api")
 app.include_router(mobile_phone_router, prefix="/api")
 app.include_router(red_light_router, prefix="/api")
 app.include_router(wrong_lane_router, prefix="/api")
 app.include_router(rules_router, prefix="/api")
+app.include_router(accuracy_router, prefix="/api")
 
 # Mount outputs folder statically to serve violation images/videos
 from fastapi.staticfiles import StaticFiles

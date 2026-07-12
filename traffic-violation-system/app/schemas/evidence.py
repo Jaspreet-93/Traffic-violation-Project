@@ -24,6 +24,21 @@ class EvidenceResponse(BaseModel):
     confidence: Optional[float] = None
     vehicle_number: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    executed_models: Optional[str] = None
+    skipped_models: Optional[str] = None
+    reason_for_skip: Optional[str] = None
+    decision_result: Optional[str] = None
+    overall_confidence: Optional[float] = None
+    seat_belt_status: Optional[str] = None
+    visibility_score: Optional[float] = None
+    driver_visibility_conf: Optional[float] = None
+    seat_belt_visibility_conf: Optional[float] = None
+    seat_belt_detection_conf: Optional[float] = None
+    vehicle_detection_conf: Optional[float] = None
+    overall_decision_conf: Optional[float] = None
+    vehicle_crop_path: Optional[str] = None
+    plate_crop_path: Optional[str] = None
+    violation_crop_path: Optional[str] = None
 
     model_config = {
         "from_attributes": True
@@ -53,6 +68,21 @@ class EvidenceDetail(BaseModel):
     confidence: Optional[float] = None
     vehicle_number: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    executed_models: Optional[str] = None
+    skipped_models: Optional[str] = None
+    reason_for_skip: Optional[str] = None
+    decision_result: Optional[str] = None
+    overall_confidence: Optional[float] = None
+    seat_belt_status: Optional[str] = None
+    visibility_score: Optional[float] = None
+    driver_visibility_conf: Optional[float] = None
+    seat_belt_visibility_conf: Optional[float] = None
+    seat_belt_detection_conf: Optional[float] = None
+    vehicle_detection_conf: Optional[float] = None
+    overall_decision_conf: Optional[float] = None
+    vehicle_crop_path: Optional[str] = None
+    plate_crop_path: Optional[str] = None
+    violation_crop_path: Optional[str] = None
 
     model_config = {
         "from_attributes": True

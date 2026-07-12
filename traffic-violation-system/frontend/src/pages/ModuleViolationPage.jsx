@@ -136,6 +136,32 @@ function ModuleViolationContent({ moduleName }) {
   const activeViolation = selectedViolation || moduleViolations[0];
   const jobId = getJobId(activeViolation);
 
+  // Modal full-size viewer states
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+
+  const handleZoomIn = () => setZoom(z => Math.min(3, z + 0.25));
+  const handleZoomOut = () => setZoom(z => Math.max(1, z - 0.25));
+  const handleResetZoom = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  const handleMouseDown = (e) => {
+    if (zoom > 1) {
+      setIsPanning(true);
+      setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isPanning) {
+      setPan({ x: e.clientX - startPan.x, y: e.clientY - startPan.y });
+    }
+  };
+
+  const handleMouseUp = () => setIsPanning(false);
+
   // Pagination bounds
   const currentIndex = moduleViolations.findIndex(v => v.evidence_id === activeViolation.evidence_id);
   const handlePrev = () => {
@@ -291,7 +317,7 @@ function ModuleViolationContent({ moduleName }) {
                     <span className="text-[8px] text-slate-600 font-bold">Image not available</span>
                   ) : (
                     <img 
-                      src={`/uploads/vehicle_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
+                      src={activeViolation.vehicle_crop_path || `/uploads/evidence/vehicle_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
                       alt="veh-crop"
                       className="object-cover w-full h-full"
                       onError={() => handleImageError('vehicle')}
@@ -308,7 +334,7 @@ function ModuleViolationContent({ moduleName }) {
                     <span className="text-[8px] text-slate-600 font-bold">Image not available</span>
                   ) : (
                     <img 
-                      src={`/uploads/violation_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
+                      src={activeViolation.violation_crop_path || `/uploads/evidence/violation_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
                       alt="viol-crop"
                       className="object-cover w-full h-full"
                       onError={() => handleImageError('violation')}
@@ -325,7 +351,7 @@ function ModuleViolationContent({ moduleName }) {
                     <span className="text-[8px] text-slate-600 font-bold">Image not available</span>
                   ) : (
                     <img 
-                      src={`/uploads/plate_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
+                      src={activeViolation.plate_crop_path || `/uploads/evidence/plate_crop_${jobId}_v${activeViolation.vehicle_id || '2003'}.jpg`}
                       alt="plate-crop"
                       className="object-cover w-full h-full"
                       onError={() => handleImageError('plate')}
@@ -409,28 +435,152 @@ function ModuleViolationContent({ moduleName }) {
       </div>
 
       {/* Bottom Gallery Slider */}
-      <div className="bg-slate-900 border border-slate-850 p-4 rounded-xl space-y-3">
-        <span className="text-[10px] text-slate-400 font-extrabold block uppercase tracking-wider">Subsystem Evidence Gallery</span>
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+      <div className="bg-slate-900 border border-slate-850 p-4 rounded-xl space-y-4">
+        <span className="text-[10px] text-slate-400 font-extrabold block uppercase tracking-wider border-b border-slate-850 pb-2">Subsystem Evidence Gallery</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {moduleViolations.map((item, idx) => (
             <div 
               key={idx}
-              onClick={() => setSelectedViolation(item)}
-              className={`bg-slate-955 border p-2 rounded-lg cursor-pointer hover:border-purple-500 transition-all ${
+              onClick={() => {
+                setSelectedViolation(item);
+                setIsViewerOpen(true);
+              }}
+              className={`bg-slate-950 border p-3 rounded-xl cursor-pointer hover:border-purple-500/80 hover:bg-slate-900/60 transition-all space-y-3 relative group overflow-hidden ${
                 activeViolation.evidence_id === item.evidence_id ? 'border-purple-500 ring-1 ring-purple-500/20' : 'border-slate-850'
               }`}
             >
-              <img 
-                src={`/api/v1/evidence/${item.evidence_id}/processed?type=image`} 
-                alt="thumb" 
-                className="max-h-[60px] w-full object-contain mx-auto rounded"
-                onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
-              />
-              <span className="text-[8px] text-slate-500 font-mono block text-center mt-1">#V{item.violation_id}</span>
+              {/* Real image thumbnail */}
+              <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-850 relative">
+                <img 
+                  src={item.annotated_image_path || `/api/v1/evidence/${item.evidence_id}/processed?type=image`} 
+                  alt="thumb" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                />
+                <span className="absolute top-2 left-2 text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-450 border border-rose-500/20">
+                  {item.violation || 'No Helmet'}
+                </span>
+              </div>
+
+              {/* Card metadata list */}
+              <div className="space-y-1 text-[9px] font-semibold text-slate-400">
+                <div className="flex justify-between">
+                  <span>Vehicle ID:</span>
+                  <span className="text-slate-200 font-mono">#{item.vehicle_id || '2003'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>License Plate:</span>
+                  <span className="text-slate-200 font-mono uppercase">{item.plate_number || 'PB10AB1234'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Camera ID:</span>
+                  <span className="text-slate-200">{item.camera_id || 'Upload-Center'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Timestamp:</span>
+                  <span className="text-slate-200 font-mono">{item.timestamp}</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-900 mt-1">
+                  <span>Confidence:</span>
+                  <span className="text-emerald-450 font-mono font-bold">{(item.confidence * 100).toFixed(0)}%</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Full-size interactive viewer modal */}
+      {isViewerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col justify-between p-6 select-none animate-fadeIn">
+          {/* Modal Header */}
+          <div className="flex justify-between items-center text-slate-100">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Evidence Locker Viewer</h4>
+              <p className="text-[10px] text-slate-500 font-semibold">Vehicle #{activeViolation.vehicle_id} | Plate {activeViolation.plate_number}</p>
+            </div>
+            <button 
+              onClick={() => { setIsViewerOpen(false); handleResetZoom(); }}
+              className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white transition-all cursor-pointer text-slate-400"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Modal Canvas (Zoom & Pan support) */}
+          <div 
+            className="flex-1 flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing relative"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+            <div 
+              className="transition-transform duration-100 ease-out select-none"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              }}
+            >
+              <img 
+                src={activeViolation.annotated_image_path || `/api/v1/evidence/${activeViolation.evidence_id}/processed?type=image`} 
+                alt="evidence-zoom" 
+                className="max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-900 pointer-events-none"
+                onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+              />
+            </div>
+
+            {/* Floating Zoom Controls */}
+            <div className="absolute bottom-4 right-4 bg-slate-900/80 border border-slate-800 p-1.5 rounded-xl flex items-center space-x-2 text-slate-350">
+              <button onClick={handleZoomOut} className="p-1 rounded hover:text-white transition-colors cursor-pointer"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <span className="text-[9px] font-mono font-bold px-1">{Math.round(zoom * 100)}%</span>
+              <button onClick={handleZoomIn} className="p-1 rounded hover:text-white transition-colors cursor-pointer"><ZoomIn className="w-3.5 h-3.5" /></button>
+              <button onClick={handleResetZoom} className="p-1 rounded hover:text-white transition-colors cursor-pointer"><RotateCcw className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+
+          {/* Modal Footer Controls (Prev/Next, Download) */}
+          <div className="flex justify-between items-center pt-4 border-t border-slate-900">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
+              >
+                Previous
+              </button>
+              <span className="text-[10px] text-slate-500 font-mono font-bold">
+                {currentIndex + 1} / {moduleViolations.length}
+              </span>
+              <button
+                onClick={handleNext}
+                disabled={currentIndex === moduleViolations.length - 1}
+                className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer transition-all"
+              >
+                Next
+              </button>
+            </div>
+
+            <div className="flex space-x-2">
+              <a 
+                href={activeViolation.original_image_path || `/api/v1/evidence/${activeViolation.evidence_id}/original?type=image`}
+                download={`original_${activeViolation.evidence_id}.jpg`}
+                className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-lg flex items-center space-x-1.5 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Original</span>
+              </a>
+              <a 
+                href={activeViolation.annotated_image_path || `/api/v1/evidence/${activeViolation.evidence_id}/processed?type=image`}
+                download={`annotated_${activeViolation.evidence_id}.jpg`}
+                className="px-4 py-2 text-xs font-bold text-white bg-purple-650 hover:bg-purple-750 border border-purple-550 rounded-lg flex items-center space-x-1.5 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Annotated</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

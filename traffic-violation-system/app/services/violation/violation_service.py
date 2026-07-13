@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import os
 import json
 from app.database.connection import SessionLocal
+from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 from app.database.models.violation import Violation
 from app.services.violation.violation_engine import violation_decision_engine
 from app.core.logger import logger
@@ -13,18 +14,14 @@ DELETED_VIOLATIONS_FILE = os.path.abspath(os.path.join(
 ))
 
 def load_deleted_violations() -> set:
-    if os.path.exists(DELETED_VIOLATIONS_FILE):
-        try:
-            with open(DELETED_VIOLATIONS_FILE, "r") as f:
-                return set(json.load(f))
-        except Exception:
-            return set()
-    return set()
+    return load_deleted_ids("violations")
 
 def save_deleted_violations(deleted_set: set):
+    # Ensure file is saved by resetting deleted_violations.json
+    filepath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "deleted_violations.json"))
     try:
-        os.makedirs(os.path.dirname(DELETED_VIOLATIONS_FILE), exist_ok=True)
-        with open(DELETED_VIOLATIONS_FILE, "w") as f:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "w") as f:
             json.dump(list(deleted_set), f)
     except Exception:
         pass
@@ -269,6 +266,8 @@ class ViolationService:
         """
         Retrieves violation details for the audit page by unique violation ID.
         """
+        if violation_id in load_deleted_ids("violations"):
+            return None
         db = SessionLocal()
         try:
             r = db.query(Violation).filter(Violation.id == violation_id).first()
@@ -437,6 +436,7 @@ class ViolationService:
         deleted_set = load_deleted_violations()
         deleted_set.add(violation_id)
         save_deleted_violations(deleted_set)
+        record_deleted_id("violations", violation_id)
 
         db = SessionLocal()
         try:

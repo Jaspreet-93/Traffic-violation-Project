@@ -8,6 +8,7 @@ from app.core.logger import logger
 
 import os
 import json
+from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 
 PERSISTENT_FALLBACK_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "fallback_evidence.json"))
 
@@ -816,18 +817,25 @@ class EvidenceService:
                     timestamp_str=(now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
                 )
             ]
+            default_items = [item for item in default_items if item["evidence_id"] not in load_deleted_ids("evidence")]
             return default_items
 
-        return formatted_cache + results
+        all_items = formatted_cache + results
+        deleted_ids = load_deleted_ids("evidence")
+        return [item for item in all_items if item["evidence_id"] not in deleted_ids]
 
     def get_evidence_by_violation(self, violation_id: int) -> Optional[Dict[str, Any]]:
         """
         Retrieves evidence record belonging to a specific violation ID.
         """
+        if violation_id in load_deleted_ids("violations"):
+            return None
         db = SessionLocal()
         try:
             r = db.query(Evidence).filter(Evidence.violation_id == violation_id).first()
             if r:
+                if r.id in load_deleted_ids("evidence"):
+                    return None
                 return self._map_evidence_dict(
                     id=r.id,
                     violation_id=r.violation_id,
@@ -852,6 +860,9 @@ class EvidenceService:
         # Fallback to local cache
         for item in fallback_evidence_cache:
             if str(item.get("violation_id")) == str(violation_id):
+                e_id = item.get("evidence_id", violation_id)
+                if e_id in load_deleted_ids("evidence"):
+                    continue
                 return self._map_evidence_dict(
                     id=item.get("evidence_id", violation_id),
                     violation_id=item.get("violation_id", violation_id),
@@ -885,6 +896,8 @@ class EvidenceService:
         """
         Retrieves evidence by unique primary key ID.
         """
+        if evidence_id in load_deleted_ids("evidence"):
+            return None
         db = SessionLocal()
         try:
             r = db.query(Evidence).filter(Evidence.id == evidence_id).first()
@@ -948,26 +961,103 @@ class EvidenceService:
             timestamp_str=now_str
         )
 
+    def _delete_evidence_files(self, evidence_data: dict):
+        try:
+            import os
+            import glob
+            import re
+            
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            uploads_dir = os.path.join(project_root, "uploads")
+            storage_dir = os.path.join(project_root, "storage")
+            
+            paths_to_delete = []
+            for key in ["original_image_path", "annotated_image_path", "original_video_path", "annotated_video_path", "image_path", "video_path"]:
+                val = evidence_data.get(key)
+                if val:
+                    clean_val = val.lstrip("/")
+                    filepath = os.path.join(project_root, clean_val)
+                    paths_to_delete.append(filepath)
+            
+            job_id = ""
+            for key in ["annotated_image_path", "image_path", "original_image_path"]:
+                val = evidence_data.get(key)
+                if val:
+                    filename = os.path.basename(val)
+                    match = re.search(r'(?:snapshot_|original_|annotated_)([a-zA-Z0-9\-]+)', filename.lower())
+                    if match:
+                        job_id = match.group(1)
+                        break
+            
+            veh_id = evidence_data.get("vehicle_id")
+            if job_id and veh_id:
+                crop_patterns = [
+                    os.path.join(storage_dir, "*", f"*_crop_{job_id}_v{veh_id}.jpg"),
+                    os.path.join(storage_dir, "*", f"*_crop_{job_id}_v{veh_id}.*"),
+                    os.path.join(storage_dir, "*", f"*_{job_id}_v{veh_id}.*")
+                ]
+                for pattern in crop_patterns:
+                    paths_to_delete.extend(glob.glob(pattern))
+            
+            if job_id:
+                upload_patterns = [
+                    os.path.join(uploads_dir, f"*{job_id}*")
+                ]
+                for pattern in upload_patterns:
+                    paths_to_delete.extend(glob.glob(pattern))
+
+            for filepath in set(paths_to_delete):
+                if os.path.exists(filepath) and os.path.isfile(filepath):
+                    try:
+                        os.remove(filepath)
+                        logger.info(f"Successfully deleted evidence file: {filepath}")
+                    except Exception as fe:
+                        logger.error(f"Error removing file {filepath}: {fe}")
+        except Exception as e:
+            logger.error(f"Error in _delete_evidence_files: {e}")
+
     def delete_evidence(self, evidence_id: int) -> bool:
         """
         Purges an evidence record by ID.
         """
+        record_deleted_id("evidence", evidence_id)
+        
+        evidence_data = {}
         # Purge from fallback cache first so it persists across refreshes
         for item in list(fallback_evidence_cache):
             if item.get("evidence_id") == evidence_id:
+                evidence_data = dict(item)
                 fallback_evidence_cache.remove(item)
 
         db = SessionLocal()
         try:
             r = db.query(Evidence).filter(Evidence.id == evidence_id).first()
             if r:
+                evidence_data = {
+                    "original_image_path": r.original_image_path,
+                    "annotated_image_path": r.annotated_image_path,
+                    "original_video_path": r.original_video_path,
+                    "annotated_video_path": r.annotated_video_path,
+                    "image_path": r.image_path,
+                    "video_path": r.video_path,
+                    "vehicle_id": r.vehicle_id,
+                    "violation_id": r.violation_id
+                }
                 db.delete(r)
                 db.commit()
+                self._delete_evidence_files(evidence_data)
                 return True
+            
+            if evidence_data:
+                self._delete_evidence_files(evidence_data)
+                return True
+                
             return False
         except Exception as e:
             logger.error(f"Error deleting evidence {evidence_id}: {e}")
             db.rollback()
+            if evidence_data:
+                self._delete_evidence_files(evidence_data)
             return True # Return true on fallback to allow mock list cleanup to proceed
         finally:
             db.close()

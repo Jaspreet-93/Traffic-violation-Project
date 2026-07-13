@@ -6,6 +6,7 @@ from app.services.reports.pdf_report import PDFReportGenerator
 from app.services.reports.excel_report import ExcelReportGenerator
 from app.services.reports.csv_report import CSVReportGenerator
 from app.core.logger import logger
+from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 
 DB_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "uploads", "reports.json"
@@ -58,9 +59,12 @@ class ReportService:
 
     def list_reports(self) -> List[Dict[str, Any]]:
         self._load_db()
-        return self.reports
+        deleted_ids = load_deleted_ids("reports")
+        return [r for r in self.reports if r["id"] not in deleted_ids]
 
     def get_report(self, report_id: int) -> Optional[Dict[str, Any]]:
+        if report_id in load_deleted_ids("reports"):
+            return None
         self._load_db()
         for r in self.reports:
             if r["id"] == report_id:
@@ -95,6 +99,27 @@ class ReportService:
 
     def delete_report(self, report_id: int) -> bool:
         self._load_db()
+        record_deleted_id("reports", report_id)
+        
+        target_report = None
+        for r in self.reports:
+            if r["id"] == report_id:
+                target_report = r
+                break
+                
+        if target_report:
+            name = target_report.get("name")
+            fmt = target_report.get("export_format")
+            if name and fmt:
+                try:
+                    reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "reports"))
+                    filepath = os.path.join(reports_dir, f"{name}.{fmt}")
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+                        logger.info(f"Deleted physical report file: {filepath}")
+                except Exception as e:
+                    logger.error(f"Error deleting physical report file: {e}")
+
         initial_len = len(self.reports)
         self.reports = [r for r in self.reports if r["id"] != report_id]
         self._save_db()

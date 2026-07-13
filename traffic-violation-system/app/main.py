@@ -13,6 +13,65 @@ from app.api.v1.routes import system
 async def lifespan(app: FastAPI):
     # Startup: test database connection
     logger.info("Starting up Smart Traffic Violation Detection API...")
+
+    try:
+        from app.utils.deletion_registry import load_deleted_ids
+        import os
+        import json
+        
+        evidence_fallback_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads", "fallback_evidence.json"))
+        deleted_evidence = load_deleted_ids("evidence")
+        if deleted_evidence and os.path.exists(evidence_fallback_path):
+            try:
+                with open(evidence_fallback_path, "r") as f:
+                    data = json.load(f)
+                filtered = [item for item in data if item.get("evidence_id") not in deleted_evidence]
+                with open(evidence_fallback_path, "w") as f:
+                    json.dump(filtered, f, indent=2)
+                logger.info(f"Startup cleanup: Purged {len(data) - len(filtered)} deleted evidence records from fallback JSON.")
+            except Exception as e:
+                logger.error(f"Error purging fallback_evidence.json on startup: {e}")
+
+        cameras_fallback_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads", "cameras.json"))
+        deleted_cameras = load_deleted_ids("cameras")
+        if deleted_cameras and os.path.exists(cameras_fallback_path):
+            try:
+                with open(cameras_fallback_path, "r") as f:
+                    data = json.load(f)
+                filtered = [item for item in data if item.get("id") not in deleted_cameras]
+                with open(cameras_fallback_path, "w") as f:
+                    json.dump(filtered, f, indent=2)
+                logger.info(f"Startup cleanup: Purged {len(data) - len(filtered)} deleted camera records from fallback JSON.")
+            except Exception as e:
+                logger.error(f"Error purging cameras.json on startup: {e}")
+
+        reports_fallback_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads", "reports.json"))
+        deleted_reports = load_deleted_ids("reports")
+        if deleted_reports and os.path.exists(reports_fallback_path):
+            try:
+                with open(reports_fallback_path, "r") as f:
+                    data = json.load(f)
+                filtered = [item for item in data if item.get("id") not in deleted_reports]
+                with open(reports_fallback_path, "w") as f:
+                    json.dump(filtered, f, indent=2)
+                logger.info(f"Startup cleanup: Purged {len(data) - len(filtered)} deleted report records from fallback JSON.")
+            except Exception as e:
+                logger.error(f"Error purging reports.json on startup: {e}")
+
+        uploads_fallback_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads", "upload_history.json"))
+        deleted_uploads = load_deleted_ids("uploads")
+        if deleted_uploads and os.path.exists(uploads_fallback_path):
+            try:
+                with open(uploads_fallback_path, "r") as f:
+                    data = json.load(f)
+                filtered = [item for item in data if item.get("job_id") not in deleted_uploads]
+                with open(uploads_fallback_path, "w") as f:
+                    json.dump(filtered, f, indent=2)
+                logger.info(f"Startup cleanup: Purged {len(data) - len(filtered)} deleted upload history records from fallback JSON.")
+            except Exception as e:
+                logger.error(f"Error purging upload_history.json on startup: {e}")
+    except Exception as e:
+        logger.error(f"Error executing startup deletion cleanup: {e}")
     
     try:
         from app.services.upload_detection.upload_service import UploadService

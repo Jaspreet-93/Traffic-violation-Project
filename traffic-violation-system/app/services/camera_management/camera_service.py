@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from app.core.logger import logger
+from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 
 DB_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "uploads", "cameras.json"
@@ -61,7 +62,8 @@ class CameraService:
 
     def list_cameras(self) -> List[Dict[str, Any]]:
         self._load_db()
-        return self.cameras
+        deleted_ids = load_deleted_ids("cameras")
+        return [c for c in self.cameras if c["id"] not in deleted_ids]
 
     def create_camera(self, data: Dict[str, Any]) -> Dict[str, Any]:
         self._load_db()
@@ -95,6 +97,7 @@ class CameraService:
 
     def delete_camera(self, camera_id: int) -> bool:
         self._load_db()
+        record_deleted_id("cameras", camera_id)
         initial_len = len(self.cameras)
         self.cameras = [c for c in self.cameras if c["id"] != camera_id]
         self._save_db()

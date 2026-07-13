@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import List, Dict, Any
 from app.core.logger import logger
+from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 
 UPLOAD_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
 HISTORY_FILE = os.path.join(UPLOAD_ROOT, "upload_history.json")
@@ -32,7 +33,9 @@ class UploadService:
             return []
         try:
             with open(HISTORY_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            deleted_ids = load_deleted_ids("uploads")
+            return [item for item in data if item["job_id"] not in deleted_ids]
         except Exception as e:
             logger.error(f"Error loading upload history: {e}")
             return []
@@ -74,7 +77,44 @@ class UploadService:
 
     @classmethod
     def delete_history_entry(cls, job_id: str) -> bool:
-        history = cls.load_history()
+        record_deleted_id("uploads", job_id)
+        
+        # Load unfiltered raw history
+        history = []
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, "r") as f:
+                    history = json.load(f)
+            except Exception:
+                pass
+                
+        target_entry = None
+        for item in history:
+            if item["job_id"] == job_id:
+                target_entry = item
+                break
+                
+        # Clean up files on disk
+        if target_entry:
+            filename = target_entry.get("filename")
+            if filename:
+                paths_to_delete = [
+                    os.path.join(UPLOAD_ROOT, filename),
+                    os.path.join(UPLOAD_ROOT, f"processed_{filename}"),
+                    os.path.join(UPLOAD_ROOT, f"{job_id}_result.json")
+                ]
+                for filepath in paths_to_delete:
+                    if os.path.exists(filepath) and os.path.isfile(filepath):
+                        try:
+                            os.remove(filepath)
+                            logger.info(f"Deleted upload file: {filepath}")
+                        except Exception as fe:
+                            logger.error(f"Error removing upload file {filepath}: {fe}")
+                            
+        # Pop from in-memory results registry
+        from app.services.upload_detection.video_detector import results_registry
+        results_registry.pop(job_id, None)
+
         filtered = [item for item in history if item["job_id"] != job_id]
         if len(filtered) < len(history):
             cls.save_history(filtered)

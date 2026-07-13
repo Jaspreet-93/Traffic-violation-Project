@@ -5,6 +5,15 @@ from app.main import app
 class TestEnterpriseStage6Endpoints(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        import os
+        uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "uploads"))
+        for name in ["evidence", "violations", "reports", "cameras", "uploads"]:
+            deleted_file = os.path.join(uploads_dir, f"deleted_{name}.json")
+            if os.path.exists(deleted_file):
+                try:
+                    os.remove(deleted_file)
+                except Exception:
+                    pass
         cls.client = TestClient(app)
 
     def test_get_all_evidence(self):
@@ -51,7 +60,7 @@ class TestEnterpriseStage6Endpoints(unittest.TestCase):
         response = self.client.get("/api/v1/evidence/download/1")
         self.assertIn(response.status_code, [200, 404])
 
-    def test_delete_evidence(self):
+    def test_z_delete_evidence(self):
         print("Testing DELETE /api/v1/evidence/{id} ...")
         response = self.client.delete("/api/v1/evidence/1")
         self.assertEqual(response.status_code, 200)

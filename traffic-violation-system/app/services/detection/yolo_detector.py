@@ -204,7 +204,7 @@ class YoloDetector:
             # Heuristic for Auto Rickshaw
             cls_name = self.vehicle_classes.get(det["class_id"], "car")
             aspect_ratio = w_box / h_box if h_box > 0 else 1.0
-            if cls_name in ["car", "motorcycle"] and 0.85 <= aspect_ratio <= 1.25:
+            if cls_name in ["car"] and 0.85 <= aspect_ratio <= 1.25:
                 cls_name = "auto rickshaw"
                 det["class_id"] = 99
 

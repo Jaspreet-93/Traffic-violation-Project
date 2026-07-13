@@ -54,7 +54,7 @@ export const pipelineAPI = {
 };
 
 export const violationAPI = {
-  getAll: () => API.get('/api/v1/violations'),
+  getAll: (page = 1, limit = 20, search = '', violationType = 'all') => API.get('/api/v1/violations', { params: { page, limit, search, violation_type: violationType } }),
   getByVehicle: (vehicleId) => API.get(`/api/v1/violations/${vehicleId}`),
   delete: (id) => API.delete(`/api/v1/violations/${id}`),
 };

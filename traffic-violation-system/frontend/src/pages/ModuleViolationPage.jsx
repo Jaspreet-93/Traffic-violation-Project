@@ -54,6 +54,19 @@ function ModuleViolationContent({ moduleName }) {
     trafficlight: true
   });
 
+  const backendHost = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : `${window.location.protocol}//${window.location.hostname}:8000`;
+  
+  const getMediaUrl = (path, evidenceId, original = false) => {
+    if (!path) {
+      const mode = original ? 'original' : 'processed';
+      return `/api/v1/evidence/${evidenceId}/${mode}?type=image`;
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    return `${backendHost}${path}`;
+  };
+
   const handleImageError = (key) => {
     setImageErrors(prev => ({ ...prev, [key]: true }));
   };
@@ -612,10 +625,10 @@ function ModuleViolationContent({ moduleName }) {
               {/* Real image thumbnail */}
               <div className="aspect-video bg-slate-900 rounded-lg overflow-hidden border border-slate-850 relative">
                 <img 
-                  src={item.annotated_image_path || `/api/v1/evidence/${item.evidence_id}/processed?type=image`} 
+                  src={getMediaUrl(item.annotated_image_path, item.evidence_id)} 
                   alt="thumb" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                  onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}
                 />
                 <span className="absolute top-2 left-2 text-[8px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-450 border border-rose-500/20">
                   {item.violation || 'No Helmet'}
@@ -682,10 +695,10 @@ function ModuleViolationContent({ moduleName }) {
               }}
             >
               <img 
-                src={activeViolation.annotated_image_path || `/api/v1/evidence/${activeViolation.evidence_id}/processed?type=image`} 
+                src={getMediaUrl(activeViolation.annotated_image_path, activeViolation.evidence_id)} 
                 alt="evidence-zoom" 
                 className="max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-900 pointer-events-none"
-                onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}
               />
             </div>
 

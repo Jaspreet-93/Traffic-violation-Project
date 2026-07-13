@@ -52,7 +52,12 @@ async def upload_image(file: UploadFile = File(...)):
             "filename": safe_filename,
             "file_type": "image",
             "status": "Completed",
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "upload_id": job_id,
+            "media_type": "image",
+            "original_media_url": f"/uploads/original/{safe_filename}",
+            "annotated_media_url": f"/uploads/annotated/processed_{safe_filename}",
+            "thumbnail_url": f"/uploads/thumbnails/thumbnail_{safe_filename}"
         }
     except Exception as e:
         UploadService.add_history_entry(job_id, os.path.basename(filepath), "image", "Failed", str(e))
@@ -88,7 +93,12 @@ async def upload_video(file: UploadFile = File(...)):
         "filename": safe_filename,
         "file_type": "video",
         "status": "Processing",
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "upload_id": job_id,
+        "media_type": "video",
+        "original_media_url": f"/uploads/original/{safe_filename}",
+        "annotated_media_url": f"/uploads/annotated/processed_{safe_filename}",
+        "thumbnail_url": f"/uploads/thumbnails/thumbnail_{os.path.splitext(safe_filename)[0]}.jpg"
     }
 
 @router.get("/status/{job_id}", response_model=JobStatusResponse)
@@ -113,12 +123,14 @@ def get_job_status(job_id: str):
     return status_entry
 
 @router.get("/history", response_model=HistoryResponse)
-def get_upload_history():
+def get_upload_history(page: int = 1, limit: int = 20):
     """
     Audit index of uploaded media.
     """
     items = UploadService.load_history()
-    return {"history": items}
+    start = (page - 1) * limit
+    end = start + limit
+    return {"history": items[start:end]}
 
 @router.get("/result/{job_id}", response_model=DetectionResultResponse)
 def get_detection_result(job_id: str):

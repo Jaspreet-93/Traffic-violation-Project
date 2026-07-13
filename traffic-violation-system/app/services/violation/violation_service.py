@@ -8,7 +8,7 @@ from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
 from app.database.models.violation import Violation
 from app.services.violation.violation_engine import violation_decision_engine
 from app.core.logger import logger
-
+from app.utils.cache import global_cache
 DELETED_VIOLATIONS_FILE = os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "uploads", "deleted_violations.json"
 ))
@@ -26,10 +26,70 @@ def save_deleted_violations(deleted_set: set):
     except Exception:
         pass
 
+PERSISTENT_VIOLATIONS_FILE = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "uploads", "violations.json"
+))
+
+class FallbackViolationListProxy(list):
+    def __init__(self):
+        super().__init__()
+
+    def _load(self) -> list:
+        if not os.path.exists(PERSISTENT_VIOLATIONS_FILE):
+            return []
+        try:
+            with open(PERSISTENT_VIOLATIONS_FILE, "r") as f:
+                raw_data = json.load(f)
+            unique_list = []
+            seen = set()
+            for item in raw_data:
+                veh_id = item.get("vehicle_id")
+                v_type = item.get("violation_type")
+                sig = (veh_id, v_type)
+                if sig not in seen:
+                    seen.add(sig)
+                    unique_list.append(item)
+            return unique_list
+        except Exception:
+            return []
+
+    def _save(self, data: list):
+        try:
+            os.makedirs(os.path.dirname(PERSISTENT_VIOLATIONS_FILE), exist_ok=True)
+            with open(PERSISTENT_VIOLATIONS_FILE, "w") as f:
+                json.dump(data, f, indent=2)
+        except Exception:
+            pass
+
+    def append(self, item):
+        data = self._load()
+        data.append(item)
+        self._save(data)
+
+    def remove(self, item):
+        data = self._load()
+        found = None
+        for x in data:
+            if x == item or (isinstance(x, dict) and isinstance(item, dict) and x.get("id") == item.get("id")):
+                found = x
+                break
+        if found:
+            data.remove(found)
+        self._save(data)
+
+    def __iter__(self):
+        return iter(self._load())
+
+    def __len__(self):
+        return len(self._load())
+
+    def __getitem__(self, index):
+        return self._load()[index]
+
 class ViolationService:
     def __init__(self):
         # Cache of violations recorded during the active stream session
-        self.recorded_violations: List[Dict[str, Any]] = []
+        self.recorded_violations = FallbackViolationListProxy()
         # Unique keys cache to avoid duplicate inserts for the same track in short window
         self.session_keys = set()
 
@@ -73,6 +133,7 @@ class ViolationService:
                     db.add(db_violation)
                     db.commit() # Commit to generate db_violation.id
                     db.refresh(db_violation)
+                    global_cache.clear()
                     
                     # Trigger evidence capture
                     from app.services.evidence.evidence_service import evidence_service
@@ -165,39 +226,41 @@ class ViolationService:
         If cache is empty, falls back to querying the database.
         """
         db_list = []
-        db = SessionLocal()
-        try:
-            results = db.query(Violation).all()
-            for r in results:
-                t_str = r.timestamp.strftime("%Y-%m-%d %H:%M:%S") if r.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                db_list.append(self._map_violation_dict(
-                    id=r.id,
-                    camera_id=r.camera_id,
-                    vehicle_id=r.vehicle_id,
-                    plate_number=r.plate_number,
-                    vehicle_type=r.vehicle_type,
-                    violation_type=r.violation_type,
-                    confidence=r.confidence,
-                    timestamp_str=t_str,
-                    evidence_path=r.evidence_path,
-                    is_processed=r.is_processed,
-                    executed_models=getattr(r, "executed_models", None),
-                    skipped_models=getattr(r, "skipped_models", None),
-                    reason_for_skip=getattr(r, "reason_for_skip", None),
-                    decision_result=getattr(r, "decision_result", None),
-                    overall_confidence=getattr(r, "overall_confidence", None),
-                    seat_belt_status=getattr(r, "seat_belt_status", None),
-                    visibility_score=getattr(r, "visibility_score", None),
-                    driver_visibility_conf=getattr(r, "driver_visibility_conf", None),
-                    seat_belt_visibility_conf=getattr(r, "seat_belt_visibility_conf", None),
-                    seat_belt_detection_conf=getattr(r, "seat_belt_detection_conf", None),
-                    vehicle_detection_conf=getattr(r, "vehicle_detection_conf", None),
-                    overall_decision_conf=getattr(r, "overall_decision_conf", None)
-                ))
-        except Exception as e:
-            logger.error(f"Error querying all violations from DB: {e}")
-        finally:
-            db.close()
+        from app.database.connection import check_db_connection
+        if check_db_connection():
+            db = SessionLocal()
+            try:
+                results = db.query(Violation).all()
+                for r in results:
+                    t_str = r.timestamp.strftime("%Y-%m-%d %H:%M:%S") if r.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    db_list.append(self._map_violation_dict(
+                        id=r.id,
+                        camera_id=r.camera_id,
+                        vehicle_id=r.vehicle_id,
+                        plate_number=r.plate_number,
+                        vehicle_type=r.vehicle_type,
+                        violation_type=r.violation_type,
+                        confidence=r.confidence,
+                        timestamp_str=t_str,
+                        evidence_path=r.evidence_path,
+                        is_processed=r.is_processed,
+                        executed_models=getattr(r, "executed_models", None),
+                        skipped_models=getattr(r, "skipped_models", None),
+                        reason_for_skip=getattr(r, "reason_for_skip", None),
+                        decision_result=getattr(r, "decision_result", None),
+                        overall_confidence=getattr(r, "overall_confidence", None),
+                        seat_belt_status=getattr(r, "seat_belt_status", None),
+                        visibility_score=getattr(r, "visibility_score", None),
+                        driver_visibility_conf=getattr(r, "driver_visibility_conf", None),
+                        seat_belt_visibility_conf=getattr(r, "seat_belt_visibility_conf", None),
+                        seat_belt_detection_conf=getattr(r, "seat_belt_detection_conf", None),
+                        vehicle_detection_conf=getattr(r, "vehicle_detection_conf", None),
+                        overall_decision_conf=getattr(r, "overall_decision_conf", None)
+                    ))
+            except Exception as e:
+                logger.error(f"Error querying all violations from DB: {e}")
+            finally:
+                db.close()
 
         # Merge with in-memory recorded violations if not already present
         merged = {item["id"]: item for item in db_list}
@@ -430,7 +493,10 @@ class ViolationService:
         """
         Deletes a violation from the database and session cache.
         """
-        self.recorded_violations = [v for v in self.recorded_violations if v.get("id") != violation_id]
+        global_cache.clear()
+        for v in list(self.recorded_violations):
+            if v.get("id") == violation_id:
+                self.recorded_violations.remove(v)
         
         # Save to persistent deleted list first
         deleted_set = load_deleted_violations()

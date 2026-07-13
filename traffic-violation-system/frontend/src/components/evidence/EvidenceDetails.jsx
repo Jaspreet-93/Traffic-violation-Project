@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Download, Trash2, Calendar, Camera, Info, Tv } from 'lucide-react';
 import { evidenceAPI } from '../../services/evidenceApi';
 
 export default function EvidenceDetails({ activeId, metadata, integrity, onDelete }) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('annotated');
+  const [activeTab, setActiveTab] = useState('original');
+  const [mediaError, setMediaError] = useState(false);
+
+  useEffect(() => {
+    setActiveTab('original');
+    setMediaError(false);
+  }, [activeId]);
 
   const handleOpenAudit = () => {
     if (!metadata) return;
@@ -79,11 +85,19 @@ export default function EvidenceDetails({ activeId, metadata, integrity, onDelet
 
       {/* Preview Canvas */}
       <div className="relative rounded-lg overflow-hidden border border-slate-850 bg-slate-955 flex items-center justify-center min-h-[220px]">
-        {isVideo ? (
+        {mediaError ? (
+          <div className="flex flex-col items-center justify-center p-6 text-slate-400 text-xs space-y-2">
+            <Tv className="w-8 h-8 text-slate-500 animate-pulse" />
+            <span className="font-extrabold uppercase text-slate-400 tracking-wider">
+              {activeTab === 'original' ? 'Original media unavailable' : 'Annotated media unavailable'}
+            </span>
+          </div>
+        ) : isVideo ? (
           <video
             key={`${activeId}-${activeTab}`}
             src={activeMediaUrl}
             controls
+            onError={() => setMediaError(true)}
             className="w-full object-contain max-h-[220px]"
           />
         ) : (
@@ -91,6 +105,7 @@ export default function EvidenceDetails({ activeId, metadata, integrity, onDelet
             key={`${activeId}-${activeTab}`}
             src={activeMediaUrl}
             alt={`preview-${activeId}`}
+            onError={() => setMediaError(true)}
             className="w-full object-contain max-h-[220px]"
           />
         )}

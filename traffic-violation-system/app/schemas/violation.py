@@ -35,6 +35,18 @@ class ViolationResponse(BaseModel):
     original_image_path: Optional[str] = None
     annotated_image_path: Optional[str] = None
     status: Optional[str] = "processed"
+    executed_models: Optional[str] = None
+    skipped_models: Optional[str] = None
+    reason_for_skip: Optional[str] = None
+    decision_result: Optional[str] = None
+    overall_confidence: Optional[float] = None
+    seat_belt_status: Optional[str] = None
+    visibility_score: Optional[float] = None
+    driver_visibility_conf: Optional[float] = None
+    seat_belt_visibility_conf: Optional[float] = None
+    seat_belt_detection_conf: Optional[float] = None
+    vehicle_detection_conf: Optional[float] = None
+    overall_decision_conf: Optional[float] = None
 
     model_config = {
         "from_attributes": True

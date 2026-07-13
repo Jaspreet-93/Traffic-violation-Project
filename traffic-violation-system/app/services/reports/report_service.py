@@ -71,18 +71,45 @@ class ReportService:
                 return r
         return None
 
-    def generate_report(self, report_type: str, export_format: str) -> Dict[str, Any]:
+    def _generate_report_bg(self, report_id: int, name: str, export_format: str):
+        try:
+            if export_format == "pdf":
+                PDFReportGenerator.generate(report_id, name)
+            elif export_format == "excel":
+                ExcelReportGenerator.generate(report_id, name)
+            else:
+                CSVReportGenerator.generate(report_id, name)
+            ext = "pdf" if export_format == "pdf" else "xlsx" if export_format == "excel" else "csv"
+            filename = f"{name}.{ext}"
+            reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "reports"))
+            path = os.path.join(reports_dir, filename)
+            if os.path.exists(path):
+                size_kb = round(os.path.getsize(path) / 1024.0, 1)
+                self._load_db()
+                for r in self.reports:
+                    if r["id"] == report_id:
+                        r["file_size_kb"] = size_kb
+                        break
+                self._save_db()
+        except Exception as e:
+            logger.error(f"Error in background report generation: {e}")
+
+    def generate_report(self, report_type: str, export_format: str, background_tasks = None) -> Dict[str, Any]:
         self._load_db()
         new_id = max([r["id"] for r in self.reports], default=0) + 1
         name = f"{report_type}_report_{datetime.now().strftime('%Y_%m_%d_%H%M%S')}"
         
-        # Call sub generator to ensure physical file exists
-        if export_format == "pdf":
-            PDFReportGenerator.generate(new_id, name)
-        elif export_format == "excel":
-            ExcelReportGenerator.generate(new_id, name)
+        if background_tasks:
+            background_tasks.add_task(self._generate_report_bg, new_id, name, export_format)
+            file_size = 0.0
         else:
-            CSVReportGenerator.generate(new_id, name)
+            if export_format == "pdf":
+                PDFReportGenerator.generate(new_id, name)
+            elif export_format == "excel":
+                ExcelReportGenerator.generate(new_id, name)
+            else:
+                CSVReportGenerator.generate(new_id, name)
+            file_size = 25.8
             
         r = {
             "id": new_id,
@@ -90,7 +117,7 @@ class ReportService:
             "report_type": report_type,
             "export_format": export_format,
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "file_size_kb": 25.8,
+            "file_size_kb": file_size,
             "download_url": f"/api/v1/reports/{new_id}"
         }
         self.reports.append(r)

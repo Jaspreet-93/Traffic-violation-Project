@@ -15,16 +15,16 @@ class UploadService:
         """
         Saves the file buffer to the uploads/ directory and returns the absolute path.
         """
-        os.makedirs(UPLOAD_ROOT, exist_ok=True)
+        os.makedirs(os.path.join(UPLOAD_ROOT, "original"), exist_ok=True)
         # Avoid file collision by appending UUID
         name, ext = os.path.splitext(filename)
         safe_name = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
-        filepath = os.path.join(UPLOAD_ROOT, safe_name)
+        filepath = os.path.join(UPLOAD_ROOT, "original", safe_name)
         
         with open(filepath, "wb") as f:
             f.write(content)
             
-        logger.info(f"File saved to uploads: {filepath}")
+        logger.info(f"File saved to uploads/original: {filepath}")
         return filepath
 
     @classmethod
@@ -98,10 +98,13 @@ class UploadService:
         if target_entry:
             filename = target_entry.get("filename")
             if filename:
+                name_part, _ = os.path.splitext(filename)
                 paths_to_delete = [
-                    os.path.join(UPLOAD_ROOT, filename),
-                    os.path.join(UPLOAD_ROOT, f"processed_{filename}"),
-                    os.path.join(UPLOAD_ROOT, f"{job_id}_result.json")
+                    os.path.abspath(os.path.join(UPLOAD_ROOT, "original", filename)),
+                    os.path.abspath(os.path.join(UPLOAD_ROOT, "annotated", f"processed_{filename}")),
+                    os.path.abspath(os.path.join(UPLOAD_ROOT, "thumbnails", f"thumbnail_{name_part}.jpg")),
+                    os.path.abspath(os.path.join(UPLOAD_ROOT, "thumbnails", f"thumbnail_{filename}")),
+                    os.path.abspath(os.path.join(UPLOAD_ROOT, f"{job_id}_result.json"))
                 ]
                 for filepath in paths_to_delete:
                     if os.path.exists(filepath) and os.path.isfile(filepath):
@@ -114,6 +117,22 @@ class UploadService:
         # Pop from in-memory results registry
         from app.services.upload_detection.video_detector import results_registry
         results_registry.pop(job_id, None)
+
+        # Cascade deletion to matching evidence logs
+        try:
+            from app.services.evidence.evidence_service import evidence_service
+            all_ev = evidence_service.get_all_evidence()
+            for ev in all_ev:
+                ev_paths = [
+                    ev.get("image_path"),
+                    ev.get("video_path"),
+                    ev.get("original_image_path"),
+                    ev.get("annotated_image_path")
+                ]
+                if any(p and job_id in p for p in ev_paths):
+                    evidence_service.delete_evidence(ev["evidence_id"])
+        except Exception as e_ev:
+            logger.error(f"Error purging cascading evidence for job {job_id}: {e_ev}")
 
         filtered = [item for item in history if item["job_id"] != job_id]
         if len(filtered) < len(history):

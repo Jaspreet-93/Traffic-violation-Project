@@ -24,9 +24,21 @@ class ImageDetector:
         # Draw bboxes onto output image file
         dir_name = os.path.dirname(filepath)
         out_name = f"processed_{file_name}"
-        out_path = os.path.join(dir_name, out_name)
+        out_path = os.path.abspath(os.path.join(dir_name, "..", "annotated", out_name))
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
         MediaProcessor.draw_bounding_boxes(filepath, out_path, detections)
+        
+        # Save thumbnail resized to 320x240
+        thumb_name = f"thumbnail_{file_name}"
+        thumb_path = os.path.abspath(os.path.join(dir_name, "..", "thumbnails", thumb_name))
+        os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+        try:
+            thumb_img = cv2.resize(img, (320, 240))
+            cv2.imwrite(thumb_path, thumb_img)
+        except Exception as e_t:
+            logger.error(f"Failed to write image thumbnail: {e_t}")
+
         elapsed = time.time() - start_time
 
         # Count stats
@@ -136,7 +148,11 @@ class ImageDetector:
                     seat_belt_visibility_conf=v.get("seat_belt_visibility_conf"),
                     seat_belt_detection_conf=v.get("seat_belt_detection_conf"),
                     vehicle_detection_conf=v.get("vehicle_detection_conf"),
-                    overall_decision_conf=v.get("overall_decision_conf")
+                    overall_decision_conf=v.get("overall_decision_conf"),
+                    executed_models=v.get("executed_models"),
+                    skipped_models=v.get("skipped_models"),
+                    reason_for_skip=v.get("reason_for_skip"),
+                    decision_result=v.get("decision_result")
                 )
             except Exception as e:
                 logger.error(f"Failed to register image violation evidence: {e}")
@@ -148,13 +164,16 @@ class ImageDetector:
             "job_id": job_id,
             "filename": file_name,
             "file_type": "image",
+            "original_media_url": f"/uploads/original/{file_name}",
+            "annotated_media_url": f"/uploads/annotated/{out_name}",
+            "thumbnail_url": f"/uploads/thumbnails/thumbnail_{file_name}",
             "objects": detections,
             "evidence": {
                 "violations_count": violations,
                 "vehicles_count": vehicles,
                 "processing_time_sec": round(elapsed, 2),
                 "frame_count": 1,
-                "processed_file_url": f"/uploads/{out_name}",
+                "processed_file_url": f"/uploads/annotated/{out_name}",
                 "summary_text": summary_text
             }
         }

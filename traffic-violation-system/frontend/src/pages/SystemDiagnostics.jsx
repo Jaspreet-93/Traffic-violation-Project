@@ -10,14 +10,19 @@ export default function SystemDiagnostics() {
   const recentErrors = healthData.recent_errors || [];
 
   const getIndicator = (val) => {
-    if (val === 'Online') return <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>;
+    if (val === 'Online' || val === 'Connected') return <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>;
     if (val === 'Warning') return <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>;
+    if (val === 'Fallback') return <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>;
+    if (val === 'Unknown' || val === 'No Camera') return <span className="flex h-2 w-2 rounded-full bg-slate-500"></span>;
     return <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>;
   };
 
   const getLabel = (val) => {
-    if (val === 'Online') return <span className="text-emerald-450 font-bold">ONLINE</span>;
+    if (val === 'Online' || val === 'Connected') return <span className="text-emerald-450 font-bold">ONLINE</span>;
     if (val === 'Warning') return <span className="text-amber-400 font-bold">WARNING</span>;
+    if (val === 'Fallback') return <span className="text-blue-400 font-bold">FALLBACK</span>;
+    if (val === 'No Camera') return <span className="text-slate-500 font-bold">NO CAMERA</span>;
+    if (val === 'Unknown') return <span className="text-slate-400 font-bold">UNKNOWN</span>;
     return <span className="text-rose-500 font-bold">OFFLINE</span>;
   };
 
@@ -46,6 +51,16 @@ export default function SystemDiagnostics() {
           <span className="text-xs font-bold">Refresh Status</span>
         </button>
       </div>
+
+      {healthData.status === 'Backend Offline' && (
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-center space-x-3 text-sm">
+          <ShieldAlert className="w-5 h-5 flex-shrink-0 animate-bounce text-rose-400" />
+          <div>
+            <span className="font-extrabold block text-rose-400">BACKEND OFFLINE</span>
+            <span className="text-xs text-slate-400">The smart traffic detection backend server is unreachable. Please verify that the API server is running on port 8000.</span>
+          </div>
+        </div>
+      )}
 
       {/* Grid of Diagnostics Gauges */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -110,8 +125,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Backend Running</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.backend)}
-                {getLabel(services.backend)}
+                {getIndicator(services.backend_running)}
+                {getLabel(services.backend_running)}
               </div>
             </div>
 
@@ -119,8 +134,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Database Connected</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.database)}
-                {getLabel(services.database)}
+                {getIndicator(services.database_connected)}
+                {getLabel(services.database_connected)}
               </div>
             </div>
 
@@ -128,8 +143,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ AI Models Loaded</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.models_loaded)}
-                {getLabel(services.models_loaded)}
+                {getIndicator(services.ai_models_loaded)}
+                {getLabel(services.ai_models_loaded)}
               </div>
             </div>
 
@@ -137,8 +152,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Vehicle Detector Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.detection_engine)}
-                {getLabel(services.detection_engine)}
+                {getIndicator(services.vehicle_detector_ready)}
+                {getLabel(services.vehicle_detector_ready)}
               </div>
             </div>
 
@@ -146,8 +161,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Helmet Detector Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.models_loaded)}
-                {getLabel(services.models_loaded)}
+                {getIndicator(services.helmet_detector_ready)}
+                {getLabel(services.helmet_detector_ready)}
               </div>
             </div>
 
@@ -155,8 +170,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Seat Belt Detector Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.models_loaded)}
-                {getLabel(services.models_loaded)}
+                {getIndicator(services.seatbelt_detector_ready)}
+                {getLabel(services.seatbelt_detector_ready)}
               </div>
             </div>
 
@@ -164,8 +179,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Traffic Light Detector Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.models_loaded)}
-                {getLabel(services.models_loaded)}
+                {getIndicator(services.traffic_light_detector_ready)}
+                {getLabel(services.traffic_light_detector_ready)}
               </div>
             </div>
 
@@ -173,8 +188,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Number Plate OCR Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.ocr_engine)}
-                {getLabel(services.ocr_engine)}
+                {getIndicator(services.ocr_ready)}
+                {getLabel(services.ocr_ready)}
               </div>
             </div>
 
@@ -182,8 +197,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Evidence Storage Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.evidence_storage)}
-                {getLabel(services.evidence_storage)}
+                {getIndicator(services.evidence_storage_ready)}
+                {getLabel(services.evidence_storage_ready)}
               </div>
             </div>
 
@@ -191,8 +206,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Report Generator Ready</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.report_service)}
-                {getLabel(services.report_service)}
+                {getIndicator(services.report_generator_ready)}
+                {getLabel(services.report_generator_ready)}
               </div>
             </div>
 
@@ -200,8 +215,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ Camera Connected</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.camera_service)}
-                {getLabel(services.camera_service)}
+                {getIndicator(services.camera_connected)}
+                {getLabel(services.camera_connected)}
               </div>
             </div>
 
@@ -209,8 +224,8 @@ export default function SystemDiagnostics() {
             <div className="bg-slate-955 border border-slate-850/60 p-3 rounded-xl flex items-center justify-between">
               <span className="text-slate-350">✓ WebSocket Connected</span>
               <div className="flex items-center space-x-2">
-                {getIndicator(services.websocket)}
-                {getLabel(services.websocket)}
+                {getIndicator(services.websocket_connected)}
+                {getLabel(services.websocket_connected)}
               </div>
             </div>
           </div>

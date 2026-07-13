@@ -72,8 +72,8 @@ class PipelineRunner:
                     continue
 
                 # 2. Downstream Detections based on vehicle type
-                # Helmet check ONLY for motorcycles
-                if cls_name == "motorcycle":
+                # Helmet check ONLY for motorcycles / two-wheelers
+                if cls_name in {"motorcycle", "scooter", "bike", "bicycle"}:
                     try:
                         helmets = helmet_detector.detect_helmets(crop)
                         if not helmets:

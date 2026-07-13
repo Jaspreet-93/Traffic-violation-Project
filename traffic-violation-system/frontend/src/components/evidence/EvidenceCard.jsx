@@ -3,7 +3,7 @@ import { Calendar, Eye, ShieldCheck, Trash2 } from 'lucide-react';
 import { evidenceAPI } from '../../services/evidenceApi';
 
 export default function EvidenceCard({ item, onSelect, onDelete }) {
-  const previewUrl = evidenceAPI.getPreviewUrl(item.evidence_id);
+  const previewUrl = evidenceAPI.getPreviewUrl(item.evidence_id) + '?size=thumbnail';
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow hover:border-slate-700/80 transition-all flex flex-col group">
@@ -11,6 +11,7 @@ export default function EvidenceCard({ item, onSelect, onDelete }) {
       <div className="relative h-40 bg-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-850">
         <img
           src={previewUrl}
+          loading="lazy"
           alt={`evidence-${item.evidence_id}`}
           className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
         />

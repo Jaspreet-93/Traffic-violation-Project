@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from fastapi.responses import FileResponse
 from typing import List
 import os
@@ -14,22 +14,25 @@ from app.services.reports.report_service import report_service
 router = APIRouter(prefix="/reports", tags=["Enterprise Reports Center"])
 
 @router.get("", response_model=List[ReportResponse])
-def get_all_reports():
+def get_all_reports(page: int = 1, limit: int = 20):
     """
     Returns list of generated reports history.
     """
-    return report_service.list_reports()
+    raw = report_service.list_reports()
+    start = (page - 1) * limit
+    end = start + limit
+    return raw[start:end]
 
 @router.post("/generate", response_model=ReportGenerateResponse)
-def generate_report(payload: ReportGenerateRequest):
+def generate_report(payload: ReportGenerateRequest, background_tasks: BackgroundTasks):
     """
     Triggers physical report generation process.
     """
-    report = report_service.generate_report(payload.report_type, payload.export_format)
+    report = report_service.generate_report(payload.report_type, payload.export_format, background_tasks)
     return {
         "success": True,
         "report": report,
-        "message": f"Report successfully created in {payload.export_format} format."
+        "message": f"Report successfully queued/created in {payload.export_format} format."
     }
 
 @router.get("/{id}")

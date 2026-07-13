@@ -27,8 +27,13 @@ export default function DetectionResult({ result }) {
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
   const [auditStatusFilter, setAuditStatusFilter] = useState('All');
 
-  const originalUrl = encodeURI(`/uploads/${result.filename}`);
-  const processedUrl = encodeURI(result.evidence.processed_file_url || '');
+  const backendHost = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : `${window.location.protocol}//${window.location.hostname}:8000`;
+  const originalUrl = result.original_media_url 
+    ? `${backendHost}${result.original_media_url}` 
+    : encodeURI(`${backendHost}/uploads/${result.filename}`);
+  const processedUrl = result.annotated_media_url 
+    ? `${backendHost}${result.annotated_media_url}` 
+    : encodeURI(result.evidence.processed_file_url ? `${backendHost}${result.evidence.processed_file_url}` : '');
   const activeUrl = useOriginal ? originalUrl : processedUrl;
 
   // Filter options for the gallery
@@ -804,10 +809,10 @@ export default function DetectionResult({ result }) {
                     <span>Vehicle Crop</span>
                     <div className="aspect-square bg-slate-955 rounded overflow-hidden flex items-center justify-center border border-slate-850/40">
                       <img 
-                        src={`/uploads/vehicle_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
+                        src={`${backendHost}/storage/vehicle/vehicle_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
                         alt="veh-crop"
                         className="object-cover w-full h-full"
-                        onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                        onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}
                       />
                     </div>
                   </div>
@@ -815,10 +820,10 @@ export default function DetectionResult({ result }) {
                     <span>Plate Crop</span>
                     <div className="aspect-square bg-slate-955 rounded overflow-hidden flex items-center justify-center border border-slate-850/40">
                       <img 
-                        src={`/uploads/plate_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
+                        src={`${backendHost}/storage/plate/plate_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
                         alt="plate-crop"
                         className="object-cover w-full h-full"
-                        onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                        onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}
                       />
                     </div>
                   </div>
@@ -826,10 +831,10 @@ export default function DetectionResult({ result }) {
                     <span>Violation Crop</span>
                     <div className="aspect-square bg-slate-955 rounded overflow-hidden flex items-center justify-center border border-slate-850/40">
                       <img 
-                        src={`/uploads/violation_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
+                        src={`${backendHost}/storage/helmet/helmet_crop_${result.job_id || '84fa44aa-47ea-4dcb-93ba-4d3daf7363fe'}_v${selectedAuditViolation.vehicle_id || '2003'}.jpg`}
                         alt="viol-crop"
                         className="object-cover w-full h-full"
-                        onError={(e) => { e.target.src = '/uploads/snapshot_mock.jpg'; }}
+                        onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}
                       />
                     </div>
                   </div>

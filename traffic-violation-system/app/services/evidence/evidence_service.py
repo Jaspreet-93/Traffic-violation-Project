@@ -9,8 +9,10 @@ from app.core.logger import logger
 import os
 import json
 from app.utils.deletion_registry import load_deleted_ids, record_deleted_id
+from app.utils.cache import global_cache
 
 PERSISTENT_FALLBACK_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "fallback_evidence.json"))
+_last_sync_time = 0
 
 class FallbackEvidenceListProxy(list):
     def __init__(self):
@@ -120,6 +122,7 @@ class EvidenceService:
                 db.add(db_evidence)
                 db.commit()
                 db.refresh(db_evidence)
+                global_cache.clear()
                 
                 result = {
                     "evidence_id": db_evidence.id,
@@ -160,7 +163,11 @@ class EvidenceService:
                                     seat_belt_visibility_conf: Optional[float] = None,
                                     seat_belt_detection_conf: Optional[float] = None,
                                     vehicle_detection_conf: Optional[float] = None,
-                                    overall_decision_conf: Optional[float] = None) -> Dict[str, Any]:
+                                    overall_decision_conf: Optional[float] = None,
+                                    executed_models: Optional[str] = None,
+                                    skipped_models: Optional[str] = None,
+                                    reason_for_skip: Optional[str] = None,
+                                    decision_result: Optional[str] = None) -> Dict[str, Any]:
         """
         Creates a Violation and matching Evidence record in the database.
         Falls back to in-memory fallback cache if database is offline.
@@ -218,10 +225,10 @@ class EvidenceService:
                 confidence=confidence,
                 evidence_path=annotated_image_path,
                 snapshot_path=annotated_image_path,
-                executed_models="YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
-                skipped_models="Speed-Sensor, StopLine-Detector",
-                reason_for_skip=None,
-                decision_result="Confirmed",
+                executed_models=executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+                skipped_models=skipped_models or "Speed-Sensor, StopLine-Detector",
+                reason_for_skip=reason_for_skip,
+                decision_result=decision_result or "Confirmed",
                 overall_confidence=confidence,
                 seat_belt_status=seat_belt_status,
                 visibility_score=visibility_score,
@@ -269,10 +276,10 @@ class EvidenceService:
                 annotated_video_path=db_evidence.annotated_video_path,
                 confidence=db_evidence.confidence,
                 camera_id=db_evidence.camera_id,
-                executed_models="YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
-                skipped_models="Speed-Sensor, StopLine-Detector",
-                reason_for_skip=None,
-                decision_result="Confirmed",
+                executed_models=executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+                skipped_models=skipped_models or "Speed-Sensor, StopLine-Detector",
+                reason_for_skip=reason_for_skip,
+                decision_result=decision_result or "Confirmed",
                 overall_confidence=confidence,
                 seat_belt_status=seat_belt_status,
                 visibility_score=visibility_score,
@@ -296,10 +303,10 @@ class EvidenceService:
                     "confidence": confidence,
                     "evidence_path": annotated_image_path,
                     "timestamp": db_violation.timestamp,
-                    "executed_models": "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
-                    "skipped_models": "Speed-Sensor, StopLine-Detector",
-                    "reason_for_skip": None,
-                    "decision_result": "Confirmed",
+                    "executed_models": executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+                    "skipped_models": skipped_models or "Speed-Sensor, StopLine-Detector",
+                    "reason_for_skip": reason_for_skip,
+                    "decision_result": decision_result or "Confirmed",
                     "overall_confidence": confidence,
                     "seat_belt_status": seat_belt_status,
                     "visibility_score": visibility_score,
@@ -334,8 +341,15 @@ class EvidenceService:
                             return item
             
             # Create a mock/cache evidence object
-            new_id = len(fallback_evidence_cache) + 3
-            v_id = len(fallback_evidence_cache) + 1003
+            import hashlib
+            val_sig = f"{camera_id}_{vehicle_id}_{violation_type}_{original_image_path or original_video_path or ''}"
+            new_id = int(hashlib.md5(val_sig.encode()).hexdigest(), 16) & 0x7fffffff
+            v_id = int(hashlib.md5(f"viol_{val_sig}".encode()).hexdigest(), 16) & 0x7fffffff
+
+            if new_id in load_deleted_ids("evidence") or v_id in load_deleted_ids("violations"):
+                logger.info(f"Skipping registration of deleted fallback item: Ev {new_id}, Viol {v_id}")
+                return {}
+
             item = {
                 "evidence_id": new_id,
                 "violation_id": v_id,
@@ -351,10 +365,10 @@ class EvidenceService:
                 "annotated_video_path": annotated_video_path,
                 "confidence": confidence,
                 "camera_id": camera_id,
-                "executed_models": "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
-                "skipped_models": "Speed-Sensor, StopLine-Detector",
-                "reason_for_skip": None,
-                "decision_result": "Confirmed",
+                "executed_models": executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+                "skipped_models": skipped_models or "Speed-Sensor, StopLine-Detector",
+                "reason_for_skip": reason_for_skip,
+                "decision_result": decision_result or "Confirmed",
                 "overall_confidence": confidence,
                 "seat_belt_status": seat_belt_status,
                 "visibility_score": visibility_score,
@@ -379,10 +393,10 @@ class EvidenceService:
                     "confidence": confidence,
                     "evidence_path": annotated_image_path,
                     "timestamp": datetime.now(),
-                    "executed_models": "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
-                    "skipped_models": "Speed-Sensor, StopLine-Detector",
-                    "reason_for_skip": None,
-                    "decision_result": "Confirmed",
+                    "executed_models": executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+                    "skipped_models": skipped_models or "Speed-Sensor, StopLine-Detector",
+                    "reason_for_skip": reason_for_skip,
+                    "decision_result": decision_result or "Confirmed",
                     "overall_confidence": confidence,
                     "seat_belt_status": seat_belt_status,
                     "visibility_score": visibility_score,
@@ -553,7 +567,6 @@ class EvidenceService:
             "plate_crop_path": f"/storage/plate/plate_crop_{job_id}_v{veh_id}.jpg",
             "violation_crop_path": f"/storage/helmet/helmet_crop_{job_id}_v{veh_id}.jpg"
         }
-        self.verify_and_regenerate_evidence(mapped)
         return mapped
 
     def list_evidence(self) -> List[Dict[str, Any]]:
@@ -567,6 +580,13 @@ class EvidenceService:
         Scans upload_history.json and auto-populates fallback_evidence_cache
         for any completed jobs whose evidence is not yet cached.
         """
+        global _last_sync_time
+        import time
+        now = time.time()
+        if now - _last_sync_time < 60.0:
+            return
+        _last_sync_time = now
+
         try:
             from app.services.upload_detection.upload_service import UploadService
             from app.services.upload_detection.result_generator import ResultGenerator
@@ -644,14 +664,19 @@ class EvidenceService:
                             continue
                         synced_combos.add(combo)
                                 
+                        def clean_prefix(name):
+                            if not name:
+                                return ""
+                            return name.replace("/uploads/", "").replace("uploads/", "").lstrip('/')
+
                         if file_type == "image":
-                            orig_img = f"/uploads/{file_name}"
-                            ann_img = evidence_data.get("processed_file_url") or f"/uploads/processed_{file_name}"
+                            orig_img = f"/uploads/{clean_prefix(file_name)}"
+                            ann_img = f"/uploads/{clean_prefix(evidence_data.get('processed_file_url') or f'processed_{file_name}')}"
                             orig_vid = None
                             ann_vid = None
                         else:
-                            orig_img = f"/uploads/{snap_file.replace('processed_', '')}"
-                            ann_img = f"/uploads/{snap_file}"
+                            orig_img = f"/uploads/{clean_prefix(snap_file.replace('processed_', ''))}"
+                            ann_img = f"/uploads/{clean_prefix(snap_file)}"
                             
                             # Check if a custom video sub-clip exists for this snapshot (e.g. clip_orig_{job_id}_v*.mp4)
                             # If so, link to the clip! Otherwise default to the main file name
@@ -680,13 +705,18 @@ class EvidenceService:
                                         orig_vid_name = potential_orig_clip
                                         ann_vid_name = potential_ann_clip
                                         
-                            orig_vid = f"/uploads/{orig_vid_name}"
-                            ann_vid = f"/uploads/{ann_vid_name}"
-                            if not ann_vid.startswith("/uploads/"):
-                                ann_vid = f"/uploads/{ann_vid}"
+                            orig_vid = f"/uploads/{clean_prefix(orig_vid_name)}"
+                            ann_vid = f"/uploads/{clean_prefix(ann_vid_name)}"
                             
-                        new_id = len(fallback_evidence_cache) + 3
-                        v_id = len(fallback_evidence_cache) + 1003
+                        import hashlib
+                        combined_str = f"evidence_{job_id}_{veh_id}_{violation_lbl}"
+                        new_id = int(hashlib.md5(combined_str.encode()).hexdigest(), 16) & 0x7fffffff
+                        
+                        v_combined_str = f"violation_{job_id}_{veh_id}_{violation_lbl}"
+                        v_id = int(hashlib.md5(v_combined_str.encode()).hexdigest(), 16) & 0x7fffffff
+
+                        if new_id in load_deleted_ids("evidence") or v_id in load_deleted_ids("violations"):
+                            continue
                         
                         fallback_item = {
                             "evidence_id": new_id,
@@ -724,7 +754,6 @@ class EvidenceService:
         # Load formatted cache from persistent fallback list first
         formatted_cache = []
         for item in fallback_evidence_cache:
-            self.verify_and_regenerate_evidence(item)
             formatted_cache.append(self._map_evidence_dict(
                 id=item.get("evidence_id", 3),
                 violation_id=item.get("violation_id", 103),
@@ -754,11 +783,46 @@ class EvidenceService:
                 overall_decision_conf=item.get("overall_decision_conf")
             ))
 
+        from app.database.connection import check_db_connection
+        if not check_db_connection():
+            if not formatted_cache:
+                now = datetime.now()
+                default_items = [
+                    self._map_evidence_dict(
+                        id=1,
+                        violation_id=101,
+                        vehicle_id=201,
+                        plate_number="MH12DE1432",
+                        violation_type="No Helmet",
+                        image_path="/uploads/violation images_8532058e.jpeg",
+                        video_path="/uploads/violation video 3_94eeeb0b.mp4",
+                        timestamp_str=now.strftime("%Y-%m-%d %H:%M:%S")
+                    ),
+                    self._map_evidence_dict(
+                        id=2,
+                        violation_id=102,
+                        vehicle_id=202,
+                        plate_number="DL3CAN4839",
+                        violation_type="No Seat Belt",
+                        image_path="/uploads/violation images_9f18fcea.jpeg",
+                        video_path="/uploads/violation video 3_b19035d6.mp4",
+                        timestamp_str=(now - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S")
+                    )
+                ]
+                default_items = [item for item in default_items if item["evidence_id"] not in load_deleted_ids("evidence")]
+                return default_items
+            deleted_ids = load_deleted_ids("evidence")
+            return [item for item in formatted_cache if item["evidence_id"] not in deleted_ids]
+
+        from sqlalchemy.orm import joinedload
         db = SessionLocal()
         results = []
         try:
-            records = db.query(Evidence).order_by(Evidence.id.desc()).all()
+            records = db.query(Evidence).options(joinedload(Evidence.violation)).order_by(Evidence.id.desc()).all()
+            deleted_ids = load_deleted_ids("evidence")
             for r in records:
+                if r.id in deleted_ids:
+                    continue
                 results.append(self._map_evidence_dict(
                     id=r.id,
                     violation_id=r.violation_id,
@@ -824,38 +888,41 @@ class EvidenceService:
         deleted_ids = load_deleted_ids("evidence")
         return [item for item in all_items if item["evidence_id"] not in deleted_ids]
 
-    def get_evidence_by_violation(self, violation_id: int) -> Optional[Dict[str, Any]]:
+    def _get_evidence_by_violation_raw(self, violation_id: int) -> Optional[Dict[str, Any]]:
         """
         Retrieves evidence record belonging to a specific violation ID.
         """
         if violation_id in load_deleted_ids("violations"):
             return None
-        db = SessionLocal()
-        try:
-            r = db.query(Evidence).filter(Evidence.violation_id == violation_id).first()
-            if r:
-                if r.id in load_deleted_ids("evidence"):
-                    return None
-                return self._map_evidence_dict(
-                    id=r.id,
-                    violation_id=r.violation_id,
-                    vehicle_id=r.vehicle_id,
-                    plate_number=r.plate_number,
-                    violation_type=r.violation_type,
-                    image_path=r.image_path,
-                    video_path=r.video_path,
-                    timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    original_image_path=r.original_image_path,
-                    annotated_image_path=r.annotated_image_path,
-                    original_video_path=r.original_video_path,
-                    annotated_video_path=r.annotated_video_path,
-                    confidence=r.confidence,
-                    camera_id=r.camera_id
-                )
-        except Exception as e:
-            logger.error(f"Error querying evidence for violation {violation_id}: {e}")
-        finally:
-            db.close()
+        
+        from app.database.connection import check_db_connection
+        if check_db_connection():
+            db = SessionLocal()
+            try:
+                r = db.query(Evidence).filter(Evidence.violation_id == violation_id).first()
+                if r:
+                    if r.id in load_deleted_ids("evidence"):
+                        return None
+                    return self._map_evidence_dict(
+                        id=r.id,
+                        violation_id=r.violation_id,
+                        vehicle_id=r.vehicle_id,
+                        plate_number=r.plate_number,
+                        violation_type=r.violation_type,
+                        image_path=r.image_path,
+                        video_path=r.video_path,
+                        timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                        original_image_path=r.original_image_path,
+                        annotated_image_path=r.annotated_image_path,
+                        original_video_path=r.original_video_path,
+                        annotated_video_path=r.annotated_video_path,
+                        confidence=r.confidence,
+                        camera_id=r.camera_id
+                    )
+            except Exception as e:
+                logger.error(f"Error querying evidence for violation {violation_id}: {e}")
+            finally:
+                db.close()
 
         # Fallback to local cache
         for item in fallback_evidence_cache:
@@ -892,36 +959,39 @@ class EvidenceService:
             timestamp_str=now_str
         )
 
-    def get_evidence_by_id(self, evidence_id: int) -> Optional[Dict[str, Any]]:
+    def _get_evidence_by_id_raw(self, evidence_id: int) -> Optional[Dict[str, Any]]:
         """
         Retrieves evidence by unique primary key ID.
         """
         if evidence_id in load_deleted_ids("evidence"):
             return None
-        db = SessionLocal()
-        try:
-            r = db.query(Evidence).filter(Evidence.id == evidence_id).first()
-            if r:
-                return self._map_evidence_dict(
-                    id=r.id,
-                    violation_id=r.violation_id,
-                    vehicle_id=r.vehicle_id,
-                    plate_number=r.plate_number,
-                    violation_type=r.violation_type,
-                    image_path=r.image_path,
-                    video_path=r.video_path,
-                    timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-                    original_image_path=r.original_image_path,
-                    annotated_image_path=r.annotated_image_path,
-                    original_video_path=r.original_video_path,
-                    annotated_video_path=r.annotated_video_path,
-                    confidence=r.confidence,
-                    camera_id=r.camera_id
-                )
-        except Exception as e:
-            logger.error(f"Error querying evidence by ID {evidence_id}: {e}")
-        finally:
-            db.close()
+        
+        from app.database.connection import check_db_connection
+        if check_db_connection():
+            db = SessionLocal()
+            try:
+                r = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+                if r:
+                    return self._map_evidence_dict(
+                        id=r.id,
+                        violation_id=r.violation_id,
+                        vehicle_id=r.vehicle_id,
+                        plate_number=r.plate_number,
+                        violation_type=r.violation_type,
+                        image_path=r.image_path,
+                        video_path=r.video_path,
+                        timestamp_str=r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                        original_image_path=r.original_image_path,
+                        annotated_image_path=r.annotated_image_path,
+                        original_video_path=r.original_video_path,
+                        annotated_video_path=r.annotated_video_path,
+                        confidence=r.confidence,
+                        camera_id=r.camera_id
+                    )
+            except Exception as e:
+                logger.error(f"Error querying evidence by ID {evidence_id}: {e}")
+            finally:
+                db.close()
 
         # Fallback to local cache if not found in DB or DB offline
         for item in fallback_evidence_cache:
@@ -988,6 +1058,10 @@ class EvidenceService:
                     if match:
                         job_id = match.group(1)
                         break
+                    name_part, _ = os.path.splitext(filename)
+                    if "_" in name_part:
+                        job_id = name_part.split("_")[-1]
+                        break
             
             veh_id = evidence_data.get("vehicle_id")
             if job_id and veh_id:
@@ -1020,6 +1094,7 @@ class EvidenceService:
         """
         Purges an evidence record by ID.
         """
+        global_cache.clear()
         record_deleted_id("evidence", evidence_id)
         
         evidence_data = {}
@@ -1067,5 +1142,17 @@ class EvidenceService:
         Dynamically adds an evidence record to the local in-memory fallback cache.
         """
         fallback_evidence_cache.append(item)
+
+    def get_evidence_by_violation(self, violation_id: int) -> Optional[Dict[str, Any]]:
+        res = self._get_evidence_by_violation_raw(violation_id)
+        if res:
+            self.verify_and_regenerate_evidence(res)
+        return res
+
+    def get_evidence_by_id(self, evidence_id: int) -> Optional[Dict[str, Any]]:
+        res = self._get_evidence_by_id_raw(evidence_id)
+        if res:
+            self.verify_and_regenerate_evidence(res)
+        return res
 
 evidence_service = EvidenceService()

@@ -47,9 +47,9 @@ export function SystemProvider({ children }) {
       console.error("Health check fetch failed (Backend Offline):", err);
       setHealthData(prev => ({
         ...prev,
-        status: 'Unhealthy',
+        status: 'Backend Offline',
         services: Object.keys(prev.services).reduce((acc, key) => {
-          acc[key] = 'Offline';
+          acc[key] = key === 'backend' ? 'Offline' : 'Unknown';
           return acc;
         }, {})
       }));
@@ -60,8 +60,34 @@ export function SystemProvider({ children }) {
 
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 4000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchHealth, 5000);
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsHost = host.includes('3000') ? 'localhost:8000' : host;
+    const wsUrl = `${protocol}//${wsHost}/api/v1/ws`;
+
+    let ws;
+    const connectWS = () => {
+      ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        console.log("WebSocket connected to backend diagnostics.");
+      };
+      ws.onclose = () => {
+        console.log("WebSocket connection closed, retrying in 5s...");
+        setTimeout(connectWS, 5000);
+      };
+      ws.onerror = (err) => {
+        ws.close();
+      };
+    };
+
+    connectWS();
+
+    return () => {
+      clearInterval(interval);
+      if (ws) ws.close();
+    };
   }, []);
 
   return (

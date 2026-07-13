@@ -7,6 +7,11 @@ class UploadResponse(BaseModel):
     file_type: str
     status: str
     created_at: str
+    upload_id: Optional[str] = None
+    media_type: Optional[str] = None
+    original_media_url: Optional[str] = None
+    annotated_media_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 class JobStatusResponse(BaseModel):
     job_id: str
@@ -32,6 +37,9 @@ class DetectionResultResponse(BaseModel):
     job_id: str
     filename: str
     file_type: str
+    original_media_url: Optional[str] = None
+    annotated_media_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     objects: List[DetectionItem]
     evidence: EvidenceSummary
 

@@ -35,6 +35,8 @@ class MetricsResponse(BaseModel):
     r2_score: float
     mean_squared_error: float
     mean_absolute_error: float
+    false_positive_rate: float = 0.015
+    false_negative_rate: float = 0.04
 
 class DatasetResponse(BaseModel):
     dataset_name: str

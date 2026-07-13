@@ -126,6 +126,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.middleware.gzip import GZipMiddleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Register root level system router (GET / and GET /health)
 app.include_router(system.router)
 
@@ -166,6 +169,8 @@ app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
 # Mount uploads folder statically to serve uploaded snapshots/videos
 uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads"))
 os.makedirs(uploads_dir, exist_ok=True)
+for sub in ["original", "annotated", "thumbnails"]:
+    os.makedirs(os.path.join(uploads_dir, sub), exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Mount storage folder statically to serve real validation crops

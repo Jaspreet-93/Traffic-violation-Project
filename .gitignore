@@ -37,6 +37,7 @@ Desktop.ini
 runs/
 *.cache
 **/training/cache/
-**/outputs/violations/images/*.jpg
-**/outputs/violations/videos/*.mp4
+# Ignore all uploads and reports media
+/traffic-violation-system/uploads/
+/traffic-violation-system/reports/
 

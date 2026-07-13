@@ -20,11 +20,14 @@ from app.services.evidence.download_service import DownloadService
 router = APIRouter(prefix="/evidence", tags=["Enterprise Evidence Locker"])
 
 @router.get("", response_model=List[EvidenceResponse])
-def get_all_evidence():
+def get_all_evidence(page: int = 1, limit: int = 20):
     """
     Returns index list of all evidence logs.
     """
     raw = evidence_service.get_all_evidence()
+    start = (page - 1) * limit
+    end = start + limit
+    paged = raw[start:end]
     return [
         EvidenceResponse(
             evidence_id=item["evidence_id"],
@@ -41,7 +44,7 @@ def get_all_evidence():
             confidence=item.get("confidence"),
             camera_id=item.get("camera_id")
         )
-        for item in raw
+        for item in paged
     ]
 
 @router.get("/{id}", response_model=EvidenceDetail)
@@ -110,27 +113,59 @@ def download_evidence(id: int):
     return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))
 
 @router.get("/preview/{id}")
-def preview_evidence(id: int):
+def preview_evidence(id: int, size: str = "thumbnail"):
     """
-    Initiates image file preview.
+    Initiates image file preview. Supports thumbnail, medium, and original sizes.
     """
     res = evidence_service.get_evidence_by_id(id)
     if not res or not res.get("image_path"):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Evidence preview not available."
+            detail="Evidence preview not available."
         )
         
     path = DownloadService.get_download_path(res["image_path"])
     if not os.path.exists(path):
         placeholder = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "uploads", "processed_snapshot_mock1.jpg"))
-        if os.path.exists(placeholder):
-            return FileResponse(placeholder, media_type="image/jpeg")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File preview is missing."
-        )
-    return FileResponse(path, media_type="image/jpeg")
+        if not os.path.exists(placeholder):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="File preview is missing."
+            )
+        path = placeholder
+
+    if size == "original" or not (path.lower().endswith(".jpg") or path.lower().endswith(".jpeg") or path.lower().endswith(".png")):
+        return FileResponse(path, media_type="image/jpeg")
+
+    base_dir = os.path.dirname(path)
+    thumb_dir = os.path.join(base_dir, "thumbnails")
+    os.makedirs(thumb_dir, exist_ok=True)
+    
+    filename = os.path.basename(path)
+    name_part, ext = os.path.splitext(filename)
+    thumb_filename = f"{name_part}_{size}{ext}"
+    thumb_path = os.path.join(thumb_dir, thumb_filename)
+    
+    if not os.path.exists(thumb_path):
+        try:
+            import cv2
+            img = cv2.imread(path)
+            if img is not None:
+                h, w = img.shape[:2]
+                target_w = 320 if size == "thumbnail" else 800
+                if w > target_w:
+                    aspect = w / h
+                    target_h = int(target_w / aspect)
+                    resized = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
+                    cv2.imwrite(thumb_path, resized, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                else:
+                    cv2.imwrite(thumb_path, img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            else:
+                return FileResponse(path, media_type="image/jpeg")
+        except Exception:
+            return FileResponse(path, media_type="image/jpeg")
+            
+    return FileResponse(thumb_path, media_type="image/jpeg")
 
 @router.get("/integrity/{id}", response_model=EvidenceIntegrityResponse)
 def verify_integrity(id: int):
@@ -274,7 +309,9 @@ def search_evidence(
     evidence_id: Optional[int] = None,
     violation_type: Optional[str] = None,
     date: Optional[str] = None,
-    camera: Optional[str] = None
+    camera: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
 ):
     """
     Search evidence by various query params.
@@ -295,6 +332,9 @@ def search_evidence(
         if camera and camera.lower() not in item.get("camera_id", "").lower():
             continue
         filtered.append(item)
+    start = (page - 1) * limit
+    end = start + limit
+    paged = filtered[start:end]
     return [
         EvidenceResponse(
             evidence_id=item["evidence_id"],
@@ -311,7 +351,7 @@ def search_evidence(
             confidence=item.get("confidence"),
             camera_id=item.get("camera_id")
         )
-        for item in filtered
+        for item in paged
     ]
 
 @router.get("/download/original/{id}")

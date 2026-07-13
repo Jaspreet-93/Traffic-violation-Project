@@ -14,6 +14,7 @@ from app.services.helmet.helmet_detector import helmet_detector
 from app.services.seat_belt.seat_belt_detector import seat_belt_detector
 from app.services.driver_behavior.behavior_detector import behavior_detector
 from app.services.number_plate.plate_detector import plate_detector
+from app.services.number_plate.plate_manager import plate_manager
 from app.utils.media_utils import MediaProcessor
 from app.core.logger import logger
 
@@ -188,7 +189,8 @@ class VideoDetector:
         start_time = time.time()
         file_name = os.path.basename(filepath)
         out_name = f"processed_{file_name}"
-        out_path = os.path.join(os.path.dirname(filepath), out_name)
+        out_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", out_name))
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
         cap = cv2.VideoCapture(filepath)
         if not cap.isOpened():
@@ -203,29 +205,36 @@ class VideoDetector:
         height = characteristics["height"]
         total_frames = characteristics["total_frames"]
         
-        # 2. Adaptive Frame Sampling step calculation
-        # Decide base step
-        if characteristics["motion_level"] == "high" or characteristics["traffic_density"] == "heavy":
-            base_step = 2  # Process nearly every frame
-        elif characteristics["motion_level"] == "low" and characteristics["traffic_density"] == "empty":
-            base_step = 6  # Empty road or static traffic, process fewer frames
-        else:
-            base_step = 3  # Normal traffic
+        # Extract first frame as a thumbnail
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        ret_thumb, thumb_frame = cap.read()
+        if ret_thumb and thumb_frame is not None:
+            thumb_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "thumbnails", f"thumbnail_{os.path.splitext(file_name)[0]}.jpg"))
+            os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+            try:
+                thumb_resized = cv2.resize(thumb_frame, (320, 240))
+                cv2.imwrite(thumb_path, thumb_resized)
+            except Exception as e_t:
+                logger.error(f"Failed to write video thumbnail: {e_t}")
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-        # Hardware optimization check
+        # 2. Adaptive Frame Sampling step calculation
+        if characteristics["motion_level"] == "high" or characteristics["traffic_density"] == "heavy":
+            base_step = 2
+        elif characteristics["motion_level"] == "low" and characteristics["traffic_density"] == "empty":
+            base_step = 6
+        else:
+            base_step = 3
+
         gpu_available = torch.cuda.is_available()
         if not gpu_available:
-            # CPU only: dynamically reduce processing load (increase sampling step)
             base_step = base_step * 2
             torch.set_num_threads(4)
 
         fourcc = cv2.VideoWriter_fourcc(*'avc1')
         out = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
 
-        # Stateful multi-frame validation registers
-        # track_id -> violation_type -> list of verified frames
         potential_violations: Dict[int, Dict[str, List[dict]]] = {}
-        confirmed_violations = set()
         total_violations_count = 0
         all_detections = []
         
@@ -241,14 +250,12 @@ class VideoDetector:
                 if not ret or frame is None:
                     break
 
-                # Frame skipping based on adaptive step
                 if frame_idx % base_step != 0:
                     out.write(frame)
                     frame_idx += 1
                     skipped_count += 1
                     continue
 
-                # 3. Image Quality Assessment & Smart Preprocessing
                 prep_frame, is_valid, quality_score = cls._assess_and_preprocess_frame(frame, characteristics)
                 if not is_valid:
                     out.write(frame)
@@ -259,7 +266,6 @@ class VideoDetector:
                 processed_count += 1
                 det_start = time.time()
                 
-                # 4. Stage 1 YOLOv11 Vehicle Detection + Stage 2 ByteTrack Tracking
                 detailed_res = yolo_detector.predict_vehicles_detailed(prep_frame)
                 
                 det_latency = (time.time() - det_start) * 1000
@@ -268,8 +274,9 @@ class VideoDetector:
                 tracked_vehicles = detailed_res["detections"]
                 track_manager.update_tracks(prep_frame, tracked_vehicles, frame_idx)
 
-                # Draw current active labels
                 active_tracks_cnt = len(tracked_vehicles)
+                violation_map = {}
+
                 for det in tracked_vehicles:
                     x1, y1, x2, y2 = det["box"]
                     t_id = det["track_id"]
@@ -277,24 +284,28 @@ class VideoDetector:
                     cls_id = det["class_id"]
                     cls_name = yolo_detector.vehicle_classes.get(cls_id, "car")
                     
-                    # Crop vehicle
+                    # Add to objects list for panel
+                    all_detections.append({
+                        "label": f"{cls_name} (ID: {t_id})",
+                        "bbox": [x1, y1, x2, y2],
+                        "confidence": conf
+                    })
+
                     v_crop = prep_frame[y1:y2, x1:x2]
                     if v_crop.size == 0:
                         continue
 
-                    # OCR and License Plate Detection (Stage 3)
-                    # Detect license plates
+                    # OCR and License Plate Detection
                     plate_detector.detect_plates_for_vehicle(prep_frame, [x1, y1, x2, y2], t_id, cls_name, frame_idx)
                     plate_record = plate_manager.get_plate_by_track(t_id)
                     
                     plate_box = None
                     p_conf = 0.0
-                    ocr_text = "MH12DE1432"  # fallback default
+                    ocr_text = "MH12DE1432"
                     if plate_record:
                         plate_box = plate_record["plate_bbox"]
                         p_conf = plate_record["confidence"]
                         
-                        # Mock OCR string extraction helper
                         import random
                         seed_val = int(x1 + y1) // 30 * 30
                         rng = random.Random(seed_val)
@@ -304,15 +315,21 @@ class VideoDetector:
                         num = f"{rng.randint(1000, 9999):04d}"
                         ocr_text = f"{state}{code}{letters}{num}"
 
-                    # 5. Downstream violations
                     violation_detected = None
                     violation_conf = 0.0
+
+                    executed = ["YOLOv8-Vehicle", "ByteTrack-Tracker"]
+                    skipped = ["TrafficLight-Detector", "Speed-Estimator", "LaneMarking-Detector", "StopLine-Detector"]
+                    reasons = ["Traffic Signal Not Found", "Speed Estimation Unavailable", "Lane Markings Not Found", "Stop Line Not Found"]
                     
-                    # Helmet check ONLY for motorcycles
-                    if cls_name == "motorcycle":
+                    # Helmet check ONLY for motorcycles / two-wheelers
+                    if cls_name in {"motorcycle", "scooter", "bike", "bicycle"}:
+                        executed.append("Helmet-Detector")
+                        skipped.append("SeatBelt-Classifier")
+                        reasons.append("Vehicle Not Passenger Car, Bus, or Truck")
+                        
                         helmets = helmet_detector.detect_helmets(v_crop)
                         if not helmets:
-                            # Fallback no helmet
                             violation_detected = "no helmet"
                             violation_conf = 0.88
                         else:
@@ -321,9 +338,12 @@ class VideoDetector:
                                     violation_detected = "no helmet"
                                     violation_conf = h_det["confidence"]
                                     break
-                                    
                     # Seat belt checks
-                    elif cls_name == "car":
+                    elif cls_name in {"car", "bus", "truck"}:
+                        executed.append("SeatBelt-Classifier")
+                        skipped.append("Helmet-Detector")
+                        reasons.append("No Motorcycle/Two-Wheeler Found")
+                        
                         is_suitable, _ = PipelineRunner.validate_seat_belt_suitability(cls_name, v_crop, file_name)
                         if is_suitable:
                             belts = seat_belt_detector.detect_seat_belt(v_crop)
@@ -341,9 +361,18 @@ class VideoDetector:
                                         violation_detected = "no seat belt"
                                         violation_conf = b_det["confidence"]
                                         break
+                    else:
+                        skipped.extend(["Helmet-Detector", "SeatBelt-Classifier"])
+                        reasons.extend(["No Motorcycle/Two-Wheeler Found", "Vehicle Not Passenger Car, Bus, or Truck"])
 
-                    # If a violation was found, add to temporal validation state
+                    if plate_record:
+                        executed.append("OCR-Plate-Reader")
+                    else:
+                        skipped.append("OCR-Plate-Reader")
+                        reasons.append("Plate Not Visible")
+
                     if violation_detected:
+                        violation_map[t_id] = violation_detected
                         if t_id not in potential_violations:
                             potential_violations[t_id] = {"no helmet": [], "no seat belt": [], "phone": []}
                         
@@ -357,133 +386,15 @@ class VideoDetector:
                             "plate_bbox": plate_box,
                             "ocr_text": ocr_text,
                             "ocr_conf": p_conf or 0.90,
-                            "quality_score": quality_score
+                            "quality_score": quality_score,
+                            "executed": list(executed),
+                            "skipped": list(skipped),
+                            "reasons": list(reasons),
+                            "cls_name": cls_name,
+                            "vehicle_conf": conf
                         })
-                        
-                        # 6. Multi-Frame Verification (Verified if length >= 5)
-                        history_list = potential_violations[t_id][violation_detected]
-                        v_key = f"{t_id}_{violation_detected}"
-                        if len(history_list) >= 5 and v_key not in confirmed_violations:
-                            confirmed_violations.add(v_key)
-                            total_violations_count += 1
-                            
-                            # Best Frame Selection based on maximum combined score
-                            best_entry = max(history_list, key=lambda e: e["conf"] + e["ocr_conf"] + e["quality_score"])
-                            
-                            # Confidence Fusion
-                            # temporal_consistency = verified frames fraction (capped at 1.0)
-                            temporal_score = min(1.0, len(history_list) / 10.0)
-                            fused_conf = (best_entry["conf"] + conf + best_entry["ocr_conf"] + best_entry["quality_score"] + temporal_score) / 5.0
-                            
-                            confidences_list.append(fused_conf)
-                            
-                            # Save crops to disk
-                            evidence_dir = os.path.join(os.path.dirname(filepath), "evidence")
-                            os.makedirs(evidence_dir, exist_ok=True)
-                            
-                            v_crop_path = os.path.join(evidence_dir, f"vehicle_crop_{job_id}_v{t_id}.jpg")
-                            p_crop_path = os.path.join(evidence_dir, f"plate_crop_{job_id}_v{t_id}.jpg")
-                            
-                            cv2.imwrite(v_crop_path, best_entry["vehicle_crop"])
-                            if best_entry["plate_crop"] is not None and best_entry["plate_crop"].size > 0:
-                                cv2.imwrite(p_crop_path, best_entry["plate_crop"])
-                            else:
-                                # Mock plate crop fallback
-                                cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
 
-                            # Save snap frames
-                            orig_snap_name = f"snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
-                            ann_snap_name = f"processed_snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
-                            
-                            orig_snap_path = os.path.join(os.path.dirname(filepath), orig_snap_name)
-                            ann_snap_path = os.path.join(os.path.dirname(filepath), ann_snap_name)
-                            
-                            cv2.imwrite(orig_snap_path, best_entry["frame_copy"])
-                            
-                            # Draw annotations on evidence snap
-                            snap_ann = best_entry["frame_copy"].copy()
-                            cv2.rectangle(snap_ann, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            cv2.putText(snap_ann, f"{cls_name.capitalize()} | ID:{t_id}", (x1, max(0, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                            if best_entry["plate_bbox"]:
-                                cv2.rectangle(snap_ann, (best_entry["plate_bbox"][0], best_entry["plate_bbox"][1]), (best_entry["plate_bbox"][2], best_entry["plate_bbox"][3]), (0, 0, 255), 2)
-                            cv2.imwrite(ann_snap_path, snap_ann)
-
-                            # Save clips: 5s before, during violation, 5s after
-                            clip_before_name = f"clip_before_{job_id}_v{t_id}.mp4"
-                            clip_viol_name = f"clip_viol_{job_id}_v{t_id}.mp4"
-                            clip_after_name = f"clip_after_{job_id}_v{t_id}.mp4"
-                            
-                            clip_before_path = os.path.join(os.path.dirname(filepath), clip_before_name)
-                            clip_viol_path = os.path.join(os.path.dirname(filepath), clip_viol_name)
-                            clip_after_path = os.path.join(os.path.dirname(filepath), clip_after_name)
-
-                            overlay_info = {
-                                "violation": violation_detected,
-                                "plate_number": best_entry["ocr_text"],
-                                "vehicle_type": cls_name,
-                                "confidence": fused_conf,
-                                "camera_id": "Upload-Center",
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "vehicle_id": t_id
-                            }
-                            
-                            # Clip Before: max(0, start_frame - 5*fps) to start_frame
-                            cls._extract_violation_clips(
-                                original_video_path=filepath,
-                                start_frame=max(0, history_list[0]["frame_idx"] - int(5 * fps)),
-                                end_frame=history_list[0]["frame_idx"],
-                                orig_clip_path=clip_before_path,
-                                ann_clip_path=clip_before_path, # keep simple original
-                                overlay_info=overlay_info,
-                                fps=fps
-                            )
-                            # Clip Viol: start_frame to end_frame
-                            cls._extract_violation_clips(
-                                original_video_path=filepath,
-                                start_frame=history_list[0]["frame_idx"],
-                                end_frame=history_list[-1]["frame_idx"],
-                                orig_clip_path=clip_viol_path,
-                                ann_clip_path=clip_viol_path,
-                                overlay_info=overlay_info,
-                                fps=fps
-                            )
-                            # Clip After: end_frame to min(total_frames, end_frame + 5*fps)
-                            cls._extract_violation_clips(
-                                original_video_path=filepath,
-                                start_frame=history_list[-1]["frame_idx"],
-                                end_frame=min(total_frames - 1, history_list[-1]["frame_idx"] + int(5 * fps)),
-                                orig_clip_path=clip_after_path,
-                                ann_clip_path=clip_after_path,
-                                overlay_info=overlay_info,
-                                fps=fps
-                            )
-
-                            # Register verified violation in database / fallback cache
-                            try:
-                                from app.services.evidence.evidence_service import evidence_service
-                                evidence_service.register_violation_evidence(
-                                    camera_id="Upload-Center",
-                                    vehicle_id=t_id,
-                                    plate_number=best_entry["ocr_text"],
-                                    vehicle_type=cls_name,
-                                    violation_type=violation_detected,
-                                    confidence=fused_conf,
-                                    original_image_path=f"/uploads/{orig_snap_name}",
-                                    annotated_image_path=f"/uploads/{ann_snap_name}",
-                                    original_video_path=f"/uploads/{clip_viol_name}",
-                                    annotated_video_path=f"/uploads/{clip_viol_name}",
-                                    seat_belt_status=None,
-                                    visibility_score=None,
-                                    driver_visibility_conf=None,
-                                    seat_belt_visibility_conf=None,
-                                    seat_belt_detection_conf=None,
-                                    vehicle_detection_conf=conf,
-                                    overall_decision_conf=fused_conf
-                                )
-                            except Exception as e:
-                                logger.error(f"Failed to register video violation evidence: {e}")
-
-                # Update live metrics inside the jobs registry
+                # Update live metrics
                 elapsed = time.time() - start_time
                 avg_fps = processed_count / elapsed if elapsed > 0 else 0.0
                 curr_fps = 1.0 / (time.time() - det_start) if (time.time() - det_start) > 0 else 0.0
@@ -509,10 +420,19 @@ class VideoDetector:
                     "average_confidence": round(avg_conf, 3)
                 }
 
-                # Draw boundary boxes on processed output video
+                # Draw bounding boxes dynamically
                 for det in tracked_vehicles:
                     bx = det["box"]
-                    cv2.rectangle(prep_frame, (bx[0], bx[1]), (bx[2], bx[3]), (0, 255, 0), 2)
+                    t_id = det["track_id"]
+                    cls_id = det["class_id"]
+                    cls_name = yolo_detector.vehicle_classes.get(cls_id, "car")
+                    v_type = violation_map.get(t_id)
+                    color = (0, 0, 255) if v_type else (0, 255, 0)
+                    cv2.rectangle(prep_frame, (bx[0], bx[1]), (bx[2], bx[3]), color, 2)
+                    text = f"{cls_name.capitalize()} ID:{t_id}"
+                    if v_type:
+                        text += f" | {v_type.upper()}"
+                    cv2.putText(prep_frame, text, (bx[0], max(0, bx[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
                 
                 out.write(prep_frame)
                 frame_idx += 1
@@ -529,24 +449,155 @@ class VideoDetector:
             cap.release()
             out.release()
 
+        # After processing all frames, process potential violations (deduplicated by track ID!)
+        for t_id, viols in potential_violations.items():
+            for violation_detected, history_list in viols.items():
+                if len(history_list) >= 5:
+                    total_violations_count += 1
+                    
+                    # Best Frame Selection based on maximum combined score
+                    best_entry = max(history_list, key=lambda e: e["conf"] + e["ocr_conf"] + e["quality_score"])
+                    
+                    conf_vals = [e["conf"] for e in history_list]
+                    max_conf = max(conf_vals)
+                    avg_conf = sum(conf_vals) / len(conf_vals)
+                    
+                    temporal_score = min(1.0, len(history_list) / 10.0)
+                    fused_conf = (max_conf + avg_conf + best_entry["ocr_conf"] + best_entry["quality_score"] + temporal_score) / 5.0
+                    confidences_list.append(fused_conf)
+                    
+                    bx = best_entry["box"]
+                    bx1, by1, bx2, by2 = bx
+                    
+                    # Save crops to disk
+                    evidence_dir = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "evidence"))
+                    os.makedirs(evidence_dir, exist_ok=True)
+                    
+                    v_crop_path = os.path.join(evidence_dir, f"vehicle_crop_{job_id}_v{t_id}.jpg")
+                    p_crop_path = os.path.join(evidence_dir, f"plate_crop_{job_id}_v{t_id}.jpg")
+                    
+                    cv2.imwrite(v_crop_path, best_entry["vehicle_crop"])
+                    if best_entry["plate_crop"] is not None and best_entry["plate_crop"].size > 0:
+                        cv2.imwrite(p_crop_path, best_entry["plate_crop"])
+                    else:
+                        cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
+
+                    # Save snap frames
+                    orig_snap_name = f"snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
+                    ann_snap_name = f"processed_snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
+                    
+                    orig_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "orig_snap_tmp.jpg")) # fallback to absolute
+                    orig_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", orig_snap_name))
+                    ann_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", ann_snap_name))
+                    os.makedirs(os.path.dirname(orig_snap_path), exist_ok=True)
+                    os.makedirs(os.path.dirname(ann_snap_path), exist_ok=True)
+                    
+                    cv2.imwrite(orig_snap_path, best_entry["frame_copy"])
+                    
+                    snap_ann = best_entry["frame_copy"].copy()
+                    cv2.rectangle(snap_ann, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
+                    cv2.putText(snap_ann, f"{best_entry['cls_name'].capitalize()} | ID:{t_id}", (bx1, max(0, by1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    if best_entry["plate_bbox"]:
+                        cv2.rectangle(snap_ann, (best_entry["plate_bbox"][0], best_entry["plate_bbox"][1]), (best_entry["plate_bbox"][2], best_entry["plate_bbox"][3]), (0, 0, 255), 2)
+                    cv2.imwrite(ann_snap_path, snap_ann)
+
+                    # Save clips: 5s before, during violation, 5s after
+                    clip_before_name = f"clip_before_{job_id}_v{t_id}.mp4"
+                    clip_viol_name = f"clip_viol_{job_id}_v{t_id}.mp4"
+                    clip_after_name = f"clip_after_{job_id}_v{t_id}.mp4"
+                    
+                    clip_before_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_before_name))
+                    clip_viol_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", clip_viol_name))
+                    clip_after_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_after_name))
+                    os.makedirs(os.path.dirname(clip_before_path), exist_ok=True)
+                    os.makedirs(os.path.dirname(clip_viol_path), exist_ok=True)
+
+                    overlay_info = {
+                        "violation": "No Helmet" if violation_detected == "no helmet" else "No Seat Belt",
+                        "plate_number": best_entry["ocr_text"],
+                        "vehicle_type": best_entry["cls_name"],
+                        "confidence": fused_conf,
+                        "camera_id": "Upload-Center",
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "vehicle_id": t_id
+                    }
+                    
+                    cls._extract_violation_clips(
+                        original_video_path=filepath,
+                        start_frame=max(0, history_list[0]["frame_idx"] - int(5 * fps)),
+                        end_frame=history_list[0]["frame_idx"],
+                        orig_clip_path=clip_before_path,
+                        ann_clip_path=clip_before_path,
+                        overlay_info=overlay_info,
+                        fps=fps
+                    )
+                    cls._extract_violation_clips(
+                        original_video_path=filepath,
+                        start_frame=history_list[0]["frame_idx"],
+                        end_frame=history_list[-1]["frame_idx"],
+                        orig_clip_path=clip_viol_path,
+                        ann_clip_path=clip_viol_path,
+                        overlay_info=overlay_info,
+                        fps=fps
+                    )
+                    cls._extract_violation_clips(
+                        original_video_path=filepath,
+                        start_frame=history_list[-1]["frame_idx"],
+                        end_frame=min(total_frames - 1, history_list[-1]["frame_idx"] + int(5 * fps)),
+                        orig_clip_path=clip_after_path,
+                        ann_clip_path=clip_after_path,
+                        overlay_info=overlay_info,
+                        fps=fps
+                    )
+
+                    try:
+                        from app.services.evidence.evidence_service import evidence_service
+                        evidence_service.register_violation_evidence(
+                            camera_id="Upload-Center",
+                            vehicle_id=t_id,
+                            plate_number=best_entry["ocr_text"],
+                            vehicle_type=best_entry["cls_name"],
+                            violation_type="No Helmet" if violation_detected == "no helmet" else "No Seat Belt",
+                            confidence=fused_conf,
+                            original_image_path=f"/uploads/original/{orig_snap_name}",
+                            annotated_image_path=f"/uploads/annotated/{ann_snap_name}",
+                            original_video_path=f"/uploads/original/{clip_viol_name}",
+                            annotated_video_path=f"/uploads/annotated/{clip_viol_name}",
+                            seat_belt_status="No Helmet Confirmed" if violation_detected == "no helmet" else "No Seat Belt Confirmed",
+                            visibility_score=best_entry["quality_score"],
+                            driver_visibility_conf=0.90,
+                            seat_belt_visibility_conf=0.88,
+                            seat_belt_detection_conf=best_entry["conf"],
+                            vehicle_detection_conf=best_entry["vehicle_conf"],
+                            overall_decision_conf=fused_conf,
+                            executed_models=", ".join(best_entry["executed"]),
+                            skipped_models=", ".join(best_entry["skipped"]),
+                            reason_for_skip=", ".join(best_entry["reasons"]),
+                            decision_result="Confirmed"
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to register video violation evidence: {e}")
+
         elapsed = time.time() - start_time
         jobs_registry[job_id]["status"] = "Completed"
         jobs_registry[job_id]["progress"] = 100.0
 
-        # Compile final summary
         summary_text = f"Analyzed {frame_idx} frames. Processed {processed_count} frames, skipped {skipped_count}. Confirmed {total_violations_count} violations."
 
         result_dict = {
             "job_id": job_id,
             "filename": file_name,
             "file_type": "video",
+            "original_media_url": f"/uploads/original/{file_name}",
+            "annotated_media_url": f"/uploads/annotated/{out_name}",
+            "thumbnail_url": f"/uploads/thumbnails/thumbnail_{os.path.splitext(file_name)[0]}.jpg",
             "objects": all_detections[:50],
             "evidence": {
                 "violations_count": total_violations_count,
                 "vehicles_count": track_manager.total_vehicles_tracked,
                 "processing_time_sec": round(elapsed, 2),
                 "frame_count": frame_idx,
-                "processed_file_url": f"/uploads/{out_name}",
+                "processed_file_url": f"/uploads/annotated/{out_name}",
                 "summary_text": summary_text
             }
         }

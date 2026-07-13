@@ -38,3 +38,46 @@ def get_tracking_status():
     return {
         "running": tracking_service.get_status()
     }
+
+from fastapi import HTTPException
+from app.services.tracking.track_manager import track_manager
+
+@router.get("/active")
+def get_active_tracks():
+    """
+    Returns list of all active tracked vehicles.
+    """
+    return track_manager.get_active_tracks()
+
+@router.get("/statistics")
+def get_tracking_statistics():
+    """
+    Returns general tracking statistics counters.
+    """
+    return track_manager.get_statistics()
+
+@router.get("/{track_id}")
+def get_track_details(track_id: int):
+    """
+    Returns latest tracking details for a specific track ID.
+    """
+    details = track_manager.get_track_by_id(track_id)
+    if not details:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Track ID {track_id} not found"
+        )
+    return details
+
+@router.get("/history/{track_id}")
+def get_track_history(track_id: int):
+    """
+    Returns historical centroids and frame bbox logs for a specific track ID.
+    """
+    history = track_manager.get_track_history(track_id)
+    if not history:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Track ID {track_id} has no history records"
+        )
+    return history

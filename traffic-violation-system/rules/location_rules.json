@@ -1,0 +1,43 @@
+{
+  "City Centre": {
+    "speed_limit_kph": 50,
+    "allowed_lanes": [
+      "normal",
+      "bus",
+      "turning"
+    ],
+    "bus_lane_only": [
+      "bus"
+    ],
+    "restricted_vehicles": [
+      "heavy truck"
+    ],
+    "helmet_required": true,
+    "seat_belt_required": true
+  },
+  "Highway": {
+    "speed_limit_kph": 100,
+    "allowed_lanes": [
+      "normal",
+      "emergency"
+    ],
+    "emergency_lane_only": [
+      "emergency"
+    ],
+    "restricted_vehicles": [
+      "bicycle",
+      "auto rickshaw"
+    ],
+    "helmet_required": true,
+    "seat_belt_required": true
+  },
+  "School Zone": {
+    "speed_limit_kph": 30,
+    "allowed_lanes": [
+      "normal"
+    ],
+    "restricted_vehicles": [],
+    "helmet_required": true,
+    "seat_belt_required": true
+  }
+}

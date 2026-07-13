@@ -21,13 +21,21 @@ export default function Violations() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
-    fetchViolations();
-  }, []);
+    setCurrentPage(1);
+  }, [search, filterType]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchViolations();
+    }, 200);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, search, filterType]);
 
   const fetchViolations = async () => {
     try {
       setLoading(true);
-      const res = await violationAPI.getAll();
+      const res = await violationAPI.getAll(currentPage, itemsPerPage, search, filterType);
       setViolations(res.data);
     } catch (err) {
       console.error("Error loading violation records:", err);

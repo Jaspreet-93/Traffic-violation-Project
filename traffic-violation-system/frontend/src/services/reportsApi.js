@@ -8,7 +8,7 @@ const API = axios.create({
 });
 
 export const reportsAPI = {
-  getAll: () => API.get('/api/v1/reports'),
+  getAll: (page = 1, limit = 20) => API.get('/api/v1/reports', { params: { page, limit } }),
   generate: (data) => API.post('/api/v1/reports/generate', data),
   delete: (id) => API.delete(`/api/v1/reports/${id}`),
   getDownloadUrl: (id) => `/api/v1/reports/${id}`,

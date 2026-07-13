@@ -5,10 +5,13 @@ from app.core.logger import logger
 class PlateModel:
     def __init__(self):
         self.model = None
-        # Locate models/number_plate/plate_detector.pt relative to the app/models directory
         self.model_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..", "..", "models", "number_plate", "plate_detector.pt"
+            os.path.dirname(__file__), "..", "..", "models", "number_plate", "plate_yolo11.pt"
         ))
+        if not os.path.exists(self.model_path):
+            self.model_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__), "..", "..", "models", "number_plate", "plate_detector.pt"
+            ))
 
     def load_model(self):
         """

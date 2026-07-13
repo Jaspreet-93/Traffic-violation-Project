@@ -98,6 +98,23 @@ class CameraService:
     def delete_camera(self, camera_id: int) -> bool:
         self._load_db()
         record_deleted_id("cameras", camera_id)
+        
+        # Database deletion
+        from app.database.connection import SessionLocal, check_db_connection
+        from app.database.models.camera import Camera
+        if check_db_connection():
+            db = SessionLocal()
+            try:
+                r = db.query(Camera).filter(Camera.id == camera_id).first()
+                if r:
+                    db.delete(r)
+                    db.commit()
+            except Exception as e_db:
+                logger.error(f"Error deleting camera {camera_id} from DB: {e_db}")
+                db.rollback()
+            finally:
+                db.close()
+                
         initial_len = len(self.cameras)
         self.cameras = [c for c in self.cameras if c["id"] != camera_id]
         self._save_db()

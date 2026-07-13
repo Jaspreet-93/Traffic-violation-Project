@@ -23,19 +23,24 @@ export default function UploadDetection() {
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [history, setHistory] = useState([]);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (pageNum = 1) => {
     try {
-      const res = await uploadDetectionAPI.getHistory();
-      setHistory(res.data.history || []);
+      const res = await uploadDetectionAPI.getHistory(pageNum, 20);
+      const raw = res.data.history || [];
+      setHistory(raw);
+      setHasMore(raw.length === 20);
     } catch (err) {
       console.error("Failed to load upload logs:", err);
     }
   };
 
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    fetchHistory(currentPage);
+  }, [currentPage]);
 
   const handleFileSelected = (file) => {
     setSelectedFile(file);
@@ -139,6 +144,25 @@ export default function UploadDetection() {
         onView={handleViewResult}
         onDelete={handleDeleteHistory}
       />
+
+      {/* Pagination Footer */}
+      <div className="flex items-center justify-between pt-4 border-t border-slate-850 text-xs">
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white disabled:opacity-40 disabled:hover:text-slate-450 disabled:cursor-not-allowed transition-all cursor-pointer"
+        >
+          Previous
+        </button>
+        <span className="text-slate-500 font-mono font-bold">Page {currentPage}</span>
+        <button
+          disabled={!hasMore}
+          onClick={() => setCurrentPage(prev => prev + 1)}
+          className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white disabled:opacity-40 disabled:hover:text-slate-455 disabled:cursor-not-allowed transition-all cursor-pointer"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

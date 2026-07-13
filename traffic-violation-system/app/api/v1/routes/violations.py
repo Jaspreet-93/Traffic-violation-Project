@@ -1,17 +1,60 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from typing import List, Optional
 from app.schemas.violation import ViolationResponse, ViolationDetail
 from app.services.violation.violation_service import violation_service
 
 router = APIRouter(prefix="/violations", tags=["violations"])
 
 @router.get("", response_model=List[ViolationResponse])
-def get_violations():
+def get_violations(
+    search: Optional[str] = None,
+    violation_type: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20
+):
     """
     Returns list of all detected violations.
     """
     try:
         raw_violations = violation_service.get_all_violations()
+        
+        filtered = []
+        for item in raw_violations:
+            v_type = item.get("violation_type") or item.get("violation") or "No Helmet"
+            if violation_type and violation_type.lower() != "all":
+                f = violation_type.lower()
+                vType = v_type.lower()
+                matches_filter = False
+                if f == 'no helmet': matches_filter = 'helmet' in vType
+                elif f == 'seat belt': matches_filter = 'seat' in vType or 'belt' in vType
+                elif f == 'traffic light': matches_filter = 'light' in vType or 'red' in vType
+                elif f == 'speed': matches_filter = 'speed' in vType
+                elif f == 'wrong lane': matches_filter = 'lane' in vType or 'wrong' in vType
+                elif f == 'mobile phone': matches_filter = 'phone' in vType or 'mobile' in vType
+                elif f == 'triple riding': matches_filter = 'triple' in vType or 'riding' in vType
+                elif f == 'expired registration': matches_filter = 'expired' in vType or 'registration' in vType
+                else: matches_filter = vType == f
+                if not matches_filter:
+                    continue
+
+            if search:
+                term = search.lower()
+                matches_search = (
+                    term in str(item.get("id", "")) or
+                    term in str(item.get("vehicle_id", "")) or
+                    term in str(item.get("evidence_id", "")) or
+                    (item.get("plate_number") and term in item["plate_number"].lower()) or
+                    (v_type and term in v_type.lower()) or
+                    (item.get("camera_id") and term in item["camera_id"].lower()) or
+                    (item.get("timestamp") and term in item["timestamp"].lower())
+                )
+                if not matches_search:
+                    continue
+            filtered.append(item)
+
+        start = (page - 1) * limit
+        end = start + limit
+        paged = filtered[start:end]
         return [
             ViolationResponse(
                 id=item.get("id"),
@@ -27,7 +70,7 @@ def get_violations():
                 annotated_image_path=item.get("annotated_image_path"),
                 status=item.get("status")
             )
-            for item in raw_violations
+            for item in paged
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

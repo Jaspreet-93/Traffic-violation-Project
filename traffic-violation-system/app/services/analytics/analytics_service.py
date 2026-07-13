@@ -5,12 +5,16 @@ from sqlalchemy.exc import OperationalError
 from app.database.connection import SessionLocal
 from app.database.models.violation import Violation
 from app.core.logger import logger
+from app.utils.cache import global_cache
 
 class AnalyticsService:
     def get_summary(self) -> Dict[str, int]:
         """
         Retrieves violation metrics totals. Falls back to evidence locker cache count if database is down.
         """
+        cached = global_cache.get("summary")
+        if cached is not None:
+            return cached
         db = SessionLocal()
         try:
             total = db.query(Violation).count()
@@ -23,12 +27,14 @@ class AnalyticsService:
             if total == 0:
                 raise ValueError("No violation records in DB")
             
-            return {
+            res = {
                 "total_violations": total,
                 "helmet_cases": helmet,
                 "seatbelt_cases": seatbelt,
                 "red_light_cases": red_light
             }
+            global_cache.set("summary", res, 60)
+            return res
         except Exception as e:
             logger.warning(f"DB offline/empty for analytics summary, falling back to evidence cache: {e}")
             try:
@@ -38,12 +44,14 @@ class AnalyticsService:
                 helmet = sum(1 for e in all_ev if "helmet" in e.get("violation", "").lower())
                 seatbelt = sum(1 for e in all_ev if "seat" in e.get("violation", "").lower())
                 red_light = sum(1 for e in all_ev if "red" in e.get("violation", "").lower() or "light" in e.get("violation", "").lower())
-                return {
+                res = {
                     "total_violations": total,
                     "helmet_cases": helmet,
                     "seatbelt_cases": seatbelt,
                     "red_light_cases": red_light
                 }
+                global_cache.set("summary", res, 60)
+                return res
             except Exception as inner_err:
                 logger.error(f"Failed to generate summary from evidence service fallback: {inner_err}")
                 return {
@@ -59,6 +67,9 @@ class AnalyticsService:
         """
         Retrieves daily aggregate violations for the past 7 days. Falls back to 0s if DB is down.
         """
+        cached = global_cache.get("daily")
+        if cached is not None:
+            return cached
         stats_map = {}
         db = SessionLocal()
         try:
@@ -88,13 +99,16 @@ class AnalyticsService:
                 "date": day.strftime("%b %d"),
                 "count": stats_map.get(day_str, 0)
             })
-            
+        global_cache.set("daily", daily_list, 60)
         return daily_list
 
     def get_type_stats(self) -> List[Dict[str, Any]]:
         """
         Retrieves aggregate counts grouped by violation type. Falls back to 0s if DB is down.
         """
+        cached = global_cache.get("types")
+        if cached is not None:
+            return cached
         # Standardize classifications listing
         type_map = {
             "No Helmet": 0,
@@ -133,9 +147,11 @@ class AnalyticsService:
         finally:
             db.close()
             
-        return [
+        res_list = [
             {"type": k, "count": v}
             for k, v in type_map.items()
         ]
+        global_cache.set("types", res_list, 60)
+        return res_list
 
 analytics_service = AnalyticsService()

@@ -29,15 +29,33 @@ def get_db():
     finally:
         db.close()
 
-def check_db_connection() -> bool:
-    """
-    Executes a simple SELECT 1 query to test the database connection.
-    Returns True if successful, False if an error occurs.
-    """
+import time
+import threading
+
+_db_status_cache = {"last_check": 0, "status": False}
+_db_check_lock = threading.Lock()
+
+def _bg_check_db():
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return True
-    except Exception as e:
-        logger.error(f"Database connection test failed: {e}")
-        return False
+        _db_status_cache["status"] = True
+    except Exception:
+        _db_status_cache["status"] = False
+
+def check_db_connection() -> bool:
+    """
+    Executes a simple SELECT 1 query to test the database connection.
+    Spawns a background thread to perform the check to prevent blocking API requests.
+    """
+    now = time.time()
+    if now - _db_status_cache["last_check"] > 5.0:
+        if _db_check_lock.acquire(blocking=False):
+            try:
+                _db_status_cache["last_check"] = now
+                t = threading.Thread(target=_bg_check_db)
+                t.daemon = True
+                t.start()
+            finally:
+                _db_check_lock.release()
+    return _db_status_cache["status"]

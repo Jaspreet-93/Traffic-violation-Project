@@ -12,7 +12,7 @@ export const uploadDetectionAPI = {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
   getStatus: (jobId) => API.get(`/api/v1/upload/status/${jobId}`),
-  getHistory: () => API.get('/api/v1/upload/history'),
+  getHistory: (page = 1, limit = 20) => API.get('/api/v1/upload/history', { params: { page, limit } }),
   getResult: (jobId) => API.get(`/api/v1/upload/result/${jobId}`),
   deleteHistory: (jobId) => API.delete(`/api/v1/upload/history/${jobId}`),
 };

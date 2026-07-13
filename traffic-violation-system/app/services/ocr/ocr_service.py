@@ -76,10 +76,15 @@ class OCRService:
                         associated_id = vehicle_id
                         break
                 
-                # Extract text using OCR engine
-                ocr_res = ocr_engine.extract_text(cropped_img, associated_id)
-                plate_number = ocr_res["plate_number"]
-                ocr_conf = ocr_res["confidence"]
+                # Check cached result to avoid redundant expensive inference
+                if associated_id != -1 and associated_id in self.latest_ocr_results:
+                    cached = self.latest_ocr_results[associated_id]
+                    plate_number = cached["plate_number"]
+                    ocr_conf = cached["confidence"]
+                else:
+                    ocr_res = ocr_engine.extract_text(cropped_img, associated_id)
+                    plate_number = ocr_res["plate_number"]
+                    ocr_conf = ocr_res["confidence"]
                 
                 # Cache results if vehicle ID is matched
                 if associated_id != -1:

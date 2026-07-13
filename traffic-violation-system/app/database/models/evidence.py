@@ -7,9 +7,9 @@ class Evidence(Base):
     __tablename__ = "evidence"
 
     id = Column(Integer, primary_key=True, index=True)
-    violation_id = Column(Integer, ForeignKey("violations.id", ondelete="CASCADE"), nullable=False)
-    vehicle_id = Column(Integer, nullable=True)
-    plate_number = Column(String, nullable=True)
+    violation_id = Column(Integer, ForeignKey("violations.id", ondelete="CASCADE"), nullable=False, index=True)
+    vehicle_id = Column(Integer, nullable=True, index=True)
+    plate_number = Column(String, nullable=True, index=True)
     violation_type = Column(String, nullable=False)
     
     # Original / Annotated media paths
@@ -20,8 +20,8 @@ class Evidence(Base):
     
     # Additional required fields
     confidence = Column(Float, nullable=True)
-    camera_id = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    camera_id = Column(String, nullable=True, index=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Keep compatibility aliases
     image_path = Column(String, nullable=True)

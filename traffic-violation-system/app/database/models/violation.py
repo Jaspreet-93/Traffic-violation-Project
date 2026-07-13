@@ -7,14 +7,14 @@ class Violation(Base):
     __tablename__ = "violations"
 
     id = Column(Integer, primary_key=True, index=True)
-    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), nullable=False)
-    vehicle_id = Column(Integer, nullable=True)
-    plate_number = Column(String, nullable=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id", ondelete="CASCADE"), nullable=False, index=True)
+    vehicle_id = Column(Integer, nullable=True, index=True)
+    plate_number = Column(String, nullable=True, index=True)
     vehicle_number = Column(String, nullable=True)
     vehicle_type = Column(String, nullable=False)
     violation_type = Column(String, nullable=False)
     confidence = Column(Float, nullable=True)
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     evidence_path = Column(String, nullable=True)
     snapshot_path = Column(String, nullable=True)
     is_processed = Column(Boolean, default=False)

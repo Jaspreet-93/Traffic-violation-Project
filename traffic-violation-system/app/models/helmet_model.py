@@ -33,6 +33,9 @@ class HelmetModel:
         self.load_model()
         if self.model is None:
             return None
-        return self.model(frame, verbose=False)
+        import torch
+        device = 0 if torch.cuda.is_available() else "cpu"
+        half = torch.cuda.is_available()
+        return self.model(frame, verbose=False, device=device, half=half, imgsz=640)
 
 helmet_model = HelmetModel()

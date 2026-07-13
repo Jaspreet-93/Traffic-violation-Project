@@ -54,18 +54,18 @@ class PlateManager:
             
         # 2. Validation: check if plate box is inside vehicle bounding box
         containment = self.get_iou_containment(plate_box, vehicle_box)
-        if containment < 0.90:  # Must be 90% or more inside the vehicle box
+        if containment < 0.35:  # Must overlap with vehicle box
             return
             
         # 3. Validation: confidence check
-        if confidence < 0.70:
+        if confidence < 0.25:
             return
             
         # 4. Validation: reject tiny plates
         px1, py1, px2, py2 = plate_box
         pw = px2 - px1
         ph = py2 - py1
-        if pw < 15 or ph < 8:
+        if pw < 8 or ph < 4:
             return
             
         # Crop plate region
@@ -80,7 +80,7 @@ class PlateManager:
         # 5. Validation: blur check
         gray = cv2.cvtColor(plate_crop, cv2.COLOR_BGR2GRAY)
         blur_val = cv2.Laplacian(gray, cv2.CV_64F).var()
-        if blur_val < 50:
+        if blur_val < 5:
             return
 
         # Check duplicate for the same track_id

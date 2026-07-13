@@ -8,11 +8,21 @@ connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True  # Automatically ping database to verify connection health
-)
+try:
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args=connect_args,
+        pool_pre_ping=True
+    )
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+except Exception as e:
+    logger.warning(f"Failed to connect to DATABASE_URL ({settings.DATABASE_URL}). Falling back to local SQLite database: sqlite:///./test.db. Error: {e}")
+    engine = create_engine(
+        "sqlite:///./test.db",
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

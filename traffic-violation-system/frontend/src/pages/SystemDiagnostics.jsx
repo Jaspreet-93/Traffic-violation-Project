@@ -13,7 +13,7 @@ export default function SystemDiagnostics() {
     if (val === 'Online' || val === 'Connected') return <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>;
     if (val === 'Warning') return <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>;
     if (val === 'Fallback') return <span className="flex h-2 w-2 rounded-full bg-blue-500"></span>;
-    if (val === 'Unknown' || val === 'No Camera') return <span className="flex h-2 w-2 rounded-full bg-slate-500"></span>;
+    if (val === 'Unknown' || val === 'No Camera' || val === 'Disconnected' || val === 'Standby') return <span className="flex h-2 w-2 rounded-full bg-slate-500"></span>;
     return <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>;
   };
 
@@ -22,6 +22,7 @@ export default function SystemDiagnostics() {
     if (val === 'Warning') return <span className="text-amber-400 font-bold">WARNING</span>;
     if (val === 'Fallback') return <span className="text-blue-400 font-bold">FALLBACK</span>;
     if (val === 'No Camera') return <span className="text-slate-500 font-bold">NO CAMERA</span>;
+    if (val === 'Disconnected' || val === 'Standby') return <span className="text-slate-400 font-bold">STANDBY</span>;
     if (val === 'Unknown') return <span className="text-slate-400 font-bold">UNKNOWN</span>;
     return <span className="text-rose-500 font-bold">OFFLINE</span>;
   };

@@ -149,12 +149,11 @@ class VideoDetector:
         """
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
-        # Downscale to 160x120 for lightning-fast metric estimation
-        small_gray = cv2.resize(gray, (160, 120))
-        blur = cv2.Laplacian(small_gray, cv2.CV_64F).var()
-        brightness = np.mean(small_gray)
-        contrast = np.std(small_gray)
-        noise = np.std(small_gray - cv2.GaussianBlur(small_gray, (3, 3), 0))
+        # Calculate quality metrics
+        blur = cv2.Laplacian(gray, cv2.CV_64F).var()
+        brightness = np.mean(gray)
+        contrast = np.std(gray)
+        noise = np.std(gray - cv2.GaussianBlur(gray, (3, 3), 0))
         
         # Quality score
         quality_score = min(1.0, max(0.0, (blur / 100.0) + (brightness / 255.0) + (contrast / 100.0) - (noise / 50.0)))

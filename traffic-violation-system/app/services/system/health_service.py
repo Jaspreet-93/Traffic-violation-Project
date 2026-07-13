@@ -97,9 +97,14 @@ class HealthService:
         # 3. Camera Connected Verification
         camera_connected_status = "Disconnected"
         cams = camera_service.list_cameras()
-        any_enabled = any(c.get("enabled", True) for c in cams)
-        if camera_manager.is_running or any_enabled:
-            camera_connected_status = "Connected"
+        if camera_manager.is_running:
+            src = str(camera_manager.source).lower()
+            if src.isdigit() or "webcam" in src:
+                camera_connected_status = "Connected"
+            elif src.startswith("rtsp://") or src.startswith("http://"):
+                camera_connected_status = "Connected"
+            else:
+                camera_connected_status = "Connected"
         else:
             if not cams:
                 camera_connected_status = "No Camera"

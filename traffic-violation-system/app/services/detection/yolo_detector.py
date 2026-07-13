@@ -111,8 +111,8 @@ class YoloDetector:
         try:
             results = self.model.track(
                 frame,
-                conf=0.35,
-                iou=0.45,
+                conf=0.65,
+                iou=0.55,
                 half=half,
                 imgsz=640,
                 augment=False,
@@ -124,8 +124,8 @@ class YoloDetector:
             logger.warning(f"Tracker error: {e}, falling back to predict")
             results = self.model(
                 frame,
-                conf=0.35,
-                iou=0.45,
+                conf=0.65,
+                iou=0.55,
                 half=half,
                 imgsz=640,
                 augment=False,

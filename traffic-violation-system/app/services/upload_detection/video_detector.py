@@ -501,15 +501,12 @@ class VideoDetector:
                         cv2.rectangle(snap_ann, (best_entry["plate_bbox"][0], best_entry["plate_bbox"][1]), (best_entry["plate_bbox"][2], best_entry["plate_bbox"][3]), (0, 0, 255), 2)
                     cv2.imwrite(ann_snap_path, snap_ann)
 
-                    # Save clips: 5s before, during violation, 5s after
-                    clip_before_name = f"clip_before_{job_id}_v{t_id}.mp4"
+                    # Save clips: original clip in original folder, annotated clip in annotated folder
                     clip_viol_name = f"clip_viol_{job_id}_v{t_id}.mp4"
-                    clip_after_name = f"clip_after_{job_id}_v{t_id}.mp4"
                     
-                    clip_before_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_before_name))
+                    clip_viol_orig_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_viol_name))
                     clip_viol_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", clip_viol_name))
-                    clip_after_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_after_name))
-                    os.makedirs(os.path.dirname(clip_before_path), exist_ok=True)
+                    os.makedirs(os.path.dirname(clip_viol_orig_path), exist_ok=True)
                     os.makedirs(os.path.dirname(clip_viol_path), exist_ok=True)
 
                     overlay_info = {
@@ -524,28 +521,10 @@ class VideoDetector:
                     
                     cls._extract_violation_clips(
                         original_video_path=filepath,
-                        start_frame=max(0, history_list[0]["frame_idx"] - int(5 * fps)),
-                        end_frame=history_list[0]["frame_idx"],
-                        orig_clip_path=clip_before_path,
-                        ann_clip_path=clip_before_path,
-                        overlay_info=overlay_info,
-                        fps=fps
-                    )
-                    cls._extract_violation_clips(
-                        original_video_path=filepath,
                         start_frame=history_list[0]["frame_idx"],
                         end_frame=history_list[-1]["frame_idx"],
-                        orig_clip_path=clip_viol_path,
+                        orig_clip_path=clip_viol_orig_path,
                         ann_clip_path=clip_viol_path,
-                        overlay_info=overlay_info,
-                        fps=fps
-                    )
-                    cls._extract_violation_clips(
-                        original_video_path=filepath,
-                        start_frame=history_list[-1]["frame_idx"],
-                        end_frame=min(total_frames - 1, history_list[-1]["frame_idx"] + int(5 * fps)),
-                        orig_clip_path=clip_after_path,
-                        ann_clip_path=clip_after_path,
                         overlay_info=overlay_info,
                         fps=fps
                     )

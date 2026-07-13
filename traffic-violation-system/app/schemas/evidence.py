@@ -108,3 +108,17 @@ class EvidenceIntegrityResponse(BaseModel):
 class DeleteEvidenceResponse(BaseModel):
     success: bool
     message: str
+
+class DeleteEvidenceBulkRequest(BaseModel):
+    ids: List[int]
+
+class DeleteEvidenceBulkResponse(BaseModel):
+    success: bool
+    message: str
+    job_id: str
+
+class BulkDeleteProgressResponse(BaseModel):
+    total: int
+    current: int
+    status: str
+    message: Optional[str] = None

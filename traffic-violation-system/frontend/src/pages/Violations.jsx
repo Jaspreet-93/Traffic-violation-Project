@@ -231,13 +231,18 @@ export default function Violations() {
                     <ArrowUpDown className="w-3 h-3 text-slate-500" />
                   </div>
                 </th>
+                <th className="px-6 py-4 text-center">
+                  <div className="flex items-center justify-center space-x-1.5">
+                    <span>Processing Status</span>
+                  </div>
+                </th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-850 text-slate-300">
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-20 text-center">
+                  <td colSpan="11" className="px-6 py-20 text-center">
                     <div className="flex justify-center items-center">
                       <span className="w-6 h-6 rounded-full border-2 border-purple-500 border-t-transparent animate-spin"></span>
                     </div>
@@ -245,7 +250,7 @@ export default function Violations() {
                 </tr>
               ) : currentItems.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-20 text-center text-slate-500">
+                  <td colSpan="11" className="px-6 py-20 text-center text-slate-500">
                     No violation records found matching your filters.
                   </td>
                 </tr>
@@ -268,6 +273,11 @@ export default function Violations() {
                     <td className="px-6 py-4 text-center">
                       <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 font-bold uppercase text-[9px] tracking-wide">
                         {item.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/25 text-purple-400 font-bold uppercase text-[9px] tracking-wide">
+                        Completed
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">

@@ -13,6 +13,7 @@ from app.utils.cache import global_cache
 
 PERSISTENT_FALLBACK_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads", "fallback_evidence.json"))
 _last_sync_time = 0
+bulk_delete_progress = {}
 
 class FallbackEvidenceListProxy(list):
     def __init__(self):
@@ -174,27 +175,68 @@ class EvidenceService:
         """
         from app.database.models.violation import Violation
         
+        # Check files existence before creating violation/evidence
+        uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
+        
+        def resolve_and_check(path_str):
+            if not path_str:
+                return False
+            if os.path.isabs(path_str):
+                check_path = path_str
+            else:
+                clean_path = path_str.replace("uploads/", "").lstrip("/")
+                check_path = os.path.join(uploads_dir, clean_path)
+            return os.path.exists(check_path)
+
+        has_valid_image = resolve_and_check(original_image_path) and resolve_and_check(annotated_image_path)
+        has_valid_video = resolve_and_check(original_video_path) and resolve_and_check(annotated_video_path) and resolve_and_check(annotated_image_path)
+        
+        # Extract job_id prefix
+        import re
+        prefix = ""
+        if annotated_image_path:
+            match = re.search(r'processed_snapshot_([a-f0-9\-]+)', annotated_image_path)
+            if match:
+                prefix = match.group(1)
+
+        if not (has_valid_image or has_valid_video):
+            err_msg = f"Evidence Integrity Check FAILED. Missing files. Image valid: {has_valid_image}, Video valid: {has_valid_video}. Paths: original_image={original_image_path}, annotated_image={annotated_image_path}, original_video={original_video_path}, annotated_video={annotated_video_path}"
+            logger.error(err_msg)
+            if camera_id == "Upload-Center" and prefix:
+                from app.services.upload_detection.upload_service import UploadService
+                UploadService.record_processing_error(prefix, os.path.basename(original_video_path or original_image_path or "unknown"), err_msg)
+            raise ValueError(err_msg)
+
         db = SessionLocal()
         try:
-            # Check database for existing vehicle-violation repetition in this run
-            import re
-            prefix = ""
-            if annotated_image_path:
-                match = re.search(r'processed_snapshot_([a-f0-9\-]+)', annotated_image_path)
-                if match:
-                    prefix = match.group(1)
-            
             from sqlalchemy import and_
-            if vehicle_id is not None and prefix:
-                existing = db.query(Violation).filter(
-                    and_(
-                        Violation.vehicle_id == vehicle_id,
-                        Violation.violation_type == violation_type,
-                        Violation.evidence_path.like(f"%{prefix}%")
-                    )
-                ).first()
+            if vehicle_id is not None:
+                # Deduplication logic
+                if camera_id == "Upload-Center":
+                    if prefix:
+                        existing = db.query(Violation).filter(
+                            and_(
+                                Violation.vehicle_id == vehicle_id,
+                                Violation.violation_type == violation_type,
+                                Violation.evidence_path.like(f"%{prefix}%")
+                            )
+                        ).first()
+                    else:
+                        existing = None
+                else:
+                    # Live camera stream 10-second deduplication window
+                    window = datetime.utcnow() - timedelta(seconds=10)
+                    existing = db.query(Violation).filter(
+                        and_(
+                            Violation.camera_id == camera_id,
+                            Violation.vehicle_id == vehicle_id,
+                            Violation.violation_type == violation_type,
+                            Violation.timestamp >= window
+                        )
+                    ).first()
+
                 if existing:
-                    logger.info(f"Repetitive violation ignored: Vehicle {vehicle_id}, Type {violation_type}")
+                    logger.info(f"Repetitive violation ignored: Camera {camera_id}, Vehicle {vehicle_id}, Type {violation_type}")
                     existing_evidence = db.query(Evidence).filter(Evidence.violation_id == existing.id).first()
                     if existing_evidence:
                         return self._map_evidence_dict(
@@ -205,7 +247,7 @@ class EvidenceService:
                             violation_type=existing_evidence.violation_type,
                             image_path=existing_evidence.image_path,
                             video_path=existing_evidence.video_path,
-                            timestamp_str=existing_evidence.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                            timestamp_str=existing_evidence.timestamp.strftime("%Y-%m-%d %H:%M:%S") if existing_evidence.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             original_image_path=existing_evidence.original_image_path,
                             annotated_image_path=existing_evidence.annotated_image_path,
                             original_video_path=existing_evidence.original_video_path,
@@ -886,7 +928,23 @@ class EvidenceService:
 
         all_items = formatted_cache + results
         deleted_ids = load_deleted_ids("evidence")
-        return [item for item in all_items if item["evidence_id"] not in deleted_ids]
+        filtered_items = [item for item in all_items if item["evidence_id"] not in deleted_ids]
+        
+        def get_evidence_timestamp(item):
+            ts = item.get("timestamp")
+            if not ts:
+                return datetime.min
+            if isinstance(ts, datetime):
+                return ts
+            try:
+                return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                try:
+                    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except Exception:
+                    return datetime.min
+
+        return sorted(filtered_items, key=get_evidence_timestamp, reverse=True)
 
     def _get_evidence_by_violation_raw(self, violation_id: int) -> Optional[Dict[str, Any]]:
         """
@@ -1154,5 +1212,98 @@ class EvidenceService:
         if res:
             self.verify_and_regenerate_evidence(res)
         return res
+
+    def delete_evidence_bulk(self, evidence_ids: List[int], job_id: str = None) -> bool:
+        """
+        Deletes multiple evidence records by IDs in batch and updates progress.
+        """
+        global_cache.clear()
+        
+        # 1. Record in deletion registry
+        for e_id in evidence_ids:
+            record_deleted_id("evidence", e_id)
+            
+        # 2. Collect files to delete from fallback cache and remove from fallback cache
+        evidence_data_list = []
+        for e_id in evidence_ids:
+            for item in list(fallback_evidence_cache):
+                if item.get("evidence_id") == e_id:
+                    evidence_data_list.append(dict(item))
+                    fallback_evidence_cache.remove(item)
+
+        # 3. Retrieve database records to collect files
+        db = SessionLocal()
+        try:
+            records = db.query(Evidence).filter(Evidence.id.in_(evidence_ids)).all()
+            for r in records:
+                evidence_data_list.append({
+                    "original_image_path": r.original_image_path,
+                    "annotated_image_path": r.annotated_image_path,
+                    "original_video_path": r.original_video_path,
+                    "annotated_video_path": r.annotated_video_path,
+                    "image_path": r.image_path,
+                    "video_path": r.video_path,
+                    "vehicle_id": r.vehicle_id,
+                    "violation_id": r.violation_id
+                })
+            
+            # Batch delete from database
+            if records:
+                db.query(Evidence).filter(Evidence.id.in_(evidence_ids)).delete(synchronize_session=False)
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error in batch database delete: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
+        # 4. Background file deletion with progress updating
+        if job_id and job_id in bulk_delete_progress:
+            import threading
+            
+            def run_delete_worker():
+                try:
+                    total = len(evidence_ids)
+                    if not evidence_data_list:
+                        bulk_delete_progress[job_id]["current"] = total
+                        bulk_delete_progress[job_id]["status"] = "completed"
+                        return
+                        
+                    for i, ev_data in enumerate(evidence_data_list):
+                        try:
+                            self._delete_evidence_files(ev_data)
+                        except Exception as fe:
+                            logger.error(f"Error deleting files in bulk worker: {fe}")
+                        
+                        # Scale progress dynamically
+                        prog = int(((i + 1) / len(evidence_data_list)) * total)
+                        bulk_delete_progress[job_id]["current"] = min(total, prog)
+                        
+                    bulk_delete_progress[job_id]["current"] = total
+                    bulk_delete_progress[job_id]["status"] = "completed"
+                except Exception as ex:
+                    logger.error(f"Bulk delete worker failed: {ex}")
+                    bulk_delete_progress[job_id]["status"] = "failed"
+                    
+            t = threading.Thread(target=run_delete_worker, daemon=True)
+            t.start()
+        else:
+            # Sync fallback file deletion if no job_id provided
+            for ev_data in evidence_data_list:
+                self._delete_evidence_files(ev_data)
+                
+        return True
+
+    def get_all_evidence_ids(self) -> List[int]:
+        ids = [item.get("evidence_id") for item in fallback_evidence_cache if item.get("evidence_id")]
+        db = SessionLocal()
+        try:
+            records = db.query(Evidence.id).all()
+            ids.extend([r[0] for r in records])
+        except Exception:
+            pass
+        finally:
+            db.close()
+        return list(set(ids))
 
 evidence_service = EvidenceService()

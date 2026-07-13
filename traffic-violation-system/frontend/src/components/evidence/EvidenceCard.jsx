@@ -2,11 +2,21 @@ import React from 'react';
 import { Calendar, Eye, ShieldCheck, Trash2 } from 'lucide-react';
 import { evidenceAPI } from '../../services/evidenceApi';
 
-export default function EvidenceCard({ item, onSelect, onDelete }) {
+export default function EvidenceCard({ item, onSelect, onDelete, selected, onToggleSelect }) {
   const previewUrl = evidenceAPI.getPreviewUrl(item.evidence_id) + '?size=thumbnail';
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow hover:border-slate-700/80 transition-all flex flex-col group">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow hover:border-slate-700/80 transition-all flex flex-col group relative">
+      {/* Checkbox overlay */}
+      <div className="absolute top-3 right-3 z-20">
+        <input
+          type="checkbox"
+          checked={selected || false}
+          onChange={() => onToggleSelect(item.evidence_id)}
+          className="w-4 h-4 rounded border-slate-800 text-purple-600 bg-slate-955/90 focus:ring-purple-500 cursor-pointer accent-purple-600"
+        />
+      </div>
+
       {/* Thumbnail */}
       <div className="relative h-40 bg-slate-950 overflow-hidden flex items-center justify-center border-b border-slate-850">
         <img

@@ -2,7 +2,7 @@ import React from 'react';
 import EvidenceCard from './EvidenceCard';
 import { LayoutGrid } from 'lucide-react';
 
-export default function EvidenceGrid({ items, onSelect, onDelete }) {
+export default function EvidenceGrid({ items, onSelect, onDelete, selectedIds = [], onToggleSelect }) {
   if (!items || items.length === 0) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center shadow-md">
@@ -21,6 +21,8 @@ export default function EvidenceGrid({ items, onSelect, onDelete }) {
           item={item}
           onSelect={onSelect}
           onDelete={onDelete}
+          selected={selectedIds.includes(item.evidence_id)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </div>

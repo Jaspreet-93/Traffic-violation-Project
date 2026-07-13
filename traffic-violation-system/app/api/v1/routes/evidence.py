@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Body
 from fastapi.responses import FileResponse
 from typing import List, Optional
 import os
@@ -285,6 +285,61 @@ def download_evidence_attachment(id: int):
         raise HTTPException(status_code=404, detail="File is missing on disk.")
         
     return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))
+
+from app.schemas.evidence import DeleteEvidenceBulkRequest, DeleteEvidenceBulkResponse, BulkDeleteProgressResponse
+from app.services.evidence.evidence_service import bulk_delete_progress
+import uuid
+
+@router.delete("", response_model=DeleteEvidenceBulkResponse)
+def delete_all_evidence():
+    """
+    Deletes all evidence records and files.
+    """
+    evidence_ids = evidence_service.get_all_evidence_ids()
+    job_id = str(uuid.uuid4())
+    bulk_delete_progress[job_id] = {
+        "total": len(evidence_ids),
+        "current": 0,
+        "status": "processing"
+    }
+    evidence_service.delete_evidence_bulk(evidence_ids, job_id=job_id)
+    return {
+        "success": True,
+        "message": f"Successfully queued bulk deletion of all {len(evidence_ids)} evidence records.",
+        "job_id": job_id
+    }
+
+@router.delete("/bulk", response_model=DeleteEvidenceBulkResponse)
+def delete_evidence_bulk(req: DeleteEvidenceBulkRequest = Body(...)):
+    """
+    Deletes selected evidence records by IDs in batch.
+    """
+    evidence_ids = req.ids
+    job_id = str(uuid.uuid4())
+    bulk_delete_progress[job_id] = {
+        "total": len(evidence_ids),
+        "current": 0,
+        "status": "processing"
+    }
+    evidence_service.delete_evidence_bulk(evidence_ids, job_id=job_id)
+    return {
+        "success": True,
+        "message": f"Successfully queued bulk deletion of {len(evidence_ids)} evidence records.",
+        "job_id": job_id
+    }
+
+@router.get("/bulk/progress/{job_id}", response_model=BulkDeleteProgressResponse)
+def get_bulk_delete_progress(job_id: str):
+    """
+    Returns progress metrics of a queued bulk deletion job.
+    """
+    prog = bulk_delete_progress.get(job_id)
+    if not prog:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Bulk deletion job {job_id} not found."
+        )
+    return prog
 
 @router.delete("/{id}", response_model=DeleteEvidenceResponse)
 def delete_evidence(id: int):

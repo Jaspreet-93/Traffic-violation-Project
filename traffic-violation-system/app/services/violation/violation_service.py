@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 import numpy as np
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import json
 from app.database.connection import SessionLocal
@@ -107,9 +107,34 @@ class ViolationService:
             try:
                 for item in detected:
                     key = (item["vehicle_id"], item["violation_type"])
-                    if key in self.session_keys:
+                    # Deduplication check across DB and fallback lists for consecutive frames (10-second window)
+                    from sqlalchemy import and_
+                    window = datetime.now(timezone.utc) - timedelta(seconds=10)
+                    existing_db = db.query(Violation).filter(
+                        and_(
+                            Violation.camera_id == item["camera_id"],
+                            Violation.vehicle_id == item["vehicle_id"],
+                            Violation.violation_type == item["violation_type"],
+                            Violation.timestamp >= window
+                        )
+                    ).first()
+                    if existing_db:
+                        logger.info(f"Duplicate violation ignored from DB window: Vehicle {item['vehicle_id']}, Type {item['violation_type']}")
                         continue
                         
+                    existing_fb = False
+                    for fb_item in list(self.recorded_violations):
+                        try:
+                            fb_ts = datetime.strptime(fb_item.get("timestamp"), "%Y-%m-%d %H:%M:%S")
+                            if fb_item.get("vehicle_id") == item["vehicle_id"] and fb_item.get("violation_type") == item["violation_type"] and abs((datetime.now() - fb_ts).total_seconds()) < 10:
+                                existing_fb = True
+                                break
+                        except Exception:
+                            pass
+                    if existing_fb:
+                        logger.info(f"Duplicate violation ignored from fallback window: Vehicle {item['vehicle_id']}, Type {item['violation_type']}")
+                        continue
+
                     self.session_keys.add(key)
                     self.recorded_violations.append(item)
                     
@@ -289,6 +314,21 @@ class ViolationService:
         deleted_set = load_deleted_violations()
         merged = {k: v for k, v in merged.items() if int(k) not in deleted_set}
 
+        # Sort by timestamp DESC helper
+        def get_timestamp(item):
+            ts = item.get("timestamp")
+            if not ts:
+                return datetime.min
+            if isinstance(ts, datetime):
+                return ts
+            try:
+                return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                try:
+                    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except Exception:
+                    return datetime.min
+
         if not merged:
             default_items = [
                 {
@@ -313,7 +353,7 @@ class ViolationService:
                     "vehicle_type": "car",
                     "violation_type": "Seat Belt",
                     "confidence": 0.91,
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": (datetime.now() - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
                     "evidence_id": 2,
                     "original_image_path": "/uploads/violation images_8532058e.jpeg",
                     "annotated_image_path": "/uploads/violation images_8532058e.jpeg",
@@ -321,9 +361,9 @@ class ViolationService:
                 }
             ]
             default_items = [item for item in default_items if item["id"] not in deleted_set]
-            return default_items
+            return sorted(default_items, key=get_timestamp, reverse=True)
 
-        return list(merged.values())
+        return sorted(list(merged.values()), key=get_timestamp, reverse=True)
 
     def get_violation_by_id(self, violation_id: int) -> Optional[Dict[str, Any]]:
         """

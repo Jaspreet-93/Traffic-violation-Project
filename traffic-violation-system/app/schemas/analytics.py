@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 
 class AnalyticsSummaryResponse(BaseModel):
     total_violations: int = Field(..., description="Cumulative count of all violations logged")
+    total_vehicles: int = Field(0, description="Total distinct vehicles tracked")
     helmet_cases: int = Field(..., description="Total cases of helmet violations")
     seatbelt_cases: int = Field(..., description="Total cases of seatbelt violations")
     red_light_cases: int = Field(..., description="Total cases of red light violations")

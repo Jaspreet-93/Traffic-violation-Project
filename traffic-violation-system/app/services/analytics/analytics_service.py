@@ -12,16 +12,14 @@ class AnalyticsService:
         """
         Retrieves violation metrics totals. Falls back to evidence locker cache count if database is down.
         """
-        cached = global_cache.get("summary")
-        if cached is not None:
-            return cached
         db = SessionLocal()
         try:
             total = db.query(Violation).count()
+            total_vehicles = db.query(func.distinct(Violation.vehicle_id)).count()
             
             # Count by violation categories using case-insensitive matches
             helmet = db.query(Violation).filter(Violation.violation_type.ilike("%helmet%")).count()
-            seatbelt = db.query(Violation).filter(Violation.violation_type.ilike("%seatbelt%")).count()
+            seatbelt = db.query(Violation).filter(Violation.violation_type.ilike("%seat%belt%")).count()
             red_light = db.query(Violation).filter(Violation.violation_type.ilike("%red%light%")).count()
             
             if total == 0:
@@ -29,11 +27,11 @@ class AnalyticsService:
             
             res = {
                 "total_violations": total,
+                "total_vehicles": total_vehicles,
                 "helmet_cases": helmet,
                 "seatbelt_cases": seatbelt,
                 "red_light_cases": red_light
             }
-            global_cache.set("summary", res, 60)
             return res
         except Exception as e:
             logger.warning(f"DB offline/empty for analytics summary, falling back to evidence cache: {e}")
@@ -41,21 +39,23 @@ class AnalyticsService:
                 from app.services.evidence.evidence_service import evidence_service
                 all_ev = evidence_service.get_all_evidence()
                 total = len(all_ev)
+                total_vehicles = len(set(e.get("vehicle_id") for e in all_ev if e.get("vehicle_id")))
                 helmet = sum(1 for e in all_ev if "helmet" in e.get("violation", "").lower())
                 seatbelt = sum(1 for e in all_ev if "seat" in e.get("violation", "").lower())
                 red_light = sum(1 for e in all_ev if "red" in e.get("violation", "").lower() or "light" in e.get("violation", "").lower())
                 res = {
                     "total_violations": total,
+                    "total_vehicles": total_vehicles,
                     "helmet_cases": helmet,
                     "seatbelt_cases": seatbelt,
                     "red_light_cases": red_light
                 }
-                global_cache.set("summary", res, 60)
                 return res
             except Exception as inner_err:
                 logger.error(f"Failed to generate summary from evidence service fallback: {inner_err}")
                 return {
                     "total_violations": 0,
+                    "total_vehicles": 0,
                     "helmet_cases": 0,
                     "seatbelt_cases": 0,
                     "red_light_cases": 0
@@ -106,9 +106,6 @@ class AnalyticsService:
         """
         Retrieves aggregate counts grouped by violation type. Falls back to 0s if DB is down.
         """
-        cached = global_cache.get("types")
-        if cached is not None:
-            return cached
         # Standardize classifications listing
         type_map = {
             "No Helmet": 0,
@@ -151,7 +148,6 @@ class AnalyticsService:
             {"type": k, "count": v}
             for k, v in type_map.items()
         ]
-        global_cache.set("types", res_list, 60)
         return res_list
 
 analytics_service = AnalyticsService()

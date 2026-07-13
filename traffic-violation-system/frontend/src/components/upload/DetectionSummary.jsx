@@ -43,29 +43,19 @@ export default function DetectionSummary({ result }) {
   // Count every violation type separately
   const violationCounts = {
     "No Helmet": 0,
-    "Seat Belt": 0,
-    "Triple Riding": 0,
-    "Mobile Phone": 0,
-    "Speed": 0,
-    "Red Light": 0,
+    "No Seat Belt": 0,
     "Wrong Lane": 0,
-    "Stop Line": 0,
-    "Parking": 0,
-    "Number Plate": 0
+    "Red Light": 0,
+    "Speed Limit": 0
   };
 
   evidenceList.forEach(item => {
-    const v = item.violation ? item.violation.toLowerCase() : '';
+    const v = (item.violation || item.violation_type || '').toLowerCase();
     if (v.includes('helmet')) violationCounts["No Helmet"] += 1;
-    else if (v.includes('seat')) violationCounts["Seat Belt"] += 1;
-    else if (v.includes('triple') || v.includes('riding')) violationCounts["Triple Riding"] += 1;
-    else if (v.includes('phone') || v.includes('mobile') || v.includes('distract')) violationCounts["Mobile Phone"] += 1;
-    else if (v.includes('speed')) violationCounts["Speed"] += 1;
-    else if (v.includes('red') || v.includes('light')) violationCounts["Red Light"] += 1;
+    else if (v.includes('seat')) violationCounts["No Seat Belt"] += 1;
     else if (v.includes('lane') || v.includes('wrong')) violationCounts["Wrong Lane"] += 1;
-    else if (v.includes('stop') || v.includes('line')) violationCounts["Stop Line"] += 1;
-    else if (v.includes('park')) violationCounts["Parking"] += 1;
-    else if (v.includes('plate') || v.includes('ocr')) violationCounts["Number Plate"] += 1;
+    else if (v.includes('red') || v.includes('light')) violationCounts["Red Light"] += 1;
+    else if (v.includes('speed')) violationCounts["Speed Limit"] += 1;
   });
 
   const totalViolations = Object.values(violationCounts).reduce((acc, curr) => acc + curr, 0);

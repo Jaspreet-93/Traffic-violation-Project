@@ -463,7 +463,7 @@ class VideoDetector:
             try:
                 for t_id, viols in potential_violations.items():
                     for violation_detected, history_list in viols.items():
-                        if len(history_list) >= 5:
+                        if len(history_list) >= 1:
                             total_violations_count += 1
                             t0_viol = time.time()
                             

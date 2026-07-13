@@ -80,6 +80,10 @@ class FallbackEvidenceListProxy(list):
 fallback_evidence_cache = FallbackEvidenceListProxy()
 
 class EvidenceService:
+    @property
+    def fallback_evidence_cache(self):
+        return fallback_evidence_cache
+
     def __init__(self):
         pass
 

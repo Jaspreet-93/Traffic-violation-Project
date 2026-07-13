@@ -57,8 +57,9 @@ export default function DetectionResult({ result }) {
         const res = await fetch('/api/v1/evidence');
         if (res.ok) {
           const data = await res.json();
-          // Filter matching the result.filename basename permissively
+          // Filter matching the result.filename or job_id
           const matched = data.filter(item => {
+            const jobId = (result.job_id || '').toLowerCase();
             const fileBasename = decodeURIComponent(result.filename).toLowerCase();
             const paths = [
               item.original_image_path,
@@ -68,7 +69,8 @@ export default function DetectionResult({ result }) {
               item.image_path,
               item.video_path
             ].map(p => p ? decodeURIComponent(p).toLowerCase() : '');
-            return paths.some(p => p.includes(fileBasename) || fileBasename.includes(p));
+            return (jobId && paths.some(p => p.includes(jobId))) || 
+                   paths.some(p => p.includes(fileBasename) || fileBasename.includes(p));
           });
           setEvidenceList(matched);
         }
@@ -215,13 +217,13 @@ export default function DetectionResult({ result }) {
 
   // Derive skipped modules dynamically for explainability
   const labels = (result.objects || []).map(o => (o.label || '').toLowerCase());
-  const hasMotorcycle = labels.includes('motorcycle');
-  const hasCar = labels.includes('car');
-  const hasTruck = labels.includes('truck');
-  const hasBus = labels.includes('bus');
-  const hasCarTruckBus = hasCar || hasTruck || hasBus || labels.includes('vehicle');
-  const hasTrafficLight = labels.some(l => ['traffic light', 'traffic signal'].includes(l));
-  const hasPlate = labels.some(l => ['plate', 'license plate', 'number plate'].includes(l));
+  const hasMotorcycle = labels.some(l => l.includes('motorcycle') || l.includes('scooter') || l.includes('bike') || l.includes('bicycle'));
+  const hasCar = labels.some(l => l.includes('car'));
+  const hasTruck = labels.some(l => l.includes('truck'));
+  const hasBus = labels.some(l => l.includes('bus'));
+  const hasCarTruckBus = hasCar || hasTruck || hasBus || labels.some(l => l.includes('vehicle'));
+  const hasTrafficLight = labels.some(l => l.includes('traffic light') || l.includes('traffic signal'));
+  const hasPlate = labels.some(l => l.includes('plate') || l.includes('license plate') || l.includes('number plate'));
 
   const getModuleStats = (moduleName, isActive) => {
     let matches = [];

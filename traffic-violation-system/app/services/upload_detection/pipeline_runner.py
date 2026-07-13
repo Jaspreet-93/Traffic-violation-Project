@@ -18,11 +18,11 @@ class PipelineRunner:
         Validates whether the camera angle, distance, resolution, vehicle type, and lighting
         are suitable for seat belt detection.
         """
-        if cls_name != "car":
-            return False, "Not a passenger car"
+        if cls_name not in {"car", "bus", "truck"}:
+            return False, "Not a suitable passenger vehicle"
 
         h, w, _ = crop.shape
-        if w < 180 or h < 180:
+        if w < 100 or h < 100:
             return False, "Insufficient view (Far distance / Low resolution)"
 
         aspect_ratio = w / h

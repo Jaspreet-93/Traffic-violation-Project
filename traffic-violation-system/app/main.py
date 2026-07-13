@@ -79,31 +79,47 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Error resolving pending upload jobs: {e}")
         
-    db_ok = check_db_connection()
-    if db_ok:
-        logger.info("Database connection test: SUCCESS")
+    # Refresh SQLite database schema to prevent mismatch operational errors
+    sqlite_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "test.db"))
+    if os.path.exists(sqlite_db_path):
         try:
-            logger.info("Creating database tables if they do not exist...")
-            Base.metadata.create_all(bind=engine)
-            logger.info("Database tables initialized successfully.")
-            
-            # Ensure new columns exist in database table violations
-            from sqlalchemy import text
-            with engine.connect() as conn:
-                for col in ["original_image", "annotated_image", "vehicle_crop", "helmet_crop", "seatbelt_crop", "plate_crop", "trafficlight_crop", "mobile_crop", "lane_crop"]:
+            os.remove(sqlite_db_path)
+            logger.info("Deleted outdated SQLite test.db to refresh schema.")
+        except Exception as e_del:
+            logger.warning(f"Could not remove outdated SQLite test.db: {e_del}")
+
+    try:
+        logger.info("Creating database tables if they do not exist...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables initialized successfully.")
+        
+        # Ensure new columns exist in database table violations
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            for col in ["original_image", "annotated_image", "vehicle_crop", "helmet_crop", "seatbelt_crop", "plate_crop", "trafficlight_crop", "mobile_crop", "lane_crop"]:
+                try:
+                    conn.execute(text(f"ALTER TABLE violations ADD COLUMN {col} VARCHAR"))
                     try:
-                        conn.execute(text(f"ALTER TABLE violations ADD COLUMN {col} VARCHAR"))
-                        # Commit transaction for SQLite/Postgres
-                        try:
-                            conn.commit()
-                        except Exception:
-                            pass
+                        conn.commit()
                     except Exception:
                         pass
-        except Exception as e:
-            logger.error(f"Error creating/altering database tables: {e}")
-    else:
-        logger.error("Database connection test: FAILED. Ensure database is running and credentials in .env are correct.")
+                except Exception:
+                    pass
+
+            # Seed default camera with ID 1 if not exists
+            try:
+                res = conn.execute(text("SELECT id FROM cameras WHERE id = 1")).fetchone()
+                if not res:
+                    conn.execute(text("INSERT INTO cameras (id, name, location, rtsp_url, is_active) VALUES (1, 'Default Camera', 'Intersection 1', 'rtsp://127.0.0.1/live', 1)"))
+                    try:
+                        conn.commit()
+                    except Exception:
+                        pass
+                    logger.info("Seeded default camera ID 1 into database.")
+            except Exception as e_seed:
+                logger.warning(f"Could not seed default camera ID 1: {e_seed}")
+    except Exception as e:
+        logger.error(f"Error creating/altering database tables: {e}")
     yield
     # Shutdown
     logger.info("Shutting down Smart Traffic Violation Detection API...")

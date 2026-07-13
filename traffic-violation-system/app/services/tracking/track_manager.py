@@ -61,16 +61,8 @@ class TrackManager:
             cy = int((y1 + y2) / 2)
             timestamp = self.get_timestamp()
 
-            # Crop vehicle frame
-            crop = frame[y1:y2, x1:x2]
-            crop_path = None
-            if crop.size > 0:
-                storage_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "storage", "vehicle"))
-                os.makedirs(storage_dir, exist_ok=True)
-                crop_filename = f"vehicle_crop_track_{track_id}.jpg"
-                crop_path_full = os.path.join(storage_dir, crop_filename)
-                cv2.imwrite(crop_path_full, crop)
-                crop_path = f"/storage/vehicle/{crop_filename}"
+            # Crop vehicle frame path registration (lazy write on confirmed violation)
+            crop_path = f"/storage/vehicle/vehicle_crop_track_{track_id}.jpg"
 
             if track_id not in self.tracks:
                 # Initialize new track record

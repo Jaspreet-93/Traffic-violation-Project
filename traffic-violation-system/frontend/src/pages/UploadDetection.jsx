@@ -17,6 +17,7 @@ export default function UploadDetection() {
     viewedResult, setViewedResult,
     processing,
     loading,
+    jobStatus,
     uploadAndAnalyze,
     clearUploadState
   } = useUpload();
@@ -110,7 +111,7 @@ export default function UploadDetection() {
           )}
 
           {/* Progress bar */}
-          {processing && <ProgressCard progress={progress} />}
+          {processing && <ProgressCard progress={progress} jobStatus={jobStatus} />}
 
           {/* Results Canvas */}
           {viewedResult && <DetectionResult result={viewedResult} />}

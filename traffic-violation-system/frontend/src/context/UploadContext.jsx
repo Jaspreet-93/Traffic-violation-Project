@@ -19,6 +19,7 @@ export function UploadProvider({ children }) {
     return p === 'true';
   });
   const [loading, setLoading] = useState(false);
+  const [jobStatus, setJobStatus] = useState(null);
   const [viewedResult, setViewedResult] = useState(() => {
     const vr = localStorage.getItem('upload_viewed_result');
     return vr ? JSON.parse(vr) : null;
@@ -60,6 +61,7 @@ export function UploadProvider({ children }) {
     const interval = setInterval(async () => {
       try {
         const res = await uploadDetectionAPI.getStatus(jobId);
+        setJobStatus(res.data);
         setProgress(res.data.progress);
         if (res.data.status === 'Completed') {
           setStatus('Completed');
@@ -140,6 +142,7 @@ export function UploadProvider({ children }) {
       viewedResult, setViewedResult,
       processing, setProcessing,
       loading, setLoading,
+      jobStatus, setJobStatus,
       uploadAndAnalyze,
       clearUploadState
     }}>

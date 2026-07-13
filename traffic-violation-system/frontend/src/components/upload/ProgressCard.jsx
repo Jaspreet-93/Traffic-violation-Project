@@ -1,21 +1,29 @@
 import React from 'react';
-import { Loader2, CheckCircle2, Circle, Cpu, Radio, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle2, Circle } from 'lucide-react';
 
-export default function ProgressCard({ progress }) {
-  // Define pipeline steps based on progress percentage
-  const getStepStatus = (stepMin, stepMax) => {
-    if (progress >= stepMax) return 'completed';
-    if (progress > stepMin && progress < stepMax) return 'active';
+export default function ProgressCard({ progress, jobStatus }) {
+  const metrics = jobStatus?.metrics || {};
+
+  const stages = [
+    "Uploading",
+    "Frame Extraction",
+    "YOLO Detection",
+    "Vehicle Tracking",
+    "Violation Detection",
+    "OCR",
+    "Evidence Saving",
+    "Database Update",
+    "Completed"
+  ];
+
+  const currentStage = metrics.stage || (progress < 10 ? "Uploading" : "YOLO Detection");
+  const currentIdx = stages.indexOf(currentStage);
+
+  const getStepStatus = (stageName, idx) => {
+    if (jobStatus?.status === 'Completed' || idx < currentIdx) return 'completed';
+    if (idx === currentIdx && jobStatus?.status !== 'Completed') return 'active';
     return 'pending';
   };
-
-  const steps = [
-    { label: "Uploading Media File", min: 0, max: 10 },
-    { label: "Initializing Video Frame Capture", min: 10, max: 25 },
-    { label: "Running YOLOv8 Object Detection", min: 25, max: 60 },
-    { label: "Tracking Vehicle Trajectories (ByteTrack)", min: 60, max: 85 },
-    { label: "License Plate OCR & Integrity Lock", min: 85, max: 100 },
-  ];
 
   return (
     <div className="relative bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 shadow-2xl space-y-6 overflow-hidden">
@@ -29,7 +37,7 @@ export default function ProgressCard({ progress }) {
           <p className="text-[10px] text-slate-400">Footage is being processed frame-by-frame by YOLOv8 classifiers.</p>
         </div>
         <div className="flex items-center space-x-2 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full">
-          <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />
+          {jobStatus?.status !== 'Completed' && <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />}
           <span className="text-[10px] text-purple-300 font-bold tracking-wider">{progress.toFixed(0)}%</span>
         </div>
       </div>
@@ -45,13 +53,13 @@ export default function ProgressCard({ progress }) {
       {/* Pipeline Steps Checklist */}
       <div className="space-y-3 pt-2">
         <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Pipeline Stages</span>
-        <div className="space-y-2.5">
-          {steps.map((step, idx) => {
-            const status = getStepStatus(step.min, step.max);
+        <div className="space-y-2">
+          {stages.map((stageName, idx) => {
+            const status = getStepStatus(stageName, idx);
             return (
               <div 
                 key={idx} 
-                className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+                className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
                   status === 'active' 
                     ? 'bg-purple-500/5 border-purple-500/20 text-slate-200 shadow-sm'
                     : status === 'completed'
@@ -67,7 +75,7 @@ export default function ProgressCard({ progress }) {
                   ) : (
                     <Circle className="w-4 h-4 text-slate-700 shrink-0" />
                   )}
-                  <span className={status === 'active' ? 'text-purple-300' : ''}>{step.label}</span>
+                  <span className={status === 'active' ? 'text-purple-300 font-bold' : ''}>{stageName}</span>
                 </div>
                 <div className="text-[9px] font-mono tracking-wider uppercase">
                   {status === 'completed' && <span className="text-emerald-500 font-bold">Done</span>}
@@ -81,18 +89,57 @@ export default function ProgressCard({ progress }) {
       </div>
 
       {/* Live Telemetry Panel */}
-      <div className="grid grid-cols-3 gap-2 bg-slate-950/40 border border-slate-850/40 rounded-xl p-3 text-[10px] font-mono">
-        <div className="space-y-0.5 text-center border-r border-slate-850/60">
-          <div className="text-slate-500">SPEED</div>
-          <div className="text-sky-400 font-bold">35.4 FPS</div>
+      <div className="space-y-3">
+        <span className="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Live Telemetry Metrics</span>
+        <div className="grid grid-cols-3 gap-2 bg-slate-950/40 border border-slate-850/40 rounded-xl p-3 text-[10px] font-mono">
+          <div className="space-y-0.5 text-center border-r border-slate-850/60">
+            <div className="text-slate-500">SPEED</div>
+            <div className="text-sky-400 font-bold">{metrics.current_fps || metrics.average_fps || 0} FPS</div>
+          </div>
+          <div className="space-y-0.5 text-center border-r border-slate-850/60">
+            <div className="text-slate-500">FRAME</div>
+            <div className="text-purple-400 font-bold">#{metrics.current_frame || 0} / {metrics.total_frames || 0}</div>
+          </div>
+          <div className="space-y-0.5 text-center">
+            <div className="text-slate-500">HARDWARE</div>
+            <div className="text-emerald-400 font-bold">{metrics.hardware || "CPU Core"}</div>
+          </div>
         </div>
-        <div className="space-y-0.5 text-center border-r border-slate-850/60">
-          <div className="text-slate-500">FRAME</div>
-          <div className="text-purple-400 font-bold">#{Math.min(96, Math.floor(progress * 1.8))} / 96</div>
-        </div>
-        <div className="space-y-0.5 text-center">
-          <div className="text-slate-500">HARDWARE</div>
-          <div className="text-emerald-400 font-bold">CPU Core</div>
+
+        {/* Detailed performance latency matrix */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-955/20 border border-slate-900/30 rounded-xl p-3 text-[9px] font-mono text-slate-400">
+          <div className="flex justify-between border-b border-slate-900/40 pb-1">
+            <span>Inference:</span>
+            <span className="text-slate-200 font-bold">{metrics.detection_latency || 0} ms</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-900/40 pb-1">
+            <span>Tracking:</span>
+            <span className="text-slate-200 font-bold">{metrics.tracking_latency || 0} ms</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-900/40 pb-1">
+            <span>OCR Latency:</span>
+            <span className="text-slate-200 font-bold">{metrics.ocr_latency || 0} ms</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-900/40 pb-1">
+            <span>Evidence:</span>
+            <span className="text-slate-200 font-bold">{metrics.evidence_latency || 0} ms</span>
+          </div>
+          <div className="flex justify-between">
+            <span>CPU Usage:</span>
+            <span className="text-slate-200 font-bold">{metrics.cpu_usage || 0}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Memory:</span>
+            <span className="text-slate-200 font-bold">{metrics.memory_usage || 0}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Avg Frame:</span>
+            <span className="text-slate-200 font-bold">{metrics.average_frame_time || 0} ms</span>
+          </div>
+          <div className="flex justify-between text-purple-400">
+            <span>ETA Rem:</span>
+            <span className="font-bold">{metrics.eta_remaining || 0}s</span>
+          </div>
         </div>
       </div>
     </div>

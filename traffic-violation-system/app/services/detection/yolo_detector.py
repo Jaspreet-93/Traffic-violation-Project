@@ -111,7 +111,7 @@ class YoloDetector:
         try:
             results = self.model.track(
                 frame,
-                conf=0.65,
+                conf=0.45,
                 iou=0.55,
                 half=half,
                 imgsz=640,
@@ -124,7 +124,7 @@ class YoloDetector:
             logger.warning(f"Tracker error: {e}, falling back to predict")
             results = self.model(
                 frame,
-                conf=0.65,
+                conf=0.45,
                 iou=0.55,
                 half=half,
                 imgsz=640,
@@ -186,10 +186,10 @@ class YoloDetector:
             if crop.size == 0:
                 continue
 
-            # Ignore blurry detections
+            # Ignore extremely blurry/empty detections (safety check)
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             blur_val = cv2.Laplacian(gray, cv2.CV_64F).var()
-            if blur_val < 60:
+            if blur_val < 10:
                 continue
 
             # Ignore duplicates (IoU > 0.55 NMS)

@@ -1,10 +1,33 @@
 from typing import List, Dict, Any, Optional
 import numpy as np
 from datetime import datetime, timezone
+import os
+import json
 from app.database.connection import SessionLocal
 from app.database.models.violation import Violation
 from app.services.violation.violation_engine import violation_decision_engine
 from app.core.logger import logger
+
+DELETED_VIOLATIONS_FILE = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "uploads", "deleted_violations.json"
+))
+
+def load_deleted_violations() -> set:
+    if os.path.exists(DELETED_VIOLATIONS_FILE):
+        try:
+            with open(DELETED_VIOLATIONS_FILE, "r") as f:
+                return set(json.load(f))
+        except Exception:
+            return set()
+    return set()
+
+def save_deleted_violations(deleted_set: set):
+    try:
+        os.makedirs(os.path.dirname(DELETED_VIOLATIONS_FILE), exist_ok=True)
+        with open(DELETED_VIOLATIONS_FILE, "w") as f:
+            json.dump(list(deleted_set), f)
+    except Exception:
+        pass
 
 class ViolationService:
     def __init__(self):
@@ -203,6 +226,9 @@ class ViolationService:
                     evidence_path=item.get("evidence_path")
                 )
 
+        deleted_set = load_deleted_violations()
+        merged = {k: v for k, v in merged.items() if int(k) not in deleted_set}
+
         if not merged:
             default_items = [
                 {
@@ -234,6 +260,7 @@ class ViolationService:
                     "status": "processed"
                 }
             ]
+            default_items = [item for item in default_items if item["id"] not in deleted_set]
             return default_items
 
         return list(merged.values())
@@ -406,6 +433,11 @@ class ViolationService:
         """
         self.recorded_violations = [v for v in self.recorded_violations if v.get("id") != violation_id]
         
+        # Save to persistent deleted list first
+        deleted_set = load_deleted_violations()
+        deleted_set.add(violation_id)
+        save_deleted_violations(deleted_set)
+
         db = SessionLocal()
         try:
             r = db.query(Violation).filter(Violation.id == violation_id).first()

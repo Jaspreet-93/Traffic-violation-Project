@@ -952,6 +952,11 @@ class EvidenceService:
         """
         Purges an evidence record by ID.
         """
+        # Purge from fallback cache first so it persists across refreshes
+        for item in list(fallback_evidence_cache):
+            if item.get("evidence_id") == evidence_id:
+                fallback_evidence_cache.remove(item)
+
         db = SessionLocal()
         try:
             r = db.query(Evidence).filter(Evidence.id == evidence_id).first()

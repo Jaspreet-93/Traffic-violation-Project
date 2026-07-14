@@ -235,7 +235,7 @@ class VideoDetector:
 
         gpu_available = torch.cuda.is_available()
         if not gpu_available:
-            base_step = base_step + 2
+            base_step = 10
             torch.set_num_threads(4)
 
         base_step = max(1, min(base_step, total_frames // 2))

@@ -36,6 +36,7 @@ class HelmetModel:
         import torch
         device = 0 if torch.cuda.is_available() else "cpu"
         half = torch.cuda.is_available()
-        return self.model(frame, verbose=False, device=device, half=half, imgsz=640)
+        imgsz = 640 if device != "cpu" else 224
+        return self.model(frame, verbose=False, device=device, half=half, imgsz=imgsz)
 
 helmet_model = HelmetModel()

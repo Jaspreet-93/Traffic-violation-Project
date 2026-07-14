@@ -35,11 +35,16 @@ export default function EvidenceCard({ item, onSelect, onDelete, selected, onTog
         <div className="space-y-1">
           <div className="flex justify-between items-center">
             <h4 className="text-xs font-bold text-slate-200 capitalize">{item.violation}</h4>
-            <span className="text-[10px] text-slate-500 font-mono">Veh: {item.vehicle_id}</span>
+            <span className="text-[10px] text-purple-405 font-mono font-extrabold tracking-wide uppercase bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+              {item.plate_number || 'PB10AB1234'}
+            </span>
           </div>
-          <div className="text-[10px] text-slate-500 flex items-center space-x-1.5 font-mono">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{item.timestamp}</span>
+          <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+            <span className="flex items-center space-x-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-600" />
+              <span>{item.timestamp}</span>
+            </span>
+            <span>Veh: #{item.vehicle_id}</span>
           </div>
         </div>
 

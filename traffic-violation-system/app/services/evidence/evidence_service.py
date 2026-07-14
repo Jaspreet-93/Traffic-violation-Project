@@ -208,8 +208,10 @@ class EvidenceService:
             err_msg = f"Evidence Integrity Check FAILED. Missing files. Image valid: {has_valid_image}, Video valid: {has_valid_video}. Paths: original_image={original_image_path}, annotated_image={annotated_image_path}, original_video={original_video_path}, annotated_video={annotated_video_path}"
             logger.error(err_msg)
             if camera_id == "Upload-Center" and prefix:
-                from app.services.upload_detection.upload_service import UploadService
-                UploadService.record_processing_error(prefix, os.path.basename(original_video_path or original_image_path or "unknown"), err_msg)
+                from app.services.upload_detection.video_detector import jobs_registry
+                if prefix in jobs_registry:
+                    jobs_registry[prefix]["status"] = "Failed"
+                    jobs_registry[prefix]["error_message"] = err_msg
             raise ValueError(err_msg)
 
         db = SessionLocal()

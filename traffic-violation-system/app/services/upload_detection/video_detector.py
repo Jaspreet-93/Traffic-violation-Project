@@ -516,17 +516,27 @@ class VideoDetector:
                             bx = best_entry["box"]
                             bx1, by1, bx2, by2 = bx
                             
-                            # Save crops to disk
-                            evidence_dir = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "evidence"))
-                            os.makedirs(evidence_dir, exist_ok=True)
+                            # Define storage dirs
+                            storage_root = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "..", "storage"))
+                            v_dir = os.path.join(storage_root, "vehicle")
+                            p_dir = os.path.join(storage_root, "plate")
+                            h_dir = os.path.join(storage_root, "helmet")
+                            s_dir = os.path.join(storage_root, "seatbelt")
+                            os.makedirs(v_dir, exist_ok=True)
+                            os.makedirs(p_dir, exist_ok=True)
+                            os.makedirs(h_dir, exist_ok=True)
+                            os.makedirs(s_dir, exist_ok=True)
                             
-                            v_crop_path = os.path.join(evidence_dir, f"vehicle_crop_{job_id}_v{t_id}.jpg")
-                            p_crop_path = os.path.join(evidence_dir, f"plate_crop_{job_id}_v{t_id}.jpg")
+                            v_crop_path = os.path.join(v_dir, f"vehicle_crop_{job_id}_v{t_id}.jpg")
+                            p_crop_path = os.path.join(p_dir, f"plate_crop_{job_id}_v{t_id}.jpg")
+                            h_crop_path = os.path.join(h_dir, f"helmet_crop_{job_id}_v{t_id}.jpg")
+                            s_crop_path = os.path.join(s_dir, f"seatbelt_crop_{job_id}_v{t_id}.jpg")
                             
+                            # Save vehicle crop
                             cv2.imwrite(v_crop_path, best_entry["vehicle_crop"])
-                            if best_entry["plate_crop"] is not None and best_entry["plate_crop"].size > 0:
-                                cv2.imwrite(p_crop_path, best_entry["plate_crop"])
-                            elif plate_box:
+                            
+                            # Save plate crop
+                            if plate_box:
                                 px1, py1, px2, py2 = plate_box
                                 p_crop = best_entry["frame_copy"][py1:py2, px1:px2]
                                 if p_crop.size > 0:
@@ -535,6 +545,13 @@ class VideoDetector:
                                     cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
                             else:
                                 cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
+                                
+                            # Save violation crops (helmet / seatbelt)
+                            if violation_detected == "no helmet":
+                                cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
+                            else:
+                                cv2.imwrite(s_crop_path, best_entry["vehicle_crop"])
+                                cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
                             
                             # Save snap frames
                             orig_snap_name = f"snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"

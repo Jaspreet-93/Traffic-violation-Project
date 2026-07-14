@@ -54,6 +54,9 @@ class ReplayService:
             target = replays[0]
 
         filename = target['filename']
+        import os
+        uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
+        
         if filename.startswith("processed_"):
             fn = filename.replace('processed_', '', 1)
             processed_url = f"/uploads/annotated/{filename}"
@@ -61,6 +64,11 @@ class ReplayService:
         else:
             processed_url = f"/uploads/annotated/processed_{filename}"
             original_url = f"/uploads/original/{filename}"
+
+        # If processed video is missing, fallback to original URL to avoid black screen
+        check_path = os.path.join(uploads_dir, "annotated", filename if filename.startswith("processed_") else f"processed_{filename}")
+        if not os.path.exists(check_path):
+            processed_url = original_url
 
         return {
             "violation_id": violation_id,

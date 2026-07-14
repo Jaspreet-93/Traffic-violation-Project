@@ -91,7 +91,8 @@ export default function ReplayCenter() {
         {/* Left (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           <ReplayPlayer
-            videoUrl={info?.processed_video_url}
+            processedVideoUrl={info?.processed_video_url}
+            originalVideoUrl={info?.original_video_url}
             speed={speed}
             isPlaying={isPlaying}
             progress={progress}

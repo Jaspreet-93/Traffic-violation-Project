@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Video, ShieldAlert, Play, Pause, Square, SkipBack, SkipForward } from 'lucide-react';
 
 export default function ReplayPlayer({
-  videoUrl,
+  processedVideoUrl,
+  originalVideoUrl,
   speed = 1.0,
   isPlaying = false,
   progress = 0.0,
@@ -28,7 +29,7 @@ export default function ReplayPlayer({
     } else {
       videoRef.current.pause();
     }
-  }, [speed, isPlaying, videoUrl]);
+  }, [speed, isPlaying, useProcessed, processedVideoUrl, originalVideoUrl]);
 
   const isAutoSlowedRef = useRef(false);
 
@@ -124,7 +125,7 @@ export default function ReplayPlayer({
       <div className="relative rounded-lg overflow-hidden border border-slate-850 bg-slate-955 flex items-center justify-center min-h-[300px]">
         <video
           ref={videoRef}
-          src={videoUrl}
+          src={useProcessed ? processedVideoUrl : originalVideoUrl}
           onTimeUpdate={handleTimeUpdate}
           className="w-full object-contain max-h-[400px]"
         />

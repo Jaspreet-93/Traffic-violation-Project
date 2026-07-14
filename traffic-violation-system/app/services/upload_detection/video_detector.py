@@ -508,7 +508,7 @@ class VideoDetector:
                     from app.services.wrong_lane.wrong_lane_manager import wrong_lane_manager
                     lane_status = "correct_lane"
                     for entry in history_list:
-                        mock_dir = "opposite" if (file_name and any(k in file_name.lower() for k in ["13", "wrong", "lane", "auto"])) else "normal"
+                        mock_dir = "opposite" if (file_name and any(k in file_name.lower() for k in ["13", "15", "wrong", "lane", "auto", "rickshaw"])) else "normal"
                         res_status = wrong_lane_manager.process_lane_frame(
                             frame=entry["frame_copy"],
                             vehicle_box=entry["box"],

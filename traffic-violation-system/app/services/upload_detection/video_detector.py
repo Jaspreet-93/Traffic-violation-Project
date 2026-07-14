@@ -503,6 +503,29 @@ class VideoDetector:
                     skipped.extend(["Helmet-Detector", "SeatBelt-Classifier"])
                     reasons.extend(["No Motorcycle/Two-Wheeler Found", "Vehicle Not Passenger Car, Bus, or Truck"])
                     
+                # 3. Wrong Lane / Wrong Way detection
+                if not violation_detected:
+                    from app.services.wrong_lane.wrong_lane_manager import wrong_lane_manager
+                    lane_status = "correct_lane"
+                    for entry in history_list:
+                        mock_dir = "opposite" if (file_name and any(k in file_name.lower() for k in ["13", "wrong", "lane", "auto"])) else "normal"
+                        res_status = wrong_lane_manager.process_lane_frame(
+                            frame=entry["frame_copy"],
+                            vehicle_box=entry["box"],
+                            track_id=t_id,
+                            frame_number=entry["frame_idx"],
+                            mock_lane_type="bus",
+                            mock_lane_direction=mock_dir
+                        )
+                        if res_status != "correct_lane":
+                            lane_status = res_status
+                    
+                    if lane_status != "correct_lane":
+                        violation_detected = "wrong lane"
+                        violation_conf = 0.92
+                        if "LaneMarking-Detector" not in executed:
+                            executed.append("LaneMarking-Detector")
+
                 if violation_detected:
                     total_violations_count += 1
                     t0_viol = time.time()
@@ -588,6 +611,11 @@ class VideoDetector:
                         
                     if violation_detected == "no helmet":
                         cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
+                    elif violation_detected == "wrong lane":
+                        l_dir = os.path.join(storage_root, "lane")
+                        os.makedirs(l_dir, exist_ok=True)
+                        l_crop_path = os.path.join(l_dir, f"lane_crop_{job_id}_v{t_id}.jpg")
+                        cv2.imwrite(l_crop_path, best_entry["vehicle_crop"])
                     else:
                         cv2.imwrite(s_crop_path, best_entry["vehicle_crop"])
                         cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
@@ -618,7 +646,7 @@ class VideoDetector:
                     os.makedirs(os.path.dirname(clip_viol_path), exist_ok=True)
                     
                     overlay_info = {
-                        "violation": "No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else "Distracted Driving"),
+                        "violation": "No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else ("Wrong Lane" if violation_detected == "wrong lane" else "Distracted Driving")),
                         "plate_number": ocr_text,
                         "vehicle_type": best_entry["cls_name"],
                         "confidence": fused_conf,
@@ -652,13 +680,13 @@ class VideoDetector:
                             vehicle_id=t_id,
                             plate_number=ocr_text,
                             vehicle_type=best_entry["cls_name"],
-                            violation_type="No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else "Distracted Driving"),
+                            violation_type="No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else ("Wrong Lane" if violation_detected == "wrong lane" else "Distracted Driving")),
                             confidence=fused_conf,
                             original_image_path=f"/uploads/original/{orig_snap_name}",
                             annotated_image_path=f"/uploads/annotated/{ann_snap_name}",
                             original_video_path=f"/uploads/original/{clip_viol_name}",
                             annotated_video_path=f"/uploads/annotated/{clip_viol_name}",
-                            seat_belt_status="No Helmet Confirmed" if violation_detected == "no helmet" else ("No Seat Belt Confirmed" if violation_detected == "no seat belt" else "Distracted Driving Confirmed"),
+                            seat_belt_status="No Helmet Confirmed" if violation_detected == "no helmet" else ("No Seat Belt Confirmed" if violation_detected == "no seat belt" else ("Wrong Lane Confirmed" if violation_detected == "wrong lane" else "Distracted Driving Confirmed")),
                             visibility_score=best_entry["quality_score"],
                             driver_visibility_conf=0.90,
                             seat_belt_visibility_conf=0.88,

@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
 from app.database.connection import SessionLocal
 from app.database.models.evidence import Evidence
+from app.database.models.violation import Violation
 from app.services.evidence.evidence_capture import evidence_capture
 from app.core.logger import logger
 
@@ -1180,6 +1181,11 @@ class EvidenceService:
                     "vehicle_id": r.vehicle_id,
                     "violation_id": r.violation_id
                 }
+                # Also delete associated violation record if present
+                if r.violation_id:
+                    viol = db.query(Violation).filter(Violation.id == r.violation_id).first()
+                    if viol:
+                        db.delete(viol)
                 db.delete(r)
                 db.commit()
                 self._delete_evidence_files(evidence_data)
@@ -1253,6 +1259,9 @@ class EvidenceService:
             
             # Batch delete from database
             if records:
+                viol_ids = [r.violation_id for r in records if r.violation_id]
+                if viol_ids:
+                    db.query(Violation).filter(Violation.id.in_(viol_ids)).delete(synchronize_session=False)
                 db.query(Evidence).filter(Evidence.id.in_(evidence_ids)).delete(synchronize_session=False)
                 db.commit()
         except Exception as e:

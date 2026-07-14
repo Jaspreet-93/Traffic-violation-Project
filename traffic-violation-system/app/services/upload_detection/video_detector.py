@@ -392,6 +392,7 @@ class VideoDetector:
         processed_tracks = 0
         total_tracks = len(vehicle_tracks_history)
         
+        from app.database.connection import SessionLocal
         db = SessionLocal()
         try:
             for t_id, history_list in vehicle_tracks_history.items():

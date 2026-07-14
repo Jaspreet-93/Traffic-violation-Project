@@ -740,6 +740,9 @@ class EvidenceService:
                             elif "phone" in lbl or "distracted" in lbl:
                                 violation_lbl = "Distracted Driving"
                                 break
+                            elif "lane" in lbl or "wrong" in lbl:
+                                violation_lbl = "Wrong Lane"
+                                break
                                 
                         combo = (veh_id, violation_lbl)
                         if combo in synced_combos:

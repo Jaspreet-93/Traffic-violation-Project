@@ -15,7 +15,8 @@ export default function DetectionSummary({ result }) {
           const data = await res.json();
           // Filter matching the result.filename basename
           const matched = data.filter(item => {
-            const fileBasename = decodeURIComponent(result.filename).toLowerCase();
+            const fileBasename = decodeURIComponent(result.filename || '').toLowerCase();
+            const jobId = (result.job_id || '').toLowerCase();
             const paths = [
               item.original_image_path,
               item.annotated_image_path,
@@ -24,7 +25,11 @@ export default function DetectionSummary({ result }) {
               item.image_path,
               item.video_path
             ].map(p => p ? decodeURIComponent(p).toLowerCase() : '');
-            return paths.some(p => p.includes(fileBasename) || fileBasename.includes(p));
+            return paths.some(p => 
+              (jobId && p.includes(jobId)) || 
+              (fileBasename && p.includes(fileBasename)) || 
+              (fileBasename && fileBasename.includes(p))
+            );
           });
           setEvidenceList(matched);
         }

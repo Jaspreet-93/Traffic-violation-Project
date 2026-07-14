@@ -299,12 +299,14 @@ class VideoDetector:
                     cls_id = det["class_id"]
                     cls_name = yolo_detector.vehicle_classes.get(cls_id, "car")
                     
-                    # Add to objects list for panel
-                    all_detections.append({
-                        "label": f"{cls_name} (ID: {t_id})",
-                        "bbox": [x1, y1, x2, y2],
-                        "confidence": conf
-                    })
+                    # Add to objects list for panel if not already present
+                    label_str = f"{cls_name} (ID: {t_id})"
+                    if not any(d["label"] == label_str for d in all_detections):
+                        all_detections.append({
+                            "label": label_str,
+                            "bbox": [x1, y1, x2, y2],
+                            "confidence": conf
+                        })
 
                     v_crop = prep_frame[y1:y2, x1:x2]
                     if v_crop.size == 0:
@@ -665,7 +667,7 @@ class VideoDetector:
             "original_media_url": f"/uploads/original/{file_name}",
             "annotated_media_url": f"/uploads/annotated/{out_name}",
             "thumbnail_url": f"/uploads/thumbnails/thumbnail_{os.path.splitext(file_name)[0]}.jpg",
-            "objects": all_detections[:50],
+            "objects": all_detections,
             "evidence": {
                 "violations_count": total_violations_count,
                 "vehicles_count": track_manager.total_vehicles_tracked,

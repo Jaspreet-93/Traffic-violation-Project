@@ -106,7 +106,7 @@ class YoloDetector:
         h, w, _ = frame.shape
         device = 0 if torch.cuda.is_available() else "cpu"
         half = torch.cuda.is_available()
-        imgsz = 640 if device != "cpu" else 320
+        imgsz = 640
 
         # Run tracking pipeline
         try:

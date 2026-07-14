@@ -496,6 +496,8 @@ class EvidenceService:
             # 1. Verify / recover original frame
             if not ImageValidator.validate_image(orig_path):
                 source_candidates = [
+                    os.path.join(uploads_dir, "original", orig_img_name),
+                    os.path.join(uploads_dir, "original", orig_img_name.replace("processed_", "")),
                     os.path.join(uploads_dir, orig_img_name),
                     os.path.join(uploads_dir, orig_img_name.replace("processed_", "")),
                     os.path.join(uploads_dir, f"snapshot_{job_id}.jpg"),
@@ -518,18 +520,20 @@ class EvidenceService:
             if not ImageValidator.validate_image(ann_path):
                 ann_img_rel = item.get("annotated_image_path") or ""
                 ann_img_name = os.path.basename(ann_img_rel) if ann_img_rel else ""
-                candidate_ann = os.path.join(uploads_dir, ann_img_name)
-                if ImageValidator.validate_image(candidate_ann):
-                    shutil.copy(candidate_ann, ann_path)
-                else:
+                
+                copied = False
+                for cand in [os.path.join(uploads_dir, "annotated", ann_img_name), os.path.join(uploads_dir, ann_img_name)]:
+                    if ImageValidator.validate_image(cand):
+                        shutil.copy(cand, ann_path)
+                        copied = True
+                        break
+                if not copied:
                     img_ann = cv2.imread(orig_path)
                     if img_ann is not None:
                         h, w, _ = img_ann.shape
                         cv2.rectangle(img_ann, (int(w*0.35), int(h*0.3)), (int(w*0.65), int(h*0.65)), (0, 0, 255), 3)
                         cv2.putText(img_ann, f"Violation: No Helmet (Conf: 96%)", (int(w*0.35), int(h*0.28)), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
                         cv2.imwrite(ann_path, img_ann)
-                        if candidate_ann:
-                            cv2.imwrite(candidate_ann, img_ann)
             
             img = cv2.imread(orig_path)
             if img is None:

@@ -693,8 +693,11 @@ class EvidenceService:
                     if not res:
                         continue
                         
-                    objects = res.get("objects", [])
                     evidence_data = res.get("evidence", {})
+                    if evidence_data.get("violations_count", 0) == 0:
+                        continue
+                        
+                    objects = res.get("objects", [])
                         
                     synced_combos = set()
                     for snap_file in snapshot_files:

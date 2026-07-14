@@ -186,11 +186,19 @@ class EvidenceService:
         def resolve_and_check(path_str):
             if not path_str:
                 return False
-            if os.path.isabs(path_str):
-                check_path = path_str
-            else:
-                clean_path = path_str.replace("uploads/", "").lstrip("/")
+            path_str_norm = path_str.replace("\\", "/").lstrip("/")
+            if path_str_norm.startswith("uploads/"):
+                clean_path = path_str_norm.replace("uploads/", "", 1)
                 check_path = os.path.join(uploads_dir, clean_path)
+            elif path_str_norm.startswith("outputs/"):
+                outputs_dir = os.path.abspath(os.path.join(uploads_dir, "..", "outputs"))
+                clean_path = path_str_norm.replace("outputs/", "", 1)
+                check_path = os.path.join(outputs_dir, clean_path)
+            else:
+                if os.path.isabs(path_str):
+                    check_path = path_str
+                else:
+                    check_path = os.path.join(uploads_dir, path_str_norm)
             return os.path.exists(check_path)
 
         has_valid_image = resolve_and_check(original_image_path) and resolve_and_check(annotated_image_path)

@@ -55,11 +55,12 @@ class ReplayService:
 
         filename = target['filename']
         if filename.startswith("processed_"):
-            processed_url = f"/uploads/{filename}"
-            original_url = f"/uploads/{filename.replace('processed_', '')}"
+            fn = filename.replace('processed_', '', 1)
+            processed_url = f"/uploads/annotated/{filename}"
+            original_url = f"/uploads/original/{fn}"
         else:
-            processed_url = f"/uploads/processed_{filename}"
-            original_url = f"/uploads/{filename}"
+            processed_url = f"/uploads/annotated/processed_{filename}"
+            original_url = f"/uploads/original/{filename}"
 
         return {
             "violation_id": violation_id,

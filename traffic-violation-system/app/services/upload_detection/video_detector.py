@@ -387,6 +387,38 @@ class VideoDetector:
             cap.release()
             out.release()
 
+        # Fallback for in-cabin driver cameras: if no vehicles were tracked in the entire video,
+        # treat the entire video frame as a virtual vehicle track (ID: 99, class: car)
+        if not vehicle_tracks_history and frame_idx > 0:
+            cap_fallback = cv2.VideoCapture(filepath)
+            if cap_fallback.isOpened():
+                step = max(1, frame_idx // 5)
+                virtual_history = []
+                for idx in range(0, frame_idx, step):
+                    cap_fallback.set(cv2.CAP_PROP_POS_FRAMES, idx)
+                    ret, f_fallback = cap_fallback.read()
+                    if ret and f_fallback is not None:
+                        prep_frame, is_valid, quality_score = cls._assess_and_preprocess_frame(f_fallback, characteristics)
+                        h, w, _ = prep_frame.shape
+                        virtual_history.append({
+                            "frame_idx": idx,
+                            "box": [0, 0, w, h],
+                            "cls_name": "car",
+                            "conf": 0.90,
+                            "frame_copy": prep_frame.copy(),
+                            "quality_score": quality_score
+                        })
+                cap_fallback.release()
+                if virtual_history:
+                    vehicle_tracks_history[99] = virtual_history
+                    label_str = "car (ID: 99)"
+                    if not any(d["label"] == label_str for d in all_detections):
+                        all_detections.append({
+                            "label": label_str,
+                            "bbox": [0, 0, w, h],
+                            "confidence": 0.90
+                        })
+
         # 3. Post-Processing Queue (Violation Classification, OCR, Evidence, and Database Writing)
         ocr_latencies = []
         evidence_latencies = []

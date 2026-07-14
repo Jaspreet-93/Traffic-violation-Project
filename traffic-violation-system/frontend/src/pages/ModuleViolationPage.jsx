@@ -259,6 +259,7 @@ function ModuleViolationContent({ moduleName }) {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const [viewerType, setViewerType] = useState("annotated");
 
   const handleZoomIn = () => setZoom(z => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom(z => Math.max(1, z - 0.25));
@@ -672,6 +673,27 @@ function ModuleViolationContent({ moduleName }) {
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Evidence Locker Viewer</h4>
               <p className="text-[10px] text-slate-500 font-semibold">Vehicle #{activeViolation.vehicle_id} | Plate {activeViolation.plate_number}</p>
             </div>
+            
+            {/* Real Image vs AI Processed Selector */}
+            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg select-none">
+              <button 
+                onClick={() => setViewerType("original")}
+                className={`px-3 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  viewerType === "original" ? "bg-purple-650 text-white" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Original Frame
+              </button>
+              <button 
+                onClick={() => setViewerType("annotated")}
+                className={`px-3 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  viewerType === "annotated" ? "bg-purple-650 text-white" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                AI Processed Overlay
+              </button>
+            </div>
+
             <button 
               onClick={() => { setIsViewerOpen(false); handleResetZoom(); }}
               className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:text-white transition-all cursor-pointer text-slate-400"
@@ -695,7 +717,11 @@ function ModuleViolationContent({ moduleName }) {
               }}
             >
               <img 
-                src={getMediaUrl(activeViolation.annotated_image_path, activeViolation.evidence_id)} 
+                src={getMediaUrl(
+                  viewerType === "original" ? activeViolation.original_image_path : activeViolation.annotated_image_path, 
+                  activeViolation.evidence_id,
+                  viewerType === "original"
+                )} 
                 alt="evidence-zoom" 
                 className="max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-900 pointer-events-none"
                 onError={(e) => { e.target.src = `${backendHost}/uploads/snapshot_mock.jpg`; }}

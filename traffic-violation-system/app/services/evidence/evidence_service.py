@@ -29,12 +29,29 @@ class FallbackEvidenceListProxy(list):
             unique_list = []
             seen = set()
             for item in raw_data:
-                import re
-                prefix = ""
+                # Self-heal path references to point to actual subfolders if pointing to root /uploads/
                 img_path = item.get("annotated_image_path", "") or item.get("image_path", "") or ""
+                import re
                 match = re.search(r'processed_snapshot_([a-f0-9\-]+)', img_path)
                 if match:
-                    prefix = match.group(1)
+                    job_id = match.group(1)
+                    if img_path.startswith("/uploads/processed_snapshot_") and not "_v" in img_path:
+                        ann_dir = os.path.join(os.path.dirname(PERSISTENT_FALLBACK_FILE), "annotated")
+                        if os.path.exists(ann_dir):
+                            actual_files = [f for f in os.listdir(ann_dir) if job_id in f and f.endswith(".jpg")]
+                            if actual_files:
+                                actual_files.sort()
+                                best_ann = actual_files[0]
+                                best_orig = best_ann.replace("processed_", "", 1)
+                                item["image_path"] = f"/uploads/annotated/{best_ann}"
+                                item["annotated_image_path"] = f"/uploads/annotated/{best_ann}"
+                                item["original_image_path"] = f"/uploads/original/{best_orig}"
+
+                prefix = ""
+                img_path_updated = item.get("annotated_image_path", "") or item.get("image_path", "") or ""
+                match_updated = re.search(r'processed_snapshot_([a-f0-9\-]+)', img_path_updated)
+                if match_updated:
+                    prefix = match_updated.group(1)
                 veh_id = item.get("vehicle_id")
                 violation = item.get("violation")
                 sig = (veh_id, violation, prefix)
@@ -676,9 +693,10 @@ class EvidenceService:
                             cached_items.append(item)
                             
                     uploads_dir = os.path.dirname(PERSISTENT_FALLBACK_FILE)
+                    annotated_dir = os.path.join(uploads_dir, "annotated")
                     snapshot_files = []
-                    if os.path.exists(uploads_dir):
-                        for f_name in os.listdir(uploads_dir):
+                    if os.path.exists(annotated_dir):
+                        for f_name in os.listdir(annotated_dir):
                             if job_id in f_name and f_name.startswith("processed_snapshot_") and f_name.endswith(".jpg"):
                                 snapshot_files.append(f_name)
                                 
@@ -739,8 +757,8 @@ class EvidenceService:
                             orig_vid = None
                             ann_vid = None
                         else:
-                            orig_img = f"/uploads/{clean_prefix(snap_file.replace('processed_', ''))}"
-                            ann_img = f"/uploads/{clean_prefix(snap_file)}"
+                            orig_img = f"/uploads/original/{clean_prefix(snap_file.replace('processed_', ''))}"
+                            ann_img = f"/uploads/annotated/{clean_prefix(snap_file)}"
                             
                             # Check if a custom video sub-clip exists for this snapshot (e.g. clip_orig_{job_id}_v*.mp4)
                             # If so, link to the clip! Otherwise default to the main file name

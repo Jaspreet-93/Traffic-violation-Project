@@ -1128,20 +1128,11 @@ class EvidenceService:
             
             veh_id = evidence_data.get("vehicle_id")
             if job_id and veh_id:
-                crop_patterns = [
-                    os.path.join(storage_dir, "*", f"*_crop_{job_id}_v{veh_id}.jpg"),
-                    os.path.join(storage_dir, "*", f"*_crop_{job_id}_v{veh_id}.*"),
-                    os.path.join(storage_dir, "*", f"*_{job_id}_v{veh_id}.*")
-                ]
-                for pattern in crop_patterns:
-                    paths_to_delete.extend(glob.glob(pattern))
-            
-            if job_id:
-                upload_patterns = [
-                    os.path.join(uploads_dir, f"*{job_id}*")
-                ]
-                for pattern in upload_patterns:
-                    paths_to_delete.extend(glob.glob(pattern))
+                for folder in ["vehicle", "plate", "helmet", "seatbelt"]:
+                    paths_to_delete.append(os.path.join(storage_dir, folder, f"vehicle_crop_{job_id}_v{veh_id}.jpg"))
+                    paths_to_delete.append(os.path.join(storage_dir, folder, f"plate_crop_{job_id}_v{veh_id}.jpg"))
+                    paths_to_delete.append(os.path.join(storage_dir, folder, f"helmet_crop_{job_id}_v{veh_id}.jpg"))
+                    paths_to_delete.append(os.path.join(storage_dir, folder, f"seatbelt_crop_{job_id}_v{veh_id}.jpg"))
 
             for filepath in set(paths_to_delete):
                 if os.path.exists(filepath) and os.path.isfile(filepath):

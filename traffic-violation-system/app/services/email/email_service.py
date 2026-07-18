@@ -89,6 +89,11 @@ class EmailService:
         if violation.snapshot_path:
             img_part = AttachmentService.create_attachment(violation.snapshot_path)
             if img_part:
+                img_part.add_header('Content-ID', '<evidence_image>')
+                try:
+                    img_part.replace_header('Content-Disposition', f'inline; filename="{os.path.basename(violation.snapshot_path)}"')
+                except KeyError:
+                    img_part.add_header('Content-Disposition', f'inline; filename="{os.path.basename(violation.snapshot_path)}"')
                 msg.attach(img_part)
                 
         # Attach video proof clip

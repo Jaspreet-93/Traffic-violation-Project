@@ -115,38 +115,13 @@ export default function Violations() {
   const currentItems = sorted.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
 
-  const handleExportCSV = async () => {
-    try {
-      // Fetch all records without page limit (e.g. limit=1000000) matching search & filter
-      const res = await violationAPI.getAll(1, 1000000, search, filterType);
-      const allRecords = res.data || [];
-      if (allRecords.length === 0) return;
-
-      const headers = ["Violation ID", "Vehicle ID", "Vehicle Type", "License Plate", "Violation Type", "Confidence", "Timestamp", "Camera ID", "Status"];
-      const rows = allRecords.map(item => [
-        item.id,
-        item.vehicle_id,
-        item.vehicle_type || 'car',
-        item.plate_number || 'N/A',
-        item.violation || 'N/A',
-        item.confidence ? `${(item.confidence * 100).toFixed(1)}%` : 'N/A',
-        item.timestamp || 'N/A',
-        item.camera_id || 'N/A',
-        item.status || 'Confirmed'
-      ]);
-
-      const csv = [headers, ...rows].map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `exported_violations_${new Date().toISOString().slice(0,10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Failed to export violations to CSV:", err);
-    }
+  const handleExportCSV = () => {
+    const link = document.createElement("a");
+    link.href = "/api/v1/evidence/export/csv";
+    link.download = `traffic_violations_report_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -159,15 +134,6 @@ export default function Violations() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Export CSV button */}
-          <button
-            onClick={handleExportCSV}
-            className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
-            title="Export all to CSV"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-
           {/* Refresh button */}
           <button
             onClick={fetchViolations}
@@ -175,6 +141,15 @@ export default function Violations() {
             title="Refresh logs"
           >
             <RefreshCw className="w-4 h-4" />
+          </button>
+
+          {/* Export CSV button */}
+          <button
+            onClick={handleExportCSV}
+            className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+            title="Export all to CSV"
+          >
+            <Download className="w-4 h-4" />
           </button>
 
           {/* Search bar */}

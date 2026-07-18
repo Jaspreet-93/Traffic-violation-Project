@@ -270,17 +270,8 @@ export default function EvidenceLocker() {
   const handleExportSelected = () => {
     if (selectedIds.length === 0) return;
     const selectedItems = items.filter(item => selectedIds.includes(item.evidence_id));
-    exportToCSV(selectedItems, `exported_evidence_${new Date().toISOString().slice(0,10)}.csv`);
-  };
-
-  const handleExportAll = () => {
-    if (items.length === 0) return;
-    exportToCSV(items, `all_evidence_${new Date().toISOString().slice(0,10)}.csv`);
-  };
-
-  const exportToCSV = (targetItems, filename) => {
     const headers = ["Evidence ID", "Violation ID", "Vehicle ID", "Plate Number", "Violation Type", "Timestamp", "Camera ID"];
-    const rows = targetItems.map(item => [
+    const rows = selectedItems.map(item => [
       item.evidence_id,
       item.violation_id,
       item.vehicle_id || 'N/A',
@@ -289,12 +280,21 @@ export default function EvidenceLocker() {
       item.timestamp || 'N/A',
       item.camera_id || 'N/A'
     ]);
-    const csv = [headers, ...rows].map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = filename;
+    link.download = `exported_evidence_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportAll = () => {
+    const link = document.createElement("a");
+    link.href = "/api/v1/evidence/export/csv";
+    link.download = `traffic_violations_report_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -417,14 +417,9 @@ export default function EvidenceLocker() {
           </button>
           <button
             onClick={handleExportAll}
-            disabled={items.length === 0}
-            className={`px-3 py-1.5 rounded font-semibold transition-all flex items-center space-x-1 border border-slate-850 cursor-pointer ${
-              items.length > 0 
-                ? 'bg-slate-955 hover:bg-slate-800 text-slate-350' 
-                : 'bg-slate-955 text-slate-655 border-slate-900 cursor-not-allowed'
-            }`}
+            className="px-3 py-1.5 rounded bg-purple-650 hover:bg-purple-700 text-white font-bold transition-all flex items-center space-x-1 cursor-pointer"
           >
-            <span>⬇ Export All</span>
+            <span>⬇ Export All to CSV</span>
           </button>
           <button
             onClick={() => { fetchEvidenceList(1); setSelectedIds([]); }}

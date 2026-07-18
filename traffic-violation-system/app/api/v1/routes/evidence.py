@@ -449,3 +449,45 @@ def download_annotated(id: int):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Annotated media file not found on disk.")
     return FileResponse(path, media_type="application/octet-stream", filename=os.path.basename(path))
+
+@router.get("/export/csv")
+def export_evidence_csv():
+    """
+    Exports all evidence/violation records as a CSV download.
+    """
+    import csv
+    from io import StringIO
+    from fastapi.responses import StreamingResponse
+
+    raw = evidence_service.get_all_evidence()
+    
+    f = StringIO()
+    writer = csv.writer(f)
+    
+    writer.writerow([
+        "Evidence ID", "Violation ID", "Vehicle ID", "Plate Number", 
+        "Violation Type", "Timestamp", "Camera ID", "Confidence Score", 
+        "Original Image Path", "Annotated Image Path", 
+        "Original Video Clip Path", "Annotated Video Clip Path"
+    ])
+    
+    for item in raw:
+        writer.writerow([
+            item.get("evidence_id"),
+            item.get("violation_id"),
+            item.get("vehicle_id"),
+            item.get("plate_number", "PB10AB1234"),
+            item.get("violation"),
+            item.get("timestamp"),
+            item.get("camera_id"),
+            item.get("confidence"),
+            item.get("original_image_path"),
+            item.get("annotated_image_path"),
+            item.get("original_video_path"),
+            item.get("annotated_video_path")
+        ])
+        
+    f.seek(0)
+    response = StreamingResponse(f, media_type="text/csv")
+    response.headers["Content-Disposition"] = "attachment; filename=traffic_violations_report.csv"
+    return response

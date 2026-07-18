@@ -7,6 +7,7 @@ import StorageSettings from '../components/settings/StorageSettings';
 import ThemeSettings from '../components/settings/ThemeSettings';
 import LanguageSettings from '../components/settings/LanguageSettings';
 import OfficerEmailManagement from '../components/settings/OfficerEmailManagement';
+import EmailSettings from '../components/settings/EmailSettings';
 import { Save, Mail, Server, Cpu, Video, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 
 export default function Settings() {
@@ -101,7 +102,7 @@ export default function Settings() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow space-y-1">
           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Active SMTP Host</span>
-          <span className="text-xs font-mono text-slate-200 block">{settings?.smtp_email || 'Not Configured'}</span>
+          <span className="text-xs font-mono text-slate-200 block">{settings?.smtp_user || 'Not Configured'}</span>
         </div>
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow space-y-1">
           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">AI Confidence limit</span>
@@ -151,6 +152,7 @@ export default function Settings() {
           {activeTab === 'smtp' && (
             <div className="grid grid-cols-1 gap-6">
               <SMTPSettings settings={settings} onChange={handleChange} />
+              <EmailSettings onStatusChange={loadData} />
             </div>
           )}
 

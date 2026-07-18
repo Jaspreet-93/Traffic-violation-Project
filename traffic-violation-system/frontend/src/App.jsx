@@ -5,6 +5,14 @@ import Sidebar from './components/common/Sidebar';
 import AppRoutes from './routes/AppRoutes';
 import { cameraAPI } from './services/api';
 
+// Immediately apply stored theme to avoid visual flash
+const storedTheme = localStorage.getItem('system_theme') || 'dark';
+if (storedTheme === 'light') {
+  document.documentElement.classList.add('light');
+} else {
+  document.documentElement.classList.remove('light');
+}
+
 export default function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';

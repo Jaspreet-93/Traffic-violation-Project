@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Radio, Upload, AlertOctagon, FileVideo, Settings, Cpu, Activity, Video, FileText, ShieldCheck, User, LogOut, X } from 'lucide-react';
 
@@ -58,7 +58,20 @@ const translations = {
 
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const lang = localStorage.getItem('system_language') || 'en';
+  const [lang, setLang] = useState(localStorage.getItem('system_language') || 'en');
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setLang(localStorage.getItem('system_language') || 'en');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('local-language-change', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('local-language-change', handleStorageChange);
+    };
+  }, []);
+
   const t = translations[lang] || translations.en;
 
   const menuItems = [

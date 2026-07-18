@@ -35,6 +35,20 @@ export default function Settings() {
       ...prev,
       [key]: val
     }));
+
+    if (key === 'theme') {
+      localStorage.setItem('system_theme', val);
+      if (val === 'light') {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+    }
+
+    if (key === 'language') {
+      localStorage.setItem('system_language', val);
+      window.dispatchEvent(new Event('local-language-change'));
+    }
   };
 
   const handleSave = async () => {

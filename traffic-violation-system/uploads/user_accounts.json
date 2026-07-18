@@ -1,11 +1,11 @@
 [
   {
-    "id": "d02110d7-e0c2-4a13-a030-3c40fdfee47d",
-    "full_name": "jaspreet",
+    "id": "aab5f4fe-5d99-49d5-be35-18761dfa2453",
+    "full_name": "Jaspreet Muskan",
     "email_address": "jaspreetmuskan93@gmail.com",
-    "phone_number": "Jaspreet",
-    "password_hash": "d3cec8307871b19d69537b60eb776a64d1071037583a2e1f3259efe32f93464b",
-    "created_at": "2026-07-08T19:53:17.236136+00:00",
-    "updated_at": "2026-07-08T19:53:17.236136+00:00"
+    "phone_number": "1234567890",
+    "password_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+    "created_at": "2026-07-13T22:25:41.224039+00:00",
+    "updated_at": "2026-07-13T22:25:41.224039+00:00"
   }
 ]

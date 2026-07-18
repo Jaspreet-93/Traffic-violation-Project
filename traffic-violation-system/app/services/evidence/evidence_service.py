@@ -393,6 +393,13 @@ class EvidenceService:
             except Exception as e_v:
                 logger.error(f"Failed to add violation cache entry: {e_v}")
                 
+            # Trigger background email alert automatically for the officer
+            try:
+                from app.services.email.notification_service import NotificationService
+                NotificationService.trigger_violation_notification(db_violation.id)
+            except Exception as alert_err:
+                logger.error(f"Failed to trigger email notification alert: {alert_err}")
+                
             logger.info(f"Successfully saved violation and evidence to DB: Violation ID {db_violation.id}, Evidence ID {db_evidence.id}")
             return result
         except Exception as e:

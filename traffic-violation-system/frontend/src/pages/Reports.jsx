@@ -36,6 +36,17 @@ export default function Reports() {
       setGenerating(true);
       setToast(null);
       const res = await reportsAPI.generate(data);
+      
+      const newReportId = res.data?.report?.id;
+      if (newReportId) {
+        const downloadLink = document.createElement("a");
+        downloadLink.href = `/api/v1/reports/${newReportId}`;
+        downloadLink.download = `${res.data.report.name}.${data.export_format === 'excel' ? 'xlsx' : data.export_format}`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+
       await loadData(currentPage);
       setToast({
         type: 'success',
@@ -73,6 +84,17 @@ export default function Reports() {
       setGenerating(true);
       setToast(null);
       const res = await reportsAPI.generate({ report_type: 'daily', export_format: format });
+
+      const newReportId = res.data?.report?.id;
+      if (newReportId) {
+        const downloadLink = document.createElement("a");
+        downloadLink.href = `/api/v1/reports/${newReportId}`;
+        downloadLink.download = `${res.data.report.name}.${format === 'excel' ? 'xlsx' : format}`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+
       await loadData(currentPage);
       setToast({
         type: 'success',

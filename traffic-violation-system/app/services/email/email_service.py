@@ -79,7 +79,7 @@ class EmailService:
         
         body_html = EmailTemplates.render_template("violation_alert.html", context)
         
-        msg = MIMEMultipart()
+        msg = MIMEMultipart("related")
         msg["Subject"] = subject
         msg["From"] = settings.get("smtp_email")
         msg["To"] = recipient

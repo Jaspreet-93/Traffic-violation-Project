@@ -2,7 +2,11 @@ import smtplib
 import os
 import json
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
 from app.core.logger import logger
+
+load_dotenv()
+
 
 SETTINGS_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "email_settings.json"))
 

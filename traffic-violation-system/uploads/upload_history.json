@@ -1,5 +1,23 @@
 [
   {
+    "job_id": "cbebfa37-8aa2-49eb-a045-5e56212a8435",
+    "upload_date": "2026-07-19 15:04:25",
+    "filename": "test_surveillance_c2f6525e.avi",
+    "file_type": "video",
+    "status": "Completed",
+    "summary_text": "Analyzed 1200 frames. Detected 12 vehicles and 2 violations.",
+    "result_link": "/api/v1/upload/result/cbebfa37-8aa2-49eb-a045-5e56212a8435"
+  },
+  {
+    "job_id": "4bd9103f-46fb-4772-86a5-82afc064c438",
+    "upload_date": "2026-07-19 15:04:25",
+    "filename": "snapshot_89ca9e3c.jpg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 0 violations in 3.19 seconds.",
+    "result_link": "/api/v1/upload/result/4bd9103f-46fb-4772-86a5-82afc064c438"
+  },
+  {
     "job_id": "6076263c-ebb8-4e71-997e-8c18a2ff50f4",
     "upload_date": "2026-07-15 01:41:02",
     "filename": "video  13_ed4f0559.mp4",

@@ -420,6 +420,53 @@ class VideoDetector:
                         })
 
         # 3. Post-Processing Queue (Violation Classification, OCR, Evidence, and Database Writing)
+        # Deduplicate vehicle_tracks_history to merge track ID splits
+        unique_tracks = {}
+        sorted_track_ids = sorted(vehicle_tracks_history.keys())
+
+        for t_id in sorted_track_ids:
+            history = vehicle_tracks_history[t_id]
+            if not history:
+                continue
+            
+            # Check if this track overlaps significantly in time and space with an already registered unique track
+            matched_parent_id = None
+            for u_id, u_history in unique_tracks.items():
+                if u_history[0]["cls_name"] != history[0]["cls_name"]:
+                    continue
+                    
+                u_frames = {h["frame_idx"] for h in u_history}
+                h_frames = {h["frame_idx"] for h in history}
+                
+                min_u, max_u = min(u_frames), max(u_frames)
+                min_h, max_h = min(h_frames), max(h_frames)
+                
+                time_close = not (max_h < min_u - 45 or min_h > max_u + 45)
+                if time_close:
+                    spatial_overlap = False
+                    for h_ent in history:
+                        for u_ent in u_history:
+                            if abs(h_ent["frame_idx"] - u_ent["frame_idx"]) <= 15:
+                                iou = cls.get_iou(h_ent["box"], u_ent["box"])
+                                if iou > 0.35:
+                                    spatial_overlap = True
+                                    break
+                        if spatial_overlap:
+                            break
+                    
+                    if spatial_overlap:
+                        matched_parent_id = u_id
+                        break
+                        
+            if matched_parent_id is not None:
+                unique_tracks[matched_parent_id].extend(history)
+                unique_tracks[matched_parent_id].sort(key=lambda e: e["frame_idx"])
+                logger.info(f"Deduplication: Merging track split ID {t_id} into parent track ID {matched_parent_id}")
+            else:
+                unique_tracks[t_id] = history
+
+        vehicle_tracks_history = unique_tracks
+
         ocr_latencies = []
         evidence_latencies = []
         processed_tracks = 0
@@ -542,18 +589,30 @@ class VideoDetector:
                     plate_box = None
                     p_conf = 0.0
                     ocr_text = "MH12DE1432"
+                    
+                    from app.services.ocr.ocr_engine import ocr_engine
                     if plate_record:
                         plate_box = plate_record["plate_bbox"]
                         p_conf = plate_record["confidence"]
                         
-                        import random
-                        seed_val = int(best_entry["box"][0] + best_entry["box"][1]) // 30 * 30
-                        rng = random.Random(seed_val)
-                        state = rng.choice(["MH", "DL", "HR", "KA", "UP", "GJ", "PB"])
-                        code = f"{rng.randint(1, 15):02d}"
-                        letters = "".join(rng.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(2))
-                        num = f"{rng.randint(1000, 9999):04d}"
-                        ocr_text = f"{state}{code}{letters}{num}"
+                        px1, py1, px2, py2 = plate_box
+                        h_f, w_f, _ = best_entry["frame_copy"].shape
+                        px1, py1 = max(0, px1), max(0, py1)
+                        px2, py2 = min(w_f, px2), min(h_f, py2)
+                        cropped_plate = best_entry["frame_copy"][py1:py2, px1:px2]
+                        
+                        if cropped_plate.size > 0:
+                            ocr_res = ocr_engine.extract_text(cropped_plate, t_id)
+                            ocr_text = ocr_res["plate_number"]
+                            p_conf = ocr_res["confidence"]
+                        else:
+                            ocr_res = ocr_engine.extract_text(None, t_id)
+                            ocr_text = ocr_res["plate_number"]
+                            p_conf = ocr_res["confidence"]
+                    else:
+                        ocr_res = ocr_engine.extract_text(None, t_id)
+                        ocr_text = ocr_res["plate_number"]
+                        p_conf = ocr_res["confidence"]
                         
                     best_entry["ocr_text"] = ocr_text
                     best_entry["ocr_conf"] = p_conf or 0.90

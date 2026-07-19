@@ -92,6 +92,8 @@ class ViolationService:
         self.recorded_violations = FallbackViolationListProxy()
         # Unique keys cache to avoid duplicate inserts for the same track in short window
         self.session_keys = set()
+        # Spatial-temporal cache to merge track splits
+        self.recent_violations_cache = []
 
     def process_frame_violations(self, camera_id: int, frame: Optional[np.ndarray] = None):
         """
@@ -107,6 +109,44 @@ class ViolationService:
             try:
                 for item in detected:
                     key = (item["vehicle_id"], item["violation_type"])
+                    
+                    # Spatial-temporal deduplication check to prevent duplicate tracks of same vehicle
+                    curr_bbox = None
+                    from app.services.tracking.bytetrack_tracker import bytetrack_tracker
+                    for track in getattr(bytetrack_tracker, "latest_tracks", []):
+                        if track.get("id") == item["vehicle_id"]:
+                            curr_bbox = track.get("box")
+                            break
+                            
+                    if curr_bbox:
+                        is_spatial_dup = False
+                        now_time = datetime.now(timezone.utc)
+                        self.recent_violations_cache = [
+                            x for x in self.recent_violations_cache 
+                            if (now_time - x["timestamp"]).total_seconds() < 8.0
+                        ]
+                        
+                        for recent in self.recent_violations_cache:
+                            if recent["violation_type"] == item["violation_type"]:
+                                box1 = curr_bbox
+                                box2 = recent["bbox"]
+                                xi1 = max(box1[0], box2[0])
+                                yi1 = max(box1[1], box2[1])
+                                xi2 = min(box1[2], box2[2])
+                                yi2 = min(box1[3], box2[3])
+                                inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
+                                box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+                                box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+                                union_area = box1_area + box2_area - inter_area
+                                iou = inter_area / union_area if union_area > 0 else 0.0
+                                
+                                if iou > 0.35:
+                                    is_spatial_dup = True
+                                    break
+                                    
+                        if is_spatial_dup:
+                            logger.info(f"Duplicate violation ignored from spatial overlap window: Vehicle {item['vehicle_id']}, Type {item['violation_type']}")
+                            continue
                     # Deduplication check across DB and fallback lists for consecutive frames (10-second window)
                     from sqlalchemy import and_
                     window = datetime.now(timezone.utc) - timedelta(seconds=10)
@@ -137,6 +177,12 @@ class ViolationService:
 
                     self.session_keys.add(key)
                     self.recorded_violations.append(item)
+                    if curr_bbox:
+                        self.recent_violations_cache.append({
+                            "bbox": curr_bbox,
+                            "violation_type": item["violation_type"],
+                            "timestamp": datetime.now(timezone.utc)
+                        })
                     
                     # Store to Database table
                     db_violation = Violation(

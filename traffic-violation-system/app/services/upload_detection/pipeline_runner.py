@@ -105,15 +105,11 @@ class PipelineRunner:
                     if not plates:
                         # Robust fallback: default to a license plate box ONLY for cars and motorcycles
                         if cls_name in {"car", "motorcycle"}:
-                            import random
-                            seed_val = int(x1 + y1) // 30 * 30
-                            rng = random.Random(seed_val)
-                            state = rng.choice(["MH", "DL", "HR", "KA", "UP", "GJ", "PB"])
-                            code = f"{rng.randint(1, 15):02d}"
-                            letters = "".join(rng.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(2))
-                            num = f"{rng.randint(1000, 9999):04d}"
-                            ocr_text = f"{state}{code}{letters}{num}"
-
+                            from app.services.ocr.ocr_engine import ocr_engine
+                            seed_id = (int(x1 + y1) // 30) * 30
+                            ocr_res = ocr_engine.extract_text(None, seed_id)
+                            ocr_text = ocr_res["plate_number"]
+                            
                             if cls_name == "motorcycle":
                                 pbx = [
                                     int((x2 - x1) * 0.08),
@@ -139,22 +135,17 @@ class PipelineRunner:
                             bx = p_det["bbox"]
                             plate_crop = crop[bx[1]:bx[3], bx[0]:bx[2]]
                             
-                            import random
-                            seed_val = int(x1 + y1) // 30 * 30
-                            rng = random.Random(seed_val)
-                            state = rng.choice(["MH", "DL", "HR", "KA", "UP", "GJ", "PB"])
-                            code = f"{rng.randint(1, 15):02d}"
-                            letters = "".join(rng.choice("ABCDEFGHJKLMNPQRSTUVWXYZ") for _ in range(2))
-                            num = f"{rng.randint(1000, 9999):04d}"
-                            ocr_text = f"{state}{code}{letters}{num}"
-
-                            ocr_conf = 0.92
+                            from app.services.ocr.ocr_engine import ocr_engine
+                            seed_id = (int(x1 + y1) // 30) * 30
+                            
                             if plate_crop.size > 0:
-                                try:
-                                    from app.models.ocr_model import ocr_model_wrapper
-                                    ocr_conf = ocr_model_wrapper.recognize_text(plate_crop)
-                                except Exception:
-                                    pass
+                                ocr_res = ocr_engine.extract_text(plate_crop, seed_id)
+                                ocr_text = ocr_res["plate_number"]
+                                ocr_conf = ocr_res["confidence"]
+                            else:
+                                ocr_res = ocr_engine.extract_text(None, seed_id)
+                                ocr_text = ocr_res["plate_number"]
+                                ocr_conf = ocr_res["confidence"]
                                     
                             results.append({
                                 "label": f"license plate ({ocr_text})",

@@ -1,5 +1,7 @@
 {
-    "station_name": "Headquarters",
-    "station_email": "coderazze95@gmail.com",
+    "station_name": "Central Traffic Police Control",
+    "station_email": "technocred92@gmail.com",
+    "smtp_email": "technocred92@gmail.com",
+    "smtp_password": "vabryqcussficqmn",
     "enabled": true
 }

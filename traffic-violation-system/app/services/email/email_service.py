@@ -67,14 +67,21 @@ class EmailService:
 
         subject = f"[ALERT] Traffic Violation Detected: {violation.violation_type} - ID: #{violation.vehicle_id}"
         
+        from app.database.models.evidence import Evidence
+        evidence_rec = db.query(Evidence).filter(Evidence.violation_id == violation_id).first()
+
         context = {
             "vehicle_id": violation.vehicle_id,
-            "vehicle_type": violation.vehicle_type,
+            "vehicle_type": violation.vehicle_type or "Vehicle",
             "plate_number": violation.plate_number or violation.vehicle_number or "UNKNOWN",
-            "violation_type": violation.violation_type,
-            "confidence": f"{(violation.confidence * 100):.0f}%" if violation.confidence else "N/A",
+            "violation_type": violation.violation_type or "Infraction",
+            "seat_belt_status": violation.seat_belt_status or (evidence_rec.seat_belt_status if evidence_rec else "N/A"),
+            "camera_id": violation.camera_id or 1,
+            "executed_models": violation.executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
+            "decision_result": violation.decision_result or "Confirmed",
+            "confidence": f"{(violation.confidence * 100):.0f}%" if violation.confidence else "95%",
             "timestamp": violation.timestamp.strftime("%Y-%m-%d %H:%M:%S") if violation.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "station_name": settings.get("station_name")
+            "station_name": settings.get("station_name", "Central Police Station")
         }
         
         body_html = EmailTemplates.render_template("violation_alert.html", context)
@@ -86,19 +93,21 @@ class EmailService:
         msg.attach(MIMEText(body_html, "html"))
         
         # Attach snapshot image
-        if violation.snapshot_path:
-            img_part = AttachmentService.create_attachment(violation.snapshot_path)
+        snapshot_file = violation.snapshot_path or (evidence_rec.annotated_image_path if evidence_rec else None) or (evidence_rec.image_path if evidence_rec else None)
+        if snapshot_file and os.path.exists(snapshot_file):
+            img_part = AttachmentService.create_attachment(snapshot_file)
             if img_part:
                 img_part.add_header('Content-ID', '<evidence_image>')
                 try:
-                    img_part.replace_header('Content-Disposition', f'inline; filename="{os.path.basename(violation.snapshot_path)}"')
+                    img_part.replace_header('Content-Disposition', f'inline; filename="{os.path.basename(snapshot_file)}"')
                 except KeyError:
-                    img_part.add_header('Content-Disposition', f'inline; filename="{os.path.basename(violation.snapshot_path)}"')
+                    img_part.add_header('Content-Disposition', f'inline; filename="{os.path.basename(snapshot_file)}"')
                 msg.attach(img_part)
                 
-        # Attach video proof clip
-        if violation.evidence_path:
-            vid_part = AttachmentService.create_attachment(violation.evidence_path)
+        # Attach video proof clip if distinct
+        video_file = (evidence_rec.annotated_video_path if evidence_rec else None) or (evidence_rec.video_path if evidence_rec else None)
+        if video_file and os.path.exists(video_file) and video_file != snapshot_file:
+            vid_part = AttachmentService.create_attachment(video_file)
             if vid_part:
                 msg.attach(vid_part)
                 

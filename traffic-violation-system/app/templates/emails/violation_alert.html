@@ -7,7 +7,7 @@
 <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 20px; line-height: 1.5;">
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 30px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
         
-        {/* Header */}
+        <!-- Header -->
         <div style="border-bottom: 2px solid #f43f5e; padding-bottom: 15px; margin-bottom: 20px;">
             <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #f43f5e; letter-spacing: 0.1em; display: block; margin-bottom: 4px;">Surveillance Dispatch</span>
             <h2 style="margin: 0; color: #1e293b; font-size: 20px;">Traffic Infraction Alert</h2>
@@ -15,7 +15,7 @@
         
         <p>An automated camera under <strong>{{ station_name }}</strong> control has recorded a driving code infraction. See details below:</p>
         
-        {/* Infraction Details Grid */}
+        <!-- Infraction Details Grid -->
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px 0; color: #64748b; font-weight: bold; width: 40%;">Violation Type</td>
@@ -32,6 +32,22 @@
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px 0; color: #64748b; font-weight: bold;">License Plate</td>
                 <td style="padding: 10px 0; color: #7c3aed; font-family: monospace; font-weight: bold; font-size: 14px;">{{ plate_number }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 0; color: #64748b; font-weight: bold;">Seat Belt Status</td>
+                <td style="padding: 10px 0; color: #1e293b; font-weight: bold;">{{ seat_belt_status }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 0; color: #64748b; font-weight: bold;">Camera Source</td>
+                <td style="padding: 10px 0; color: #1e293b;">Camera #{{ camera_id }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 0; color: #64748b; font-weight: bold;">AI Models Used</td>
+                <td style="padding: 10px 0; color: #475569; font-size: 11px;">{{ executed_models }}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 0; color: #64748b; font-weight: bold;">Decision Result</td>
+                <td style="padding: 10px 0; color: #10b981; font-weight: bold;">{{ decision_result }}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 10px 0; color: #64748b; font-weight: bold;">AI Confidence</td>

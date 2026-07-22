@@ -99,17 +99,25 @@ class ReportService:
         new_id = max([r["id"] for r in self.reports], default=0) + 1
         name = f"{report_type}_report_{datetime.now().strftime('%Y_%m_%d_%H%M%S')}"
         
-        if background_tasks:
-            background_tasks.add_task(self._generate_report_bg, new_id, name, export_format)
-            file_size = 0.0
-        else:
+        # Compile report synchronously to prevent race conditions with immediate front-end downloads
+        try:
             if export_format == "pdf":
                 PDFReportGenerator.generate(new_id, name)
             elif export_format == "excel":
                 ExcelReportGenerator.generate(new_id, name)
             else:
                 CSVReportGenerator.generate(new_id, name)
-            file_size = 25.8
+        except Exception as e:
+            logger.error(f"Error compiling report file: {e}")
+            
+        ext = "pdf" if export_format == "pdf" else "xlsx" if export_format == "excel" else "csv"
+        filename = f"{name}.{ext}"
+        reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "reports"))
+        path = os.path.join(reports_dir, filename)
+        
+        file_size = 0.0
+        if os.path.exists(path):
+            file_size = round(os.path.getsize(path) / 1024.0, 1)
             
         r = {
             "id": new_id,

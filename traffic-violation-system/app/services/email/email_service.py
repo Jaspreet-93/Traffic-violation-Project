@@ -94,7 +94,12 @@ class EmailService:
         
         # Attach snapshot image
         snapshot_file = violation.snapshot_path or (evidence_rec.annotated_image_path if evidence_rec else None) or (evidence_rec.image_path if evidence_rec else None)
-        if snapshot_file and os.path.exists(snapshot_file):
+        abs_snapshot = None
+        if snapshot_file:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            abs_snapshot = os.path.abspath(os.path.join(base_dir, snapshot_file.lstrip("/")))
+            
+        if abs_snapshot and os.path.exists(abs_snapshot):
             img_part = AttachmentService.create_attachment(snapshot_file)
             if img_part:
                 img_part.add_header('Content-ID', '<evidence_image>')
@@ -106,7 +111,12 @@ class EmailService:
                 
         # Attach video proof clip if distinct
         video_file = (evidence_rec.annotated_video_path if evidence_rec else None) or (evidence_rec.video_path if evidence_rec else None)
-        if video_file and os.path.exists(video_file) and video_file != snapshot_file:
+        abs_video = None
+        if video_file:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            abs_video = os.path.abspath(os.path.join(base_dir, video_file.lstrip("/")))
+            
+        if abs_video and os.path.exists(abs_video) and video_file != snapshot_file:
             vid_part = AttachmentService.create_attachment(video_file)
             if vid_part:
                 msg.attach(vid_part)

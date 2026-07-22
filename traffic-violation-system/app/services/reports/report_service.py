@@ -59,6 +59,17 @@ class ReportService:
 
     def list_reports(self) -> List[Dict[str, Any]]:
         self._load_db()
+        
+        # Auto-generate today's daily report if it is not already in the list
+        today_str = datetime.now().strftime("%Y_%m_%d")
+        has_today = any(r.get("name", "").startswith(f"daily_report_{today_str}") for r in self.reports)
+        
+        if not has_today:
+            try:
+                self.generate_report("daily", "pdf")
+            except Exception as e:
+                logger.error(f"Failed to auto-generate today's report: {e}")
+                
         deleted_ids = load_deleted_ids("reports")
         return [r for r in self.reports if r["id"] not in deleted_ids]
 

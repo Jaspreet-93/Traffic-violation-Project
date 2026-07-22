@@ -107,7 +107,9 @@ class ReportService:
 
     def generate_report(self, report_type: str, export_format: str, background_tasks = None) -> Dict[str, Any]:
         self._load_db()
-        new_id = max([r["id"] for r in self.reports], default=0) + 1
+        deleted_ids = load_deleted_ids("reports")
+        all_known_ids = [r["id"] for r in self.reports] + list(deleted_ids)
+        new_id = max(all_known_ids, default=0) + 1
         name = f"{report_type}_report_{datetime.now().strftime('%Y_%m_%d_%H%M%S')}"
         
         # Compile report synchronously to prevent race conditions with immediate front-end downloads

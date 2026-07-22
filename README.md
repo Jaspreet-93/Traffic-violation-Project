@@ -1,122 +1,179 @@
-# AI-Powered Traffic Violation Detection & Management System
+# 🚓 AURA Traffic Monitor: AI Infraction System
 
-An automated, real-time traffic monitoring and violation detection system utilizing computer vision, deep learning, and a modern web dashboard. This project acts as a complete solution for smart city traffic administration, detecting violations such as speeding, red-light jumping, helmet violations, and unauthorized lane crossing.
+An advanced, real-time traffic monitoring, AI-powered violation detection, and administrative management ecosystem. This project combines computer vision (YOLO, custom classifiers) with a responsive admin console to detect, log, and alert officers about traffic infractions (such as speeding, red-light jumping, helmet violations, seatbelt non-compliance, and lane crossings).
 
 ---
 
-## 📌 System Architecture & Execution Flow
+## 📌 Project Overview & Architecture
 
-Below is the high-level operational pipeline of the traffic violation detection system, from the camera feed input to the final database record and dashboard notification.
+Below is the execution flow of the AURA Traffic Monitor system, from live camera feed input to database logging, officer alert dispatch, and administrative review.
 
 ```mermaid
 graph TD
-    A[Traffic Camera Feed / Video Input] --> B[Frame Preprocessing & Resizing]
-    B --> C[Object Detection - YOLO]
-    C -->|Detect Vehicles & Pedestrians| D[Vehicle Tracking - DeepSORT]
-    C -->|Detect Helmets & Lane Crossing| E[Violation Detection Engine]
+    A[Traffic Camera Feed / Video Upload] --> B[Frame Processing & Decoding]
+    B --> C[YOLOv8 Multi-Model Detection Pipeline]
+    C -->|Detect Vehicles & Plates| D[Object Tracking & ALPR OCR]
+    C -->|Classify Helmet/Seatbelt/Lane| E[Rule Engine & Decision Logic]
     
     D --> E
-    E -->|Violation Flagged| F[Automatic License Plate Recognition - ALPR]
-    E -->|No Violation| A
+    E -->|Violation Confirmed| F[Save Snapshot & Video Proof to Storage]
+    E -->|No Infraction| A
     
-    F -->|Extract Plate Text & Vehicle Snapshot| G[Data Aggregation]
-    G --> H[FastAPI Backend / Database Log]
-    H --> I[(PostgreSQL / SQLite Database)]
-    H --> J[Admin Dashboard - React/Vite]
-    J -->|Alert Notification| K[Traffic Administrator Review]
+    F --> G[FastAPI Backend Server & SQLite DB Log]
+    G -->|Real-Time WS Push| H[React Administrative Dashboard]
+    G -->|Automatic SMTP Thread| I[Officer Email Alert with Inline Images]
+    H -->|Compile Reports| J[Reports Center PDF/Excel/CSV Auto-Downloads]
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ Technology Stack & Core Engines
 
-| Component | Technology | Description |
+| Layer | Technologies | Purpose |
 |---|---|---|
-| **Computer Vision** | Python, OpenCV, YOLOv8/v9 | Video frame processing, object detection, and tracking. |
-| **ALPR Engine** | EasyOCR / Tesseract / PaddleOCR | License plate text extraction from vehicle snapshots. |
-| **Backend API** | Python, FastAPI / Flask | RESTful APIs for managing violation logs, user authentication, and reports. |
-| **Database** | PostgreSQL / SQLite | Relational database to store violation details, vehicle logs, and admin credentials. |
-| **Frontend UI** | React, Vite, Vanilla CSS / Tailwind | Modern admin panel for real-time alerts, violation analytics, and ticket management. |
-| **Deployment** | Docker, Docker-compose | Containerization for easy setup and reproducibility. |
+| **AI Bounding & Track** | Python, YOLO11, ByteTrack, OpenCV | Real-time vehicle detection, tracking, and velocity estimation. |
+| **Custom Classifiers** | PyTorch, YOLOv8 Custom Weights | Custom trained models for helmet detection, seatbelt compliance, and traffic light OCR. |
+| **Backend Framework** | Python, FastAPI, Uvicorn | High-performance async APIs, WebSockets, background tasks, and SMTP delivery. |
+| **Database** | SQLAlchemy, SQLite / PostgreSQL | Relational database storing infraction metadata, camera registries, and email logs. |
+| **Frontend UI** | React 19, Vite, Vanilla CSS | Premium, fully custom-themed (Light/Dark) interactive control deck. |
+| **Mail Dispatcher** | SMTP, Jinja2 Templates, MIME Multipart | Automated email alerts with embedded evidence images and video attachments. |
 
 ---
 
-## 📂 Project Structure
+## ✨ Features & Capabilities
+
+### 1. Computer Vision & Multi-Model Pipeline
+* **YOLOv8/11 Vehicle Detection**: Locates cars, trucks, motorcycles, and buses in real time.
+* **Automatic License Plate Recognition (ALPR)**: Custom OCR model extracts license plate text automatically from zoomed-in crops.
+* **Helmet Classifier**: Evaluates motorcycle riders to ensure compliance with helmet safety laws.
+* **Seatbelt Classifier**: Detects front-seat occupants and identifies seatbelt usage.
+* **Traffic Light & Lane Intelligence**: Monitors vehicles crossing stop lines or executing illegal lane modifications.
+
+### 2. FastAPI Backend Services
+* **WebSocket Streams**: Pushes live detection frames, bounding boxes, and statistics directly to connected clients.
+* **Enterprise Reports Center**: Async generation of daily, weekly, or monthly reports in PDF, Microsoft Excel (`.xlsx`), or CSV formats.
+* **Persistent Settings Service**: Stores email servers, thresholds, timezone, theme, and language parameters to file (`system_settings.json`).
+* **Automated SMTP Dispatcher**: Triggers background mail alerts to officer list using secure Google/Gmail App Password authentication.
+
+### 3. React / Vite Administrative Console
+* **Control Deck Dashboard**: Dynamic visualization charts of live infraction counts, confidence distributions, and database health.
+* **Live Monitoring**: Real-time stream player rendering bounding box overlays and real-time alert logs.
+* **Camera Management**: Registry console to add new feeds, toggle recording status, and specify connection endpoints.
+* **Comparison Upload Area**: Side-by-side player comparing original footage with AI-annotated frames.
+* **Evidence Locker**: Central audit archive for downloading logs, inspecting snapshots, and playing violation clips.
+* **Real-Time Configuration Deck**: Instant theme changes (Dark/Light mode) and translation switching (Hindi, Spanish, English) without delay.
+
+---
+
+## 📂 Project Directory Structure
 
 ```text
 Traffic-violation-Project/
-├── .agents/                 # Workspace-scoped agent custom rules
-├── api/                     # FastAPI Backend Server
-│   ├── app/
-│   │   ├── main.py          # API Entrypoint
-│   │   ├── models.py        # SQLAlchemy Database Models
-│   │   ├── schemas.py       # Pydantic Schemas
-│   │   └── routes/          # API Route Controllers
-│   ├── requirements.txt     # Python Dependencies
-│   └── database.db          # Local SQLite DB (for development)
-├── pipeline/                # Computer Vision & Detection Pipeline
-│   ├── models/              # Pretrained YOLO weights
-│   ├── tracker/             # Vehicle tracking algorithms
-│   ├── detect.py            # Main detection script
-│   └── config.yaml          # Configuration (lane regions, speed limits)
-├── dashboard/               # React Frontend Dashboard
-│   ├── src/                 # Frontend source code
-│   ├── package.json         # NPM Dependencies
-│   └── index.html           # Main HTML file
-├── sync.ps1                 # Automatic Git synchronization script
-└── README.md                # Project documentation
+├── traffic-violation-system/
+│   ├── app/                      # FastAPI Backend Source
+│   │   ├── api/v1/routes/        # Endpoints (Reports, Evidence, Settings, WS)
+│   │   ├── core/                 # Logger and configuration loading
+│   │   ├── database/             # SQLAlchemy schemas, models, and migrations
+│   │   ├── schemas/              # Pydantic request/response models
+│   │   ├── services/             # Core Business Logic
+│   │   │   ├── email/            # SMTP services, Jinja2 email templates
+│   │   │   ├── evidence/         # Database operations for violation logging
+│   │   │   └── settings/         # File-based settings persistence
+│   │   └── main.py               # API Entrypoint
+│   ├── frontend/                 # React Vite Frontend Source
+│   │   ├── src/
+│   │   │   ├── components/       # Reusable panels (Charts, Tables, Players)
+│   │   │   ├── pages/            # View Pages (Dashboard, Settings, Reports)
+│   │   │   ├── services/         # Axios API connection endpoints
+│   │   │   └── index.css         # Global stylesheets and theme tokens
+│   │   └── package.json          # NPM Dependencies
+│   ├── models/                   # AI weights (.pt files)
+│   ├── uploads/                  # System data (configs, logs, email lists)
+│   ├── reports/                  # Generated PDF/Excel/CSV exports
+│   ├── requirements.txt          # Python packages
+│   └── test.db                   # Local SQLite Database
+├── sync.ps1                      # Automatic Git synchronization script
+└── README.md                     # Main documentation
 ```
 
 ---
 
-## 🚀 Execution & Command Reference
+## 🚀 Installation & Setup Guide
 
-### 1. Computer Vision Pipeline (Detection)
-To run the violation detection pipeline on a video file or live RTSP stream:
+### Prerequisites
+* **Python**: `3.10` or higher
+* **Node.js**: `18.0` or higher
+* **Git**
+
+---
+
+### Step 1: Clone the Repository
 ```bash
-# Navigate to the pipeline directory
-cd pipeline
-
-# Run detection on a video file
-python detect.py --source input_traffic.mp4 --violation speeding
-
-# Run detection on a live webcam/RTSP stream
-python detect.py --source rtsp://your_camera_ip:port/h264
+git clone https://github.com/Jaspreet-93/Traffic-violation-Project.git
+cd Traffic-violation-Project
 ```
 
-### 2. Backend API Setup
-To start the FastAPI backend server:
-```bash
-# Navigate to the API directory
-cd api
+---
 
-# Install Python dependencies
-pip install -r requirements.txt
+### Step 2: Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd traffic-violation-system
+   ```
+2. Create and activate a Python virtual environment:
+   ```bash
+   python -m venv venv
+   # On Windows:
+   .\venv\Scripts\Activate.ps1
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Copy the environment variables template and configure it:
+   ```bash
+   cp .env.example .env
+   ```
+5. Start the FastAPI backend server:
+   ```bash
+   uvicorn app.main:app --port 8000 --reload
+   ```
+   * The API server will start at: **`http://localhost:8000`**
+   * Access the interactive API docs at: **`http://localhost:8000/docs`**
 
-# Run the backend using Uvicorn
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
+---
 
-### 3. Frontend Dashboard Setup
-To run the React administrative dashboard locally in development mode:
-```bash
-# Navigate to the dashboard directory
-cd dashboard
+### Step 3: Frontend Setup
+1. Open a new terminal window and navigate to the frontend directory:
+   ```bash
+   cd traffic-violation-system/frontend
+   ```
+2. Install npm dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   * The dashboard will start at: **`http://localhost:3000`**
 
-# Install NPM dependencies
-npm install
+---
 
-# Run the development server
-npm run dev
-```
+## ⚙️ SMTP Alert Configuration
+To dispatch automatic email alerts to officers when a violation is identified:
+1. Turn on **2-Step Verification** in your Google Account.
+2. Generate a **Google App Password** (16 characters) under Account Security.
+3. Open the **System Settings** page in the frontend Dashboard.
+4. Input your Gmail address and the 16-character App Password under the **SMTP Server** tab, then save the configuration.
 
 ---
 
 ## 🤖 Automatic Git Synchronization
-
-This project is configured with automatic Git synchronization. At the end of every task or prompt session, the workspace changes are staged, committed, and pushed to the remote repository.
-
-To manually trigger a synchronization, run the following command in PowerShell:
+This workspace automatically synchronizes local changes. If you are developing locally, you can trigger a manual synchronization by executing:
 ```powershell
 .\sync.ps1
 ```
+This will automatically stage, commit, and push all workspace changes to the remote repository.

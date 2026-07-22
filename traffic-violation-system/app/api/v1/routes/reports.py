@@ -19,6 +19,8 @@ def get_all_reports(page: int = 1, limit: int = 20):
     Returns list of generated reports history.
     """
     raw = report_service.list_reports()
+    # Sort descending so newest reports are served first
+    raw = sorted(raw, key=lambda x: x["id"], reverse=True)
     start = (page - 1) * limit
     end = start + limit
     return raw[start:end]

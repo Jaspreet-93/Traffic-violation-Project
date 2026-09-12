@@ -173,7 +173,13 @@ function ModuleViolationContent({ moduleName }) {
       try {
         setDetailsLoading(true);
         const details = await fetchWithRetry(`/api/violations/${id}`);
-        setActiveDetails(details);
+        if (Array.isArray(details)) {
+          setActiveDetails(null);
+        } else if (details && details.id) {
+          setActiveDetails(details);
+        } else {
+          setActiveDetails(null);
+        }
       } catch (err) {
         console.error("Failed to load violation details:", err);
         setActiveDetails(null);

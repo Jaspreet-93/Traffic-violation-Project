@@ -14,7 +14,7 @@ class AttachmentService:
 
         # Convert relative output paths to absolute paths
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        abs_path = os.path.abspath(os.path.join(base_dir, relative_path.lstrip("/")))
+        abs_path = os.path.abspath(os.path.join(base_dir, relative_path.lstrip("/\\")))
 
         if not os.path.exists(abs_path):
             logger.warning(f"Attachment file not found at: {abs_path}")

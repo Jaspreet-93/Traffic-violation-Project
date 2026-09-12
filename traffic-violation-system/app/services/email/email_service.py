@@ -75,7 +75,7 @@ class EmailService:
             "vehicle_type": violation.vehicle_type or "Vehicle",
             "plate_number": violation.plate_number or violation.vehicle_number or "UNKNOWN",
             "violation_type": violation.violation_type or "Infraction",
-            "seat_belt_status": violation.seat_belt_status or (evidence_rec.seat_belt_status if evidence_rec else "N/A"),
+            "seat_belt_status": violation.seat_belt_status or getattr(evidence_rec, "seat_belt_status", "N/A") if evidence_rec else "N/A",
             "camera_id": violation.camera_id or 1,
             "executed_models": violation.executed_models or "YOLOv8-Vehicle, ByteTrack-Tracker, SeatBelt-Classifier",
             "decision_result": violation.decision_result or "Confirmed",
@@ -86,18 +86,21 @@ class EmailService:
         
         body_html = EmailTemplates.render_template("violation_alert.html", context)
         
-        msg = MIMEMultipart("related")
+        msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
         msg["From"] = settings.get("smtp_email")
         msg["To"] = recipient
-        msg.attach(MIMEText(body_html, "html"))
+
+        related_part = MIMEMultipart("related")
+        related_part.attach(MIMEText(body_html, "html"))
+        msg.attach(related_part)
         
         # Attach snapshot image
-        snapshot_file = violation.snapshot_path or (evidence_rec.annotated_image_path if evidence_rec else None) or (evidence_rec.image_path if evidence_rec else None)
+        snapshot_file = violation.snapshot_path or (getattr(evidence_rec, "annotated_image_path", None)) or (getattr(evidence_rec, "image_path", None))
         abs_snapshot = None
         if snapshot_file:
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-            abs_snapshot = os.path.abspath(os.path.join(base_dir, snapshot_file.lstrip("/")))
+            abs_snapshot = os.path.abspath(os.path.join(base_dir, snapshot_file.lstrip("/\\")))
             
         if abs_snapshot and os.path.exists(abs_snapshot):
             img_part = AttachmentService.create_attachment(snapshot_file)
@@ -107,14 +110,14 @@ class EmailService:
                     img_part.replace_header('Content-Disposition', f'inline; filename="{os.path.basename(snapshot_file)}"')
                 except KeyError:
                     img_part.add_header('Content-Disposition', f'inline; filename="{os.path.basename(snapshot_file)}"')
-                msg.attach(img_part)
+                related_part.attach(img_part)
                 
         # Attach video proof clip if distinct
-        video_file = (evidence_rec.annotated_video_path if evidence_rec else None) or (evidence_rec.video_path if evidence_rec else None)
+        video_file = (getattr(evidence_rec, "annotated_video_path", None)) or (getattr(evidence_rec, "video_path", None))
         abs_video = None
         if video_file:
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-            abs_video = os.path.abspath(os.path.join(base_dir, video_file.lstrip("/")))
+            abs_video = os.path.abspath(os.path.join(base_dir, video_file.lstrip("/\\")))
             
         if abs_video and os.path.exists(abs_video) and video_file != snapshot_file:
             vid_part = AttachmentService.create_attachment(video_file)

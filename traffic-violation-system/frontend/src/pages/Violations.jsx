@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Calendar, Star, Eye, Trash2, Download, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown, FileText, Info } from 'lucide-react';
+import { Search, ShieldAlert, Calendar, Star, Eye, Trash2, Download, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown, FileText, Info, X } from 'lucide-react';
 import { violationAPI, evidenceAPI } from '../services/api';
 import EvidenceViewer from '../components/EvidenceViewer';
 

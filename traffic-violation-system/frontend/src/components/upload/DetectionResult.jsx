@@ -5,6 +5,10 @@ import { evidenceAPI } from '../../services/evidenceApi';
 
 export default function DetectionResult({ result }) {
   if (!result) return null;
+  return <DetectionResultInner result={result} />;
+}
+
+function DetectionResultInner({ result }) {
   const navigate = useNavigate();
 
   const isVideo = result.file_type === 'video';

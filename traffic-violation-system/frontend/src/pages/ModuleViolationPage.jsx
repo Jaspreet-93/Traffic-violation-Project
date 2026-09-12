@@ -53,6 +53,13 @@ function ModuleViolationContent({ moduleName }) {
     seatbelt: true,
     trafficlight: true
   });
+  
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const [viewerType, setViewerType] = useState("annotated");
 
   const backendHost = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : `${window.location.protocol}//${window.location.hostname}:8000`;
   
@@ -254,12 +261,6 @@ function ModuleViolationContent({ moduleName }) {
   };
 
   const jobId = getJobId(activeViolation);
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
-  const [viewerType, setViewerType] = useState("annotated");
 
   const handleZoomIn = () => setZoom(z => Math.min(3, z + 0.25));
   const handleZoomOut = () => setZoom(z => Math.max(1, z - 0.25));

@@ -104,9 +104,23 @@ export function UploadProvider({ children }) {
       let res;
       if (isVideo) {
         res = await uploadDetectionAPI.uploadVideo(formData);
-        setJobId(res.data.job_id);
+        const jId = res.data.job_id;
+        setJobId(jId);
         setStatus('Processing');
         setProcessing(true);
+        setProgress(5.0);
+        setJobStatus({
+          job_id: jId,
+          status: 'Processing',
+          progress: 5.0,
+          metrics: {
+            stage: 'Frame Extraction',
+            current_fps: 0,
+            current_frame: 0,
+            total_frames: 0,
+            hardware: 'CPU Core'
+          }
+        });
       } else {
         res = await uploadDetectionAPI.uploadImage(formData);
         const jId = res.data.job_id;
@@ -121,6 +135,14 @@ export function UploadProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const trackJob = (targetJobId) => {
+    if (!targetJobId) return;
+    setJobId(targetJobId);
+    setStatus('Processing');
+    setProcessing(true);
+    setViewedResult(null);
   };
 
   const clearUploadState = () => {
@@ -144,6 +166,7 @@ export function UploadProvider({ children }) {
       loading, setLoading,
       jobStatus, setJobStatus,
       uploadAndAnalyze,
+      trackJob,
       clearUploadState
     }}>
       {children}

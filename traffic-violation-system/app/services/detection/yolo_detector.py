@@ -12,15 +12,15 @@ class YoloDetector:
     def __init__(self):
         self.model = None
         self.model_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolo11m.pt"
+            os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8n.pt"
         ))
         if not os.path.exists(self.model_path):
             self.model_path = os.path.abspath(os.path.join(
-                os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8m.pt"
+                os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolo11m.pt"
             ))
             if not os.path.exists(self.model_path):
                 self.model_path = os.path.abspath(os.path.join(
-                    os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8n.pt"
+                    os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8m.pt"
                 ))
         self.vehicle_classes = {
             1: "bicycle",
@@ -33,44 +33,35 @@ class YoloDetector:
 
     def load_model(self):
         """
-        Loads the YOLOv11/v8 model weights lazily. Downloads if missing.
+        Loads the YOLOv8/v11 model weights lazily. Downloads if missing.
         """
         if self.model is None:
             logger.info(f"Checking YOLO model at: {self.model_path}")
             if not os.path.exists(self.model_path):
-                if "yolov8n.pt" not in self.model_path and "yolo11m.pt" not in self.model_path and "yolov8m.pt" not in self.model_path:
-                    self.model_path = os.path.abspath(os.path.join(
-                        os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8n.pt"
-                    ))
                 if not os.path.exists(self.model_path):
                     logger.warning(f"YOLO weights file not found. Downloading fallback to: {self.model_path}")
                     os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-                    target_name = os.path.basename(self.model_path)
-                    if "yolo11m" in target_name:
-                        url = "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11m.pt"
-                    elif "yolov8m" in target_name:
-                        url = "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8m.pt"
-                    else:
-                        url = "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt"
-                        
+                    url = "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt"
                     try:
                         urllib.request.urlretrieve(url, self.model_path)
                         logger.info("YOLO weights downloaded successfully.")
                     except Exception as e:
-                        logger.warning(f"Preferred download failed, attempting yolov8n fallback: {e}")
-                        self.model_path = os.path.abspath(os.path.join(
-                            os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8n.pt"
-                        ))
-                        if not os.path.exists(self.model_path):
-                            url = "https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8n.pt"
-                            urllib.request.urlretrieve(url, self.model_path)
-                            logger.info("Fallback YOLOv8n weights downloaded successfully.")
+                        logger.warning(f"Download failed: {e}")
             try:
                 self.model = YOLO(self.model_path)
-                logger.info("YOLO model initialized successfully.")
+                logger.info(f"YOLO model initialized successfully with: {self.model_path}")
             except Exception as e:
-                logger.error(f"Error initializing YOLO model: {e}")
-                raise
+                logger.warning(f"Error initializing YOLO model with {self.model_path}: {e}")
+                v8n_path = os.path.abspath(os.path.join(
+                    os.path.dirname(__file__), "..", "..", "..", "models", "yolo", "yolov8n.pt"
+                ))
+                if os.path.exists(v8n_path) and self.model_path != v8n_path:
+                    logger.info(f"Attempting fallback to {v8n_path}...")
+                    self.model_path = v8n_path
+                    self.model = YOLO(self.model_path)
+                    logger.info("Fallback YOLOv8n model initialized successfully.")
+                else:
+                    raise
 
     def get_iou(self, box1: List[int], box2: List[int]) -> float:
         x1_1, y1_1, x2_1, y2_1 = box1

@@ -35,7 +35,28 @@ class UploadService:
             with open(HISTORY_FILE, "r") as f:
                 data = json.load(f)
             deleted_ids = load_deleted_ids("uploads")
-            return [item for item in data if item["job_id"] not in deleted_ids]
+            items = [item for item in data if item["job_id"] not in deleted_ids]
+            
+            # Enrich processing entries with real-time in-memory jobs_registry metrics
+            try:
+                from app.services.upload_detection.video_detector import jobs_registry
+                for item in items:
+                    if item.get("status") == "Processing":
+                        reg = jobs_registry.get(item["job_id"])
+                        if reg:
+                            item["status"] = reg.get("status", "Processing")
+                            metrics = reg.get("metrics", {})
+                            stage = metrics.get("stage", "Detecting")
+                            cur_f = metrics.get("current_frame", 0)
+                            tot_f = metrics.get("total_frames", 0)
+                            prog = reg.get("progress", 0.0)
+                            if tot_f > 0:
+                                item["summary_text"] = f"{stage}: Frame {cur_f}/{tot_f} ({int(prog)}%)"
+                            else:
+                                item["summary_text"] = f"{stage} ({int(prog)}%)"
+            except Exception:
+                pass
+            return items
         except Exception as e:
             logger.error(f"Error loading upload history: {e}")
             return []
@@ -48,6 +69,21 @@ class UploadService:
                 json.dump(history, f, indent=2)
         except Exception as e:
             logger.error(f"Error writing upload history: {e}")
+
+    @classmethod
+    def update_history_status(cls, job_id: str, status: str, summary_text: str = "") -> bool:
+        history = cls.load_history()
+        updated = False
+        for item in history:
+            if item.get("job_id") == job_id:
+                item["status"] = status
+                if summary_text:
+                    item["summary_text"] = summary_text
+                updated = True
+                break
+        if updated:
+            cls.save_history(history)
+        return updated
 
     @classmethod
     def add_history_entry(cls, job_id: str, filename: str, file_type: str, status: str, summary_text: str = "") -> dict:

@@ -1,7 +1,7 @@
 import React from 'react';
-import { History, Eye, Trash2, FileImage, FileVideo, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { History, Eye, Trash2, FileImage, FileVideo, CheckCircle2, Loader2, XCircle, Activity } from 'lucide-react';
 
-export default function UploadHistory({ historyList, onView, onDelete }) {
+export default function UploadHistory({ historyList, onView, onDelete, onTrack }) {
   if (!historyList || historyList.length === 0) {
     return (
       <div className="relative bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-8 text-center shadow-2xl space-y-3 overflow-hidden">
@@ -84,11 +84,35 @@ export default function UploadHistory({ historyList, onView, onDelete }) {
                     </span>
                   )}
                 </td>
-                <td className="p-4 text-slate-400 leading-relaxed text-[11px] max-w-[280px] truncate" title={item.summary_text}>
-                  {item.summary_text}
+                <td className="p-4 text-slate-300 leading-relaxed text-[11px] max-w-[280px]">
+                  {item.status === 'Processing' ? (
+                    <div className="flex items-center space-x-2 text-indigo-300">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                      </span>
+                      <span className="font-medium text-[11px] text-indigo-200 truncate" title={item.summary_text}>
+                        {item.summary_text || "Analyzing video frames..."}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 truncate block" title={item.summary_text}>
+                      {item.summary_text}
+                    </span>
+                  )}
                 </td>
                 <td className="p-4 pr-6">
-                  <div className="flex items-center justify-center space-x-3">
+                  <div className="flex items-center justify-center space-x-2">
+                    {item.status === 'Processing' && onTrack && (
+                      <button
+                        onClick={() => onTrack(item.job_id)}
+                        className="p-1.5 px-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 hover:bg-indigo-500/25 text-indigo-300 hover:text-white transition-all duration-200 cursor-pointer shadow-md group-hover:scale-105 flex items-center space-x-1"
+                        title="View Live Step & Telemetry"
+                      >
+                        <Activity className="w-3 h-3 text-indigo-400 animate-pulse" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Track</span>
+                      </button>
+                    )}
                     {item.status === 'Completed' && (
                       <button
                         onClick={() => onView(item.job_id)}

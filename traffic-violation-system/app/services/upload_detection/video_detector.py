@@ -365,6 +365,11 @@ class VideoDetector:
                     "eta_remaining": eta
                 }
 
+                if frame_idx % 15 == 0:
+                    UploadService.update_history_status(
+                        job_id, "Processing", f"{stage}: Frame {frame_idx}/{total_frames} ({int(progress)}%)"
+                    )
+
                 # Draw bounding boxes dynamically (All green for real-time tracking)
                 for det in tracked_vehicles:
                     bx = det["box"]
@@ -382,6 +387,7 @@ class VideoDetector:
             logger.error(f"Error in video processing worker thread: {e}")
             jobs_registry[job_id]["status"] = "Failed"
             jobs_registry[job_id]["error_message"] = str(e)
+            UploadService.update_history_status(job_id, "Failed", f"Inference failure: {str(e)[:120]}")
             return
         finally:
             cap.release()

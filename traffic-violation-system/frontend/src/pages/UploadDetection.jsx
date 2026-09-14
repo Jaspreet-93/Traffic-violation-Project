@@ -19,6 +19,7 @@ export default function UploadDetection() {
     loading,
     jobStatus,
     uploadAndAnalyze,
+    trackJob,
     clearUploadState
   } = useUpload();
 
@@ -43,6 +44,18 @@ export default function UploadDetection() {
     fetchHistory(currentPage);
   }, [currentPage]);
 
+  // Real-time polling for history while any jobs are actively processing
+  useEffect(() => {
+    const hasActive = history.some(item => item.status === 'Processing') || processing;
+    if (!hasActive) return;
+
+    const interval = setInterval(() => {
+      fetchHistory(currentPage);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [history, processing, currentPage]);
+
   const handleFileSelected = (file) => {
     setSelectedFile(file);
     clearUploadState();
@@ -52,6 +65,19 @@ export default function UploadDetection() {
     if (!selectedFile) return;
     await uploadAndAnalyze(selectedFile);
     fetchHistory();
+  };
+
+  const handleTrackJob = (jId) => {
+    if (trackJob) trackJob(jId);
+    setSelectedFile(null);
+    setViewedResult(null);
+    setTimeout(() => {
+      const scrollContainer = document.querySelector('.overflow-y-auto');
+      if (scrollContainer) {
+        scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 50);
   };
 
   const handleViewResult = async (jId) => {
@@ -144,6 +170,7 @@ export default function UploadDetection() {
         historyList={history}
         onView={handleViewResult}
         onDelete={handleDeleteHistory}
+        onTrack={handleTrackJob}
       />
 
       {/* Pagination Footer */}

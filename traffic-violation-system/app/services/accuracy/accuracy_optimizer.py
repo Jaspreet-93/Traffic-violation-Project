@@ -16,43 +16,45 @@ class AccuracyOptimizer:
     def clean_license_plate(self, raw_plate: str) -> str:
         """
         Cleans license plates using syntactic heuristics to resolve common OCR letter-to-digit and digit-to-letter confusion.
-        Standard format target: [2 Letters][2 Digits][1-2 Letters][4 Digits]
+        Standard Indian formats:
+        - [2 Letters][2 Digits][1-2 Letters][4 Digits] (e.g. MH12DE1432)
+        - [2 Letters][1 Digit][1-2 Letters][4 Digits]  (e.g. DL3CBA1234)
+        - [2 Letters][2 Digits][1 Letter][4 Digits]    (e.g. PB10Z9999)
         """
         cleaned = re.sub(r'[^A-Z0-9]', '', raw_plate.upper())
-        if len(cleaned) < 7 or len(cleaned) > 10:
-            return cleaned  # fallback
+        if len(cleaned) < 6 or len(cleaned) > 11:
+            return cleaned
 
-        # Split into components:
         # Part 1: State code (first 2 chars)
-        part1 = cleaned[0:2]
-        fixed_part1 = ""
-        for c in part1:
-            fixed_part1 += self.digit_to_char.get(c, c)
+        state = cleaned[:2]
+        fixed_state = ''.join(self.digit_to_char.get(c, c) for c in state)
 
-        # Part 2: District code (next 2 chars)
-        part2 = cleaned[2:4]
-        fixed_part2 = ""
-        for c in part2:
-            fixed_part2 += self.char_to_digit.get(c, c)
+        # Part 4: Trailing digits (last 4 chars)
+        tail = cleaned[-4:]
+        fixed_tail = ''.join(self.char_to_digit.get(c, c) for c in tail)
 
-        # Part 3: Series letters (next 1 or 2 chars, up to length - 4)
-        series_len = len(cleaned) - 8  # if 10 chars, series is 2 chars. if 9, series is 1 or 2.
-        if series_len < 1:
-            series_len = 1
-        
-        idx_end_series = 4 + series_len
-        part3 = cleaned[4:idx_end_series]
-        fixed_part3 = ""
-        for c in part3:
-            fixed_part3 += self.digit_to_char.get(c, c)
+        middle = cleaned[2:-4]
+        if len(middle) == 4:
+            d = ''.join(self.char_to_digit.get(c, c) for c in middle[:2])
+            s = ''.join(self.digit_to_char.get(c, c) for c in middle[2:])
+            return f"{fixed_state}{d}{s}{fixed_tail}"
+        elif len(middle) == 3:
+            if middle[1].isdigit() or middle[1] in ('0', '1', '2', '5', '8'):
+                d = ''.join(self.char_to_digit.get(c, c) for c in middle[:2])
+                s = self.digit_to_char.get(middle[2], middle[2])
+            else:
+                d = self.char_to_digit.get(middle[0], middle[0])
+                s = ''.join(self.digit_to_char.get(c, c) for c in middle[1:])
+            return f"{fixed_state}{d}{s}{fixed_tail}"
+        elif len(middle) == 2:
+            d = self.char_to_digit.get(middle[0], middle[0])
+            s = self.digit_to_char.get(middle[1], middle[1])
+            return f"{fixed_state}{d}{s}{fixed_tail}"
+        elif len(middle) == 1:
+            d = self.char_to_digit.get(middle[0], middle[0])
+            return f"{fixed_state}{d}{fixed_tail}"
 
-        # Part 4: Number group (last 4 chars)
-        part4 = cleaned[idx_end_series:]
-        fixed_part4 = ""
-        for c in part4:
-            fixed_part4 += self.char_to_digit.get(c, c)
-
-        return f"{fixed_part1}{fixed_part2}{fixed_part3}{fixed_part4}"
+        return f"{fixed_state}{middle}{fixed_tail}"
 
     def enhance_crop_contrast(self, crop: np.ndarray) -> np.ndarray:
         """

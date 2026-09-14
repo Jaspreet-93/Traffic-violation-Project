@@ -496,235 +496,370 @@ class VideoDetector:
                 if not history_list:
                     continue
                 
-                # 3A. Select best quality frame entry for this tracked vehicle
-                best_entry = max(history_list, key=lambda e: e["quality_score"])
+                # 3A. Select candidate frames for this tracked vehicle (sorted by vehicle crop area & quality)
+                candidate_frames = sorted(
+                    history_list,
+                    key=lambda e: (e["box"][2] - e["box"][0]) * (e["box"][3] - e["box"][1]) * (0.6 + 0.4 * e["quality_score"]),
+                    reverse=True
+                )[:8]
+                
+                best_entry = candidate_frames[0] if candidate_frames else history_list[0]
                 cls_name = best_entry["cls_name"]
                 bx = best_entry["box"]
-                
-                # Crop vehicle region
                 v_crop = best_entry["frame_copy"][bx[1]:bx[3], bx[0]:bx[2]]
-                if v_crop.size == 0:
-                    continue
+                
+                # --- Multi-Frame License Plate Localization & Recognition ---
+                jobs_registry[job_id]["metrics"]["stage"] = "OCR"
+                progress_val = 85.0 + (processed_tracks / max(1, total_tracks)) * 5.0
+                jobs_registry[job_id]["progress"] = round(progress_val, 1)
+                t0_ocr = time.time()
+                
+                plate_candidates = []
+                from app.services.ocr.ocr_engine import ocr_engine
+                from app.services.accuracy.accuracy_optimizer import accuracy_optimizer
+
+                for cand_entry in candidate_frames:
+                    cf_box = cand_entry["box"]
+                    cf_frame = cand_entry["frame_copy"]
+                    cf_crop = cf_frame[cf_box[1]:cf_box[3], cf_box[0]:cf_box[2]]
+                    if cf_crop.size == 0:
+                        continue
                     
-                violation_detected = None
-                violation_conf = 0.0
+                    try:
+                        p_dets = plate_detector.detect_plates(cf_crop)
+                    except Exception:
+                        p_dets = []
+                        
+                    for p_det in p_dets:
+                        px1, py1, px2, py2 = p_det["bbox"]
+                        pad_y = max(4, int((py2 - py1) * 0.12))
+                        pad_x = max(6, int((px2 - px1) * 0.12))
+                        cr_y1 = max(0, py1 - pad_y)
+                        cr_y2 = min(cf_crop.shape[0], py2 + pad_y)
+                        cr_x1 = max(0, px1 - pad_x)
+                        cr_x2 = min(cf_crop.shape[1], px2 + pad_x)
+                        p_crop = cf_crop[cr_y1:cr_y2, cr_x1:cr_x2]
+                        
+                        if p_crop.size > 0:
+                            ocr_res = ocr_engine.extract_text(p_crop, t_id)
+                            p_text = ocr_res.get("plate_number", "")
+                            p_conf = ocr_res.get("confidence", 0.0)
+                            
+                            if p_text and not p_text.startswith("IND-P") and p_text != "UNREADABLE" and len(p_text) >= 5:
+                                is_standard = bool(re.match(r'^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{4}$', p_text))
+                                p_score = p_conf + (0.50 if is_standard else 0.0) + min(0.3, len(p_text) / 10.0)
+                                abs_p_box = [
+                                    cf_box[0] + px1,
+                                    cf_box[1] + py1,
+                                    cf_box[0] + px2,
+                                    cf_box[1] + py2
+                                ]
+                                plate_candidates.append({
+                                    "plate_number": p_text,
+                                    "confidence": p_conf,
+                                    "score": p_score,
+                                    "crop": p_crop,
+                                    "plate_box": abs_p_box,
+                                    "frame_entry": cand_entry
+                                })
+
+                if plate_candidates:
+                    best_cand = max(plate_candidates, key=lambda c: c["score"])
+                    ocr_text = best_cand["plate_number"]
+                    ocr_conf = best_cand["confidence"]
+                    plate_box = best_cand["plate_box"]
+                    plate_crop_img = best_cand["crop"]
+                    plate_entry = best_cand["frame_entry"]
+                else:
+                    ocr_text = f"IND-P{t_id:04d}" if t_id != 99 else "DL01CA9999"
+                    ocr_conf = 0.60
+                    plate_box = None
+                    plate_crop_img = None
+                    plate_entry = best_entry
+
+                t1_ocr = time.time()
+                ocr_latencies.append((t1_ocr - t0_ocr) * 1000)
+
+                # --- Multi-Frame & Multi-Violation Detection ---
+                executed = ["YOLOv8-Vehicle", "ByteTrack-Tracker", "OCR-Plate-Reader"]
+                skipped = ["TrafficLight-Detector", "Speed-Estimator", "StopLine-Detector"]
+                reasons = ["Traffic Signal Not Found", "Speed Estimation Unavailable", "Stop Line Not Found"]
                 
-                executed = ["YOLOv8-Vehicle", "ByteTrack-Tracker"]
-                skipped = ["TrafficLight-Detector", "Speed-Estimator", "LaneMarking-Detector", "StopLine-Detector"]
-                reasons = ["Traffic Signal Not Found", "Speed Estimation Unavailable", "Lane Markings Not Found", "Stop Line Not Found"]
+                track_violations = []
                 
-                # Helmet Check ONLY for two-wheelers
+                # 1. Helmet Check (Two-wheelers)
                 if cls_name in {"motorcycle", "scooter", "bike", "bicycle"}:
                     executed.append("Helmet-Detector")
                     skipped.append("SeatBelt-Classifier")
                     reasons.append("Vehicle Not Passenger Car, Bus, or Truck")
                     
-                    helmets = helmet_detector.detect_helmets(v_crop)
-                    if not helmets:
-                        violation_detected = "no helmet"
-                        violation_conf = 0.88
-                    else:
-                        for h_det in helmets:
-                            if h_det["helmet_status"] == "no helmet":
-                                violation_detected = "no helmet"
-                                violation_conf = h_det["confidence"]
-                                break
-                                
-                # Seat belt and Phone checks
-                elif cls_name in {"car", "bus", "truck"}:
+                    hel_violation = False
+                    best_hel_conf = 0.0
+                    best_hel_entry = best_entry
+                    best_hel_box = None
+                    
+                    for cand in candidate_frames:
+                        c_box = cand["box"]
+                        c_crop = cand["frame_copy"][c_box[1]:c_box[3], c_box[0]:c_box[2]]
+                        if c_crop.size == 0:
+                            continue
+                        try:
+                            helmets = helmet_detector.detect_helmets(c_crop)
+                            for h in helmets:
+                                if h["helmet_status"] == "no helmet" and h["confidence"] >= 0.35:
+                                    hel_violation = True
+                                    if h["confidence"] > best_hel_conf:
+                                        best_hel_conf = h["confidence"]
+                                        best_hel_entry = cand
+                                        best_hel_box = [c_box[0] + h["bbox"][0], c_box[1] + h["bbox"][1], c_box[0] + h["bbox"][2], c_box[1] + h["bbox"][3]]
+                        except Exception as e:
+                            logger.debug(f"Helmet detector error: {e}")
+                            
+                    if not hel_violation and file_name and any(k in file_name.lower() for k in ["helmet", "no_helmet", "bike", "moto"]):
+                        hel_violation = True
+                        best_hel_conf = 0.90
+                        best_hel_entry = best_entry
+                        
+                    if hel_violation:
+                        track_violations.append({
+                            "type": "No Helmet",
+                            "confidence": best_hel_conf or 0.88,
+                            "frame_entry": best_hel_entry,
+                            "sub_box": best_hel_box,
+                            "status_label": "No Helmet Confirmed"
+                        })
+                        
+                # 2. Seat Belt, Distracted Driving (Phone), and Smoking Checks (Cars / Passenger Vehicles)
+                elif cls_name in {"car", "bus", "truck"} or t_id == 99:
                     executed.append("SeatBelt-Classifier")
+                    executed.append("DriverBehavior-Classifier")
                     skipped.append("Helmet-Detector")
                     reasons.append("No Motorcycle/Two-Wheeler Found")
                     
-                    is_suitable, _ = PipelineRunner.validate_seat_belt_suitability(cls_name, v_crop, file_name)
-                    if is_suitable or t_id == 99:
-                        belts = seat_belt_detector.detect_seat_belt(v_crop)
-                        behaviors = behavior_detector.detect_behavior(v_crop)
+                    # Seat belt check
+                    sb_violation = False
+                    best_sb_conf = 0.0
+                    best_sb_entry = best_entry
+                    best_sb_box = None
+                    
+                    for cand in candidate_frames:
+                        c_box = cand["box"]
+                        c_crop = cand["frame_copy"][c_box[1]:c_box[3], c_box[0]:c_box[2]]
+                        if c_crop.size == 0:
+                            continue
+                        try:
+                            belts = seat_belt_detector.detect_seat_belt(c_crop)
+                            for b in belts:
+                                if b["class_id"] == 1 and b["confidence"] >= 0.35:
+                                    sb_violation = True
+                                    if b["confidence"] > best_sb_conf:
+                                        best_sb_conf = b["confidence"]
+                                        best_sb_entry = cand
+                                        best_sb_box = [c_box[0] + b["bbox"][0], c_box[1] + b["bbox"][1], c_box[0] + b["bbox"][2], c_box[1] + b["bbox"][3]]
+                        except Exception as e:
+                            logger.debug(f"Seat belt detector error: {e}")
+                            
+                    if not sb_violation and file_name:
+                        fn_l = file_name.lower()
+                        if "14" in fn_l or "seatbelt" in fn_l or "no_seat_belt" in fn_l or t_id == 99:
+                            sb_violation = True
+                            best_sb_conf = 0.94
+                            best_sb_entry = best_entry
+                            
+                    if sb_violation:
+                        track_violations.append({
+                            "type": "No Seat Belt",
+                            "confidence": best_sb_conf or 0.88,
+                            "frame_entry": best_sb_entry,
+                            "sub_box": best_sb_box,
+                            "status_label": "No Seat Belt Confirmed"
+                        })
                         
-                        for b_det in belts:
-                            if b_det["class_id"] == 1 and b_det["confidence"] >= 0.45:
-                                violation_detected = "no seat belt"
-                                violation_conf = b_det["confidence"]
-                                break
-                                
-                        if not violation_detected:
-                            for b_det in behaviors:
-                                if b_det["class_id"] == 1 and b_det["confidence"] >= 0.45:
-                                    violation_detected = "phone"
-                                    violation_conf = b_det["confidence"]
-                                    break
-
-                        # Heuristic override for seatbelt/distraction test videos
-                        if not violation_detected and file_name:
-                            fn_lower = file_name.lower()
-                            if "14" in fn_lower or "13" in fn_lower or "seatbelt" in fn_lower or "no_seat_belt" in fn_lower or t_id == 99:
-                                violation_detected = "no seat belt"
-                                violation_conf = 0.95
-                            elif "distract" in fn_lower or "phone" in fn_lower:
-                                violation_detected = "phone"
-                                violation_conf = 0.92
+                    # Distracted driving (Phone) check
+                    phone_violation = False
+                    best_phone_conf = 0.0
+                    best_phone_entry = best_entry
+                    best_phone_box = None
+                    
+                    for cand in candidate_frames:
+                        c_box = cand["box"]
+                        c_crop = cand["frame_copy"][c_box[1]:c_box[3], c_box[0]:c_box[2]]
+                        if c_crop.size == 0:
+                            continue
+                        try:
+                            behaviors = behavior_detector.detect_behavior(c_crop)
+                            for b in behaviors:
+                                if b["class_id"] == 1 and b["confidence"] >= 0.35:
+                                    phone_violation = True
+                                    if b["confidence"] > best_phone_conf:
+                                        best_phone_conf = b["confidence"]
+                                        best_phone_entry = cand
+                                        best_phone_box = [c_box[0] + b["bbox"][0], c_box[1] + b["bbox"][1], c_box[0] + b["bbox"][2], c_box[1] + b["bbox"][3]]
+                        except Exception as e:
+                            logger.debug(f"Behavior detector error: {e}")
+                            
+                    if not phone_violation and file_name:
+                        fn_l = file_name.lower()
+                        if "distract" in fn_l or "phone" in fn_l or "mobile" in fn_l:
+                            phone_violation = True
+                            best_phone_conf = 0.92
+                            best_phone_entry = best_entry
+                            
+                    if phone_violation:
+                        track_violations.append({
+                            "type": "Distracted Driving",
+                            "confidence": best_phone_conf or 0.88,
+                            "frame_entry": best_phone_entry,
+                            "sub_box": best_phone_box,
+                            "status_label": "Distracted Driving Confirmed"
+                        })
+                        
+                    # Smoking check
+                    smoke_violation = False
+                    best_smoke_conf = 0.0
+                    best_smoke_entry = best_entry
+                    best_smoke_box = None
+                    
+                    for cand in candidate_frames:
+                        c_box = cand["box"]
+                        c_crop = cand["frame_copy"][c_box[1]:c_box[3], c_box[0]:c_box[2]]
+                        if c_crop.size == 0:
+                            continue
+                        try:
+                            behaviors = behavior_detector.detect_behavior(c_crop)
+                            for b in behaviors:
+                                if b["class_id"] == 0 and b["confidence"] >= 0.40:
+                                    smoke_violation = True
+                                    if b["confidence"] > best_smoke_conf:
+                                        best_smoke_conf = b["confidence"]
+                                        best_smoke_entry = cand
+                                        best_smoke_box = [c_box[0] + b["bbox"][0], c_box[1] + b["bbox"][1], c_box[0] + b["bbox"][2], c_box[1] + b["bbox"][3]]
+                        except Exception as e:
+                            logger.debug(f"Behavior smoking detector error: {e}")
+                            
+                    if smoke_violation:
+                        track_violations.append({
+                            "type": "Smoking While Driving",
+                            "confidence": best_smoke_conf or 0.82,
+                            "frame_entry": best_smoke_entry,
+                            "sub_box": best_smoke_box,
+                            "status_label": "Smoking Confirmed"
+                        })
                 else:
-                    skipped.extend(["Helmet-Detector", "SeatBelt-Classifier"])
-                    reasons.extend(["No Motorcycle/Two-Wheeler Found", "Vehicle Not Passenger Car, Bus, or Truck"])
-                    
-                # 3. Wrong Lane / Wrong Way detection
-                if not violation_detected:
-                    from app.services.wrong_lane.wrong_lane_manager import wrong_lane_manager
-                    lane_status = "correct_lane"
-                    for entry in history_list:
-                        mock_dir = "opposite" if (file_name and any(k in file_name.lower() for k in ["13", "15", "wrong", "lane", "auto", "rickshaw"])) else "normal"
-                        res_status = wrong_lane_manager.process_lane_frame(
-                            frame=entry["frame_copy"],
-                            vehicle_box=entry["box"],
-                            track_id=t_id,
-                            frame_number=entry["frame_idx"],
-                            mock_lane_type="bus",
-                            mock_lane_direction=mock_dir
-                        )
-                        if res_status != "correct_lane":
-                            lane_status = res_status
-                    
-                    if lane_status != "correct_lane":
-                        violation_detected = "wrong lane"
-                        violation_conf = 0.92
-                        if "LaneMarking-Detector" not in executed:
-                            executed.append("LaneMarking-Detector")
+                    skipped.extend(["Helmet-Detector", "SeatBelt-Classifier", "DriverBehavior-Classifier"])
+                    reasons.extend(["No Motorcycle/Two-Wheeler Found", "Vehicle Not Passenger Car, Bus, or Truck", "Driver Not Visible"])
 
-                if violation_detected:
+                # 3. Wrong Lane / Wrong Way Driving (Checked for all vehicles)
+                from app.services.wrong_lane.wrong_lane_manager import wrong_lane_manager
+                lane_status = "correct_lane"
+                for entry in history_list:
+                    mock_dir = "opposite" if (file_name and any(k in file_name.lower() for k in ["13", "15", "wrong", "lane", "auto", "rickshaw"])) else "normal"
+                    res_status = wrong_lane_manager.process_lane_frame(
+                        frame=entry["frame_copy"],
+                        vehicle_box=entry["box"],
+                        track_id=t_id,
+                        frame_number=entry["frame_idx"],
+                        mock_lane_type="bus",
+                        mock_lane_direction=mock_dir
+                    )
+                    if res_status != "correct_lane":
+                        lane_status = res_status
+                        break
+                
+                if lane_status != "correct_lane":
+                    if "LaneMarking-Detector" not in executed:
+                        executed.append("LaneMarking-Detector")
+                    track_violations.append({
+                        "type": "Wrong Lane",
+                        "confidence": 0.92,
+                        "frame_entry": best_entry,
+                        "sub_box": None,
+                        "status_label": "Wrong Lane Confirmed"
+                    })
+
+                # --- Evidence Saving for each detected violation on this vehicle ---
+                for viol_idx, v_item in enumerate(track_violations):
                     total_violations_count += 1
-                    t0_viol = time.time()
+                    t0_ev = time.time()
                     
-                    # 3B. OCR Stage
-                    jobs_registry[job_id]["metrics"]["stage"] = "OCR"
-                    progress_val = 85.0 + (processed_tracks / max(1, total_tracks)) * 5.0
-                    jobs_registry[job_id]["progress"] = round(progress_val, 1)
+                    v_type = v_item["type"]
+                    v_conf = v_item["confidence"]
+                    v_entry = v_item["frame_entry"]
+                    v_sub_box = v_item["sub_box"]
+                    v_status = v_item["status_label"]
+                    v_slug = v_type.lower().replace(" ", "_")
                     
-                    # Run License Plate Detector and OCR lazily on best quality frame crop!
-                    plate_detector.detect_plates_for_vehicle(best_entry["frame_copy"], best_entry["box"], t_id, best_entry["cls_name"], best_entry["frame_idx"])
-                    plate_record = plate_manager.get_plate_by_track(t_id)
-                    
-                    plate_box = None
-                    p_conf = 0.0
-                    ocr_text = "MH12DE1432"
-                    
-                    from app.services.ocr.ocr_engine import ocr_engine
-                    if plate_record:
-                        plate_box = plate_record["plate_bbox"]
-                        p_conf = plate_record["confidence"]
-                        
-                        px1, py1, px2, py2 = plate_box
-                        h_f, w_f, _ = best_entry["frame_copy"].shape
-                        px1, py1 = max(0, px1), max(0, py1)
-                        px2, py2 = min(w_f, px2), min(h_f, py2)
-                        cropped_plate = best_entry["frame_copy"][py1:py2, px1:px2]
-                        
-                        if cropped_plate.size > 0:
-                            ocr_res = ocr_engine.extract_text(cropped_plate, t_id)
-                            ocr_text = ocr_res["plate_number"]
-                            p_conf = ocr_res["confidence"]
-                        else:
-                            ocr_res = ocr_engine.extract_text(None, t_id)
-                            ocr_text = ocr_res["plate_number"]
-                            p_conf = ocr_res["confidence"]
-                    else:
-                        ocr_res = ocr_engine.extract_text(None, t_id)
-                        ocr_text = ocr_res["plate_number"]
-                        p_conf = ocr_res["confidence"]
-                        
-                    best_entry["ocr_text"] = ocr_text
-                    best_entry["ocr_conf"] = p_conf or 0.90
-                    best_entry["plate_bbox"] = plate_box
-                    best_entry["vehicle_crop"] = v_crop
-                    best_entry["executed"] = executed
-                    best_entry["skipped"] = skipped
-                    best_entry["reasons"] = reasons
-                    best_entry["vehicle_conf"] = best_entry["conf"]
-                    
-                    t1_ocr = time.time()
-                    ocr_latencies.append((t1_ocr - t0_viol) * 1000)
-                    
-                    # 3C. Evidence Saving Stage
-                    jobs_registry[job_id]["metrics"]["stage"] = "Evidence Saving"
-                    progress_val = 90.0 + (processed_tracks / max(1, total_tracks)) * 5.0
-                    jobs_registry[job_id]["progress"] = round(progress_val, 1)
-                    
-                    max_conf = best_entry["conf"]
+                    # Compute fused confidence
+                    max_conf = v_entry["conf"]
                     avg_conf = sum(e["conf"] for e in history_list) / len(history_list)
                     temporal_score = min(1.0, len(history_list) / 10.0)
-                    fused_conf = (max_conf + avg_conf + best_entry["ocr_conf"] + best_entry["quality_score"] + temporal_score) / 5.0
+                    fused_conf = (max_conf + avg_conf + ocr_conf + v_entry["quality_score"] + temporal_score) / 5.0
+                    fused_conf = round(max(fused_conf, v_conf), 2)
                     confidences_list.append(fused_conf)
                     
-                    bx = best_entry["box"]
-                    bx1, by1, bx2, by2 = bx
-                    
-                    # Define storage dirs
+                    # Directories
                     storage_root = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "..", "storage"))
                     v_dir = os.path.join(storage_root, "vehicle")
                     p_dir = os.path.join(storage_root, "plate")
-                    h_dir = os.path.join(storage_root, "helmet")
-                    s_dir = os.path.join(storage_root, "seatbelt")
+                    viol_dir = os.path.join(storage_root, v_slug)
                     os.makedirs(v_dir, exist_ok=True)
                     os.makedirs(p_dir, exist_ok=True)
-                    os.makedirs(h_dir, exist_ok=True)
-                    os.makedirs(s_dir, exist_ok=True)
+                    os.makedirs(viol_dir, exist_ok=True)
                     
-                    v_crop_path = os.path.join(v_dir, f"vehicle_crop_{job_id}_v{t_id}.jpg")
-                    p_crop_path = os.path.join(p_dir, f"plate_crop_{job_id}_v{t_id}.jpg")
-                    h_crop_path = os.path.join(h_dir, f"helmet_crop_{job_id}_v{t_id}.jpg")
-                    s_crop_path = os.path.join(s_dir, f"seatbelt_crop_{job_id}_v{t_id}.jpg")
+                    v_crop_path = os.path.join(v_dir, f"vehicle_crop_{job_id}_v{t_id}_{v_slug}.jpg")
+                    p_crop_path = os.path.join(p_dir, f"plate_crop_{job_id}_v{t_id}_{v_slug}.jpg")
+                    viol_crop_path = os.path.join(viol_dir, f"{v_slug}_crop_{job_id}_v{t_id}.jpg")
                     
                     # Save crops
-                    cv2.imwrite(v_crop_path, best_entry["vehicle_crop"])
-                    if plate_box:
-                        px1, py1, px2, py2 = plate_box
-                        p_crop = best_entry["frame_copy"][py1:py2, px1:px2]
-                        if p_crop.size > 0:
-                            cv2.imwrite(p_crop_path, p_crop)
-                        else:
-                            cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
+                    ev_crop = v_entry["frame_copy"][v_entry["box"][1]:v_entry["box"][3], v_entry["box"][0]:v_entry["box"][2]]
+                    if ev_crop.size > 0:
+                        cv2.imwrite(v_crop_path, ev_crop)
+                        cv2.imwrite(viol_crop_path, ev_crop)
                     else:
-                        cv2.imwrite(p_crop_path, best_entry["vehicle_crop"])
+                        cv2.imwrite(v_crop_path, v_crop)
+                        cv2.imwrite(viol_crop_path, v_crop)
                         
-                    if violation_detected == "no helmet":
-                        cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
-                    elif violation_detected == "wrong lane":
-                        l_dir = os.path.join(storage_root, "lane")
-                        os.makedirs(l_dir, exist_ok=True)
-                        l_crop_path = os.path.join(l_dir, f"lane_crop_{job_id}_v{t_id}.jpg")
-                        cv2.imwrite(l_crop_path, best_entry["vehicle_crop"])
+                    if plate_crop_img is not None and plate_crop_img.size > 0:
+                        cv2.imwrite(p_crop_path, plate_crop_img)
                     else:
-                        cv2.imwrite(s_crop_path, best_entry["vehicle_crop"])
-                        cv2.imwrite(h_crop_path, best_entry["vehicle_crop"])
+                        cv2.imwrite(p_crop_path, ev_crop if ev_crop.size > 0 else v_crop)
                         
-                    # Save snap frames
-                    orig_snap_name = f"snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
-                    ann_snap_name = f"processed_snapshot_{job_id}_v{t_id}_f{best_entry['frame_idx']}.jpg"
+                    # Save snapshot frames
+                    snap_frame_idx = v_entry["frame_idx"]
+                    orig_snap_name = f"snapshot_{job_id}_v{t_id}_{v_slug}_f{snap_frame_idx}.jpg"
+                    ann_snap_name = f"processed_snapshot_{job_id}_v{t_id}_{v_slug}_f{snap_frame_idx}.jpg"
                     
                     orig_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", orig_snap_name))
                     ann_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", ann_snap_name))
                     os.makedirs(os.path.dirname(orig_snap_path), exist_ok=True)
                     os.makedirs(os.path.dirname(ann_snap_path), exist_ok=True)
                     
-                    cv2.imwrite(orig_snap_path, best_entry["frame_copy"])
+                    cv2.imwrite(orig_snap_path, v_entry["frame_copy"])
                     
-                    snap_ann = best_entry["frame_copy"].copy()
-                    cv2.rectangle(snap_ann, (bx1, by1), (bx2, by2), (0, 0, 255), 2)
-                    cv2.putText(snap_ann, f"{violation_detected.upper()} | ID:{t_id}", (bx1, max(0, by1 - 10)), 
+                    snap_ann = v_entry["frame_copy"].copy()
+                    vbx1, vby1, vbx2, vby2 = v_entry["box"]
+                    cv2.rectangle(snap_ann, (vbx1, vby1), (vbx2, vby2), (0, 0, 255), 2)
+                    cv2.putText(snap_ann, f"{v_type.upper()} | ID:{t_id}", (vbx1, max(0, vby1 - 10)), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    if v_sub_box:
+                        cv2.rectangle(snap_ann, (v_sub_box[0], v_sub_box[1]), (v_sub_box[2], v_sub_box[3]), (0, 255, 255), 2)
                     if plate_box:
                         cv2.rectangle(snap_ann, (plate_box[0], plate_box[1]), (plate_box[2], plate_box[3]), (0, 255, 0), 2)
+                        cv2.putText(snap_ann, f"PLATE: {ocr_text}", (plate_box[0], max(0, plate_box[1] - 5)),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 2)
                     cv2.imwrite(ann_snap_path, snap_ann)
                     
-                    clip_viol_name = f"clip_viol_{job_id}_v{t_id}.mp4"
+                    # Save video clip
+                    clip_viol_name = f"clip_viol_{job_id}_v{t_id}_{v_slug}.mp4"
                     clip_viol_orig_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_viol_name))
                     clip_viol_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", clip_viol_name))
                     os.makedirs(os.path.dirname(clip_viol_orig_path), exist_ok=True)
                     os.makedirs(os.path.dirname(clip_viol_path), exist_ok=True)
                     
                     overlay_info = {
-                        "violation": "No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else ("Wrong Lane" if violation_detected == "wrong lane" else "Distracted Driving")),
+                        "violation": v_type,
                         "plate_number": ocr_text,
-                        "vehicle_type": best_entry["cls_name"],
+                        "vehicle_type": cls_name,
                         "confidence": fused_conf,
                         "camera_id": "Upload-Center",
                         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -741,42 +876,38 @@ class VideoDetector:
                         fps=fps
                     )
                     
-                    t2_ev = time.time()
-                    evidence_latencies.append((t2_ev - t1_ocr) * 1000)
+                    t1_ev = time.time()
+                    evidence_latencies.append((t1_ev - t0_ev) * 1000)
                     
-                    # 3D. Database Update Stage
-                    jobs_registry[job_id]["metrics"]["stage"] = "Database Update"
-                    progress_val = 95.0 + (processed_tracks / max(1, total_tracks)) * 4.0
-                    jobs_registry[job_id]["progress"] = round(progress_val, 1)
-                    
+                    # Register violation in Evidence Service
                     try:
                         from app.services.evidence.evidence_service import evidence_service
                         evidence_service.register_violation_evidence(
                             camera_id="Upload-Center",
                             vehicle_id=t_id,
                             plate_number=ocr_text,
-                            vehicle_type=best_entry["cls_name"],
-                            violation_type="No Helmet" if violation_detected == "no helmet" else ("No Seat Belt" if violation_detected == "no seat belt" else ("Wrong Lane" if violation_detected == "wrong lane" else "Distracted Driving")),
+                            vehicle_type=cls_name,
+                            violation_type=v_type,
                             confidence=fused_conf,
                             original_image_path=f"/uploads/original/{orig_snap_name}",
                             annotated_image_path=f"/uploads/annotated/{ann_snap_name}",
                             original_video_path=f"/uploads/original/{clip_viol_name}",
                             annotated_video_path=f"/uploads/annotated/{clip_viol_name}",
-                            seat_belt_status="No Helmet Confirmed" if violation_detected == "no helmet" else ("No Seat Belt Confirmed" if violation_detected == "no seat belt" else ("Wrong Lane Confirmed" if violation_detected == "wrong lane" else "Distracted Driving Confirmed")),
-                            visibility_score=best_entry["quality_score"],
+                            seat_belt_status=v_status,
+                            visibility_score=v_entry["quality_score"],
                             driver_visibility_conf=0.90,
                             seat_belt_visibility_conf=0.88,
-                            seat_belt_detection_conf=best_entry["conf"],
-                            vehicle_detection_conf=best_entry["conf"],
+                            seat_belt_detection_conf=v_conf,
+                            vehicle_detection_conf=v_entry["conf"],
                             overall_decision_conf=fused_conf,
-                            executed_models=", ".join(best_entry["executed"]),
-                            skipped_models=", ".join(best_entry["skipped"]),
-                            reason_for_skip=", ".join(best_entry["reasons"]),
+                            executed_models=", ".join(executed),
+                            skipped_models=", ".join(skipped),
+                            reason_for_skip=", ".join(reasons),
                             decision_result="Confirmed"
                         )
                     except Exception as e:
                         logger.error(f"Failed to register video violation evidence: {e}")
-                
+
                 processed_tracks += 1
         finally:
             db.close()

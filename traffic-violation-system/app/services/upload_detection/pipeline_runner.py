@@ -102,38 +102,16 @@ class PipelineRunner:
                 # Number Plate + OCR check for all vehicles
                 try:
                     plates = plate_detector.detect_plates(crop)
-                    if not plates:
-                        # Robust fallback: default to a license plate box ONLY for cars and motorcycles
-                        if cls_name in {"car", "motorcycle"}:
-                            from app.services.ocr.ocr_engine import ocr_engine
-                            seed_id = (int(x1 + y1) // 30) * 30
-                            ocr_res = ocr_engine.extract_text(None, seed_id)
-                            ocr_text = ocr_res["plate_number"]
-                            
-                            if cls_name == "motorcycle":
-                                pbx = [
-                                    int((x2 - x1) * 0.08),
-                                    int((y2 - y1) * 0.65),
-                                    int((x2 - x1) * 0.22),
-                                    int((y2 - y1) * 0.8)
-                                ]
-                            else:
-                                pbx = [
-                                    int((x2 - x1) * 0.35),
-                                    int((y2 - y1) * 0.7),
-                                    int((x2 - x1) * 0.65),
-                                    int((y2 - y1) * 0.9)
-                                ]
-                                
-                            results.append({
-                                "label": f"license plate ({ocr_text})",
-                                "bbox": [x1 + pbx[0], y1 + pbx[1], x1 + pbx[2], y1 + pbx[3]],
-                                "confidence": 0.92
-                            })
-                    else:
+                    if plates:
                         for p_det in plates:
                             bx = p_det["bbox"]
-                            plate_crop = crop[bx[1]:bx[3], bx[0]:bx[2]]
+                            pad_y = max(4, int((bx[3] - bx[1]) * 0.12))
+                            pad_x = max(6, int((bx[2] - bx[0]) * 0.12))
+                            py1 = max(0, bx[1] - pad_y)
+                            py2 = min(crop.shape[0], bx[3] + pad_y)
+                            px1 = max(0, bx[0] - pad_x)
+                            px2 = min(crop.shape[1], bx[2] + pad_x)
+                            plate_crop = crop[py1:py2, px1:px2]
                             
                             from app.services.ocr.ocr_engine import ocr_engine
                             seed_id = (int(x1 + y1) // 30) * 30
@@ -143,9 +121,8 @@ class PipelineRunner:
                                 ocr_text = ocr_res["plate_number"]
                                 ocr_conf = ocr_res["confidence"]
                             else:
-                                ocr_res = ocr_engine.extract_text(None, seed_id)
-                                ocr_text = ocr_res["plate_number"]
-                                ocr_conf = ocr_res["confidence"]
+                                ocr_text = "Unreadable"
+                                ocr_conf = 0.50
                                     
                             results.append({
                                 "label": f"license plate ({ocr_text})",
@@ -155,7 +132,7 @@ class PipelineRunner:
                 except Exception as e:
                     logger.debug(f"Plate detection skipped: {e}")
 
-                # Camera Validation & Seat Belt checks
+                # Camera Validation & Seat Belt / Driver Behavior checks
                 is_suitable, reason = PipelineRunner.validate_seat_belt_suitability(cls_name, crop, filename)
                 if not is_suitable:
                     logger.info(f"Seat Belt Status: Not Detectable (Reason: {reason})")
@@ -163,124 +140,98 @@ class PipelineRunner:
                     # Execute seat belt model
                     try:
                         belts = seat_belt_detector.detect_seat_belt(crop)
-                        # We also run driver behavior check to see if driver behavior model reports unbelted
-                        behaviors = behavior_detector.detect_behavior(crop)
-                        
-                        has_violation = False
-                        viol_box = None
-                        viol_conf = 0.0
-                        
                         for b_det in belts:
                             # Class ID 1 means "no seat belt"
-                            if b_det["class_id"] == 1 and b_det["confidence"] >= 0.70:
-                                has_violation = True
+                            if b_det["class_id"] == 1 and b_det["confidence"] >= 0.35:
                                 viol_box = b_det["bbox"]
-                                viol_conf = b_det["confidence"]
+                                results.append({
+                                    "label": "no seat belt",
+                                    "bbox": [x1 + viol_box[0], y1 + viol_box[1], x1 + viol_box[2], y1 + viol_box[3]],
+                                    "confidence": b_det["confidence"]
+                                })
                                 break
-                                
-                        for b_det in behaviors:
-                            # Class ID 2 means "no seat belt"
-                            if b_det["class_id"] == 2 and b_det["confidence"] >= 0.70:
-                                has_violation = True
-                                viol_box = b_det["bbox"]
-                                viol_conf = b_det["confidence"]
-                                break
-                                
-                        if has_violation and viol_box:
-                            results.append({
-                                "label": "no seat belt",
-                                "bbox": [x1 + viol_box[0], y1 + viol_box[1], x1 + viol_box[2], y1 + viol_box[3]],
-                                "confidence": viol_conf
-                            })
-                        else:
-                            logger.info("Seat Belt Status: Not Detectable (Reason: Driver not visible or wearing seatbelt)")
                     except Exception as e:
                         logger.debug(f"Seatbelt pipeline execution skipped: {e}")
+
+                    # Execute driver behavior model (phone usage and smoking)
+                    try:
+                        behaviors = behavior_detector.detect_behavior(crop)
+                        for b_det in behaviors:
+                            # Class ID 1 means phone / distracted driving
+                            if b_det["class_id"] == 1 and b_det["confidence"] >= 0.35:
+                                viol_box = b_det["bbox"]
+                                results.append({
+                                    "label": "phone",
+                                    "bbox": [x1 + viol_box[0], y1 + viol_box[1], x1 + viol_box[2], y1 + viol_box[3]],
+                                    "confidence": b_det["confidence"]
+                                })
+                            # Class ID 0 means cigarette / smoking
+                            elif b_det["class_id"] == 0 and b_det["confidence"] >= 0.40:
+                                viol_box = b_det["bbox"]
+                                results.append({
+                                    "label": "smoking",
+                                    "bbox": [x1 + viol_box[0], y1 + viol_box[1], x1 + viol_box[2], y1 + viol_box[3]],
+                                    "confidence": b_det["confidence"]
+                                })
+                    except Exception as e:
+                        logger.debug(f"Behavior pipeline execution skipped: {e}")
 
         except Exception as e:
             logger.error(f"Error in PipelineRunner execution: {e}")
             
+        # If no vehicles were detected by YOLO, scan the full frame directly for in-cabin / close-up cameras
         if not results and frame is not None:
-            filename_lower = filename.lower() if filename else ""
             h, w, _ = frame.shape
-            veh_box = [int(w * 0.1), int(h * 0.1), int(w * 0.9), int(h * 0.9)]
-            
-            if "helmet" in filename_lower or "motorcycle" in filename_lower or "bike" in filename_lower:
-                results.append({
-                    "label": "motorcycle",
-                    "bbox": veh_box,
-                    "confidence": 0.89
-                })
-                results.append({
-                    "label": "no helmet",
-                    "bbox": [int(w * 0.3), int(h * 0.15), int(w * 0.7), int(h * 0.5)],
-                    "confidence": 0.88
-                })
-                results.append({
-                    "label": "license plate (PB10AB1234)",
-                    "bbox": [int(w * 0.2), int(h * 0.7), int(w * 0.4), int(h * 0.85)],
-                    "confidence": 0.92
-                })
-            elif "light" in filename_lower or "red" in filename_lower:
-                results.append({
+            # Try direct seatbelt detection on full frame
+            try:
+                direct_belts = seat_belt_detector.detect_seat_belt(frame)
+                for b_det in direct_belts:
+                    if b_det["class_id"] == 1 and b_det["confidence"] >= 0.35:
+                        results.append({
+                            "label": "no seat belt",
+                            "bbox": b_det["bbox"],
+                            "confidence": b_det["confidence"]
+                        })
+            except Exception:
+                pass
+
+            # Try direct behavior detection on full frame
+            try:
+                direct_behaviors = behavior_detector.detect_behavior(frame)
+                for b_det in direct_behaviors:
+                    if b_det["class_id"] == 1 and b_det["confidence"] >= 0.35:
+                        results.append({
+                            "label": "phone",
+                            "bbox": b_det["bbox"],
+                            "confidence": b_det["confidence"]
+                        })
+                    elif b_det["class_id"] == 0 and b_det["confidence"] >= 0.40:
+                        results.append({
+                            "label": "smoking",
+                            "bbox": b_det["bbox"],
+                            "confidence": b_det["confidence"]
+                        })
+            except Exception:
+                pass
+
+            # Try direct helmet detection on full frame
+            try:
+                direct_helmets = helmet_detector.detect_helmets(frame)
+                for h_det in direct_helmets:
+                    results.append({
+                        "label": h_det["helmet_status"],
+                        "bbox": h_det["bbox"],
+                        "confidence": h_det["confidence"]
+                    })
+            except Exception:
+                pass
+
+            # If any violation or person was detected in-cabin, add virtual car label
+            if results:
+                results.insert(0, {
                     "label": "car",
-                    "bbox": veh_box,
-                    "confidence": 0.92
+                    "bbox": [0, 0, w, h],
+                    "confidence": 0.90
                 })
-                results.append({
-                    "label": "license plate (DL01CA9999)",
-                    "bbox": [int(w * 0.4), int(h * 0.75), int(w * 0.6), int(h * 0.9)],
-                    "confidence": 0.91
-                })
-            elif "seatbelt" in filename_lower or "seat_belt" in filename_lower:
-                results.append({
-                    "label": "car",
-                    "bbox": veh_box,
-                    "confidence": 0.91
-                })
-                results.append({
-                    "label": "no seat belt",
-                    "bbox": [int(w * 0.3), int(h * 0.25), int(w * 0.7), int(h * 0.65)],
-                    "confidence": 0.85
-                })
-                results.append({
-                    "label": "license plate (MH12DE1432)",
-                    "bbox": [int(w * 0.4), int(h * 0.75), int(w * 0.6), int(h * 0.9)],
-                    "confidence": 0.92
-                })
-            else:
-                if "bus" in filename_lower:
-                    results.append({
-                        "label": "bus",
-                        "bbox": veh_box,
-                        "confidence": 0.92
-                    })
-                    results.append({
-                        "label": "license plate (UP10CS9826)",
-                        "bbox": [int(w * 0.4), int(h * 0.75), int(w * 0.6), int(h * 0.9)],
-                        "confidence": 0.90
-                    })
-                elif "truck" in filename_lower or "container" in filename_lower:
-                    results.append({
-                        "label": "truck",
-                        "bbox": veh_box,
-                        "confidence": 0.93
-                    })
-                    results.append({
-                        "label": "license plate (KA03SC6991)",
-                        "bbox": [int(w * 0.4), int(h * 0.75), int(w * 0.6), int(h * 0.9)],
-                        "confidence": 0.91
-                    })
-                else:
-                    results.append({
-                        "label": "car",
-                        "bbox": veh_box,
-                        "confidence": 0.91
-                    })
-                    results.append({
-                        "label": "license plate (MH12DE1432)",
-                        "bbox": [int(w * 0.4), int(h * 0.75), int(w * 0.6), int(h * 0.9)],
-                        "confidence": 0.92
-                    })
                     
         return results

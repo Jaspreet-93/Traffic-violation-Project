@@ -150,8 +150,8 @@ class ViolationDecisionEngine:
         # 3. Confidence threshold check
         if hel_res:
             conf = hel_res.get("confidence", 0.0)
-            if conf < 0.80:
-                return False, "Unable to Verify", "Helmet detection confidence below 80%", 0.50, 0.55, 0.45
+            if conf < 0.40:
+                return False, "Unable to Verify", "Helmet detection confidence below 40%", 0.50, 0.55, 0.45
 
         rider_visibility_conf = round(min(0.98, max(0.50, (brightness / 140.0) * 0.92)), 2)
         helmet_visibility_conf = round(min(0.96, max(0.45, (contrast / 75.0) * 0.94)), 2)
@@ -323,11 +323,11 @@ class ViolationDecisionEngine:
                         consistency_score * 0.10
                     )
                     
-                    if rule_engine.check_helmet_violation(status) and overall_conf >= 0.75:
+                    if rule_engine.check_helmet_violation(status) and overall_conf >= 0.55:
                         self.vehicle_frame_history[vehicle_id].append({
                             "type": "No Helmet",
                             "confidence": overall_conf,
-                            "plate_number": plate_number if plate_number != "Plate Not Visible" else "PB10AB1234",
+                            "plate_number": plate_number if plate_number != "Plate Not Visible" else f"IND-P{vehicle_id:04d}",
                             "executed": executed,
                             "skipped": skipped,
                             "reasons": reasons,
@@ -367,11 +367,11 @@ class ViolationDecisionEngine:
                         consistency_score * 0.10
                     )
                     
-                    if rule_engine.check_seat_belt_violation(status) and overall_conf >= 0.70:
+                    if rule_engine.check_seat_belt_violation(status) and overall_conf >= 0.55:
                         self.vehicle_frame_history[vehicle_id].append({
                             "type": "No Seatbelt",
                             "confidence": overall_conf,
-                            "plate_number": plate_number if plate_number != "Plate Not Visible" else "MH12DE1432",
+                            "plate_number": plate_number if plate_number != "Plate Not Visible" else f"IND-P{vehicle_id:04d}",
                             "executed": executed,
                             "skipped": skipped,
                             "reasons": reasons,
@@ -396,12 +396,12 @@ class ViolationDecisionEngine:
                     decision_conf = 0.90
                     overall_conf = (detect_conf + track_conf + model_conf + decision_conf) / 4.0
                     
-                    if rule_engine.check_behavior_violation(status) and overall_conf >= 0.75:
+                    if rule_engine.check_behavior_violation(status) and overall_conf >= 0.55:
                         violation_label = "Phone Usage" if status == "phone" else "Smoking"
                         self.vehicle_frame_history[vehicle_id].append({
                             "type": violation_label,
                             "confidence": overall_conf,
-                            "plate_number": plate_number if plate_number != "Plate Not Visible" else "MH12DE1432",
+                            "plate_number": plate_number if plate_number != "Plate Not Visible" else f"IND-P{vehicle_id:04d}",
                             "executed": executed,
                             "skipped": skipped,
                             "reasons": reasons
@@ -411,11 +411,11 @@ class ViolationDecisionEngine:
             if "TrafficLight-Detector" in executed and traffic_light_service.get_status() and rule_engine.check_red_light_violation(tl_state):
                 track_conf = track.get("conf", 0.90)
                 overall_conf = (track_conf + 0.95 + 0.90 + 0.92) / 4.0
-                if overall_conf >= 0.75:
+                if overall_conf >= 0.55:
                     self.vehicle_frame_history[vehicle_id].append({
                         "type": "Red Light Violation",
                         "confidence": overall_conf,
-                        "plate_number": plate_number if plate_number != "Plate Not Visible" else "DL01CA9999",
+                        "plate_number": plate_number if plate_number != "Plate Not Visible" else f"IND-P{vehicle_id:04d}",
                         "executed": executed,
                         "skipped": skipped,
                         "reasons": reasons
@@ -425,10 +425,7 @@ class ViolationDecisionEngine:
             history = self.vehicle_frame_history[vehicle_id]
             for v_type in ["No Helmet", "No Seatbelt", "Phone Usage", "Smoking", "Red Light Violation"]:
                 matching_detections = [item for item in history if item["type"] == v_type]
-                # In single image upload, length will be 1, so we bypass multi-frame requirement if frame history length is small
-                is_video = len(history) > 1 or getattr(bytetrack_tracker, "latest_tracks", None) != []
-                threshold = 3 if is_video and len(history) >= 3 else 1
-                
+                threshold = 1
                 if len(matching_detections) >= threshold:
                     # Pick the best frame (highest confidence)
                     best_match = max(matching_detections, key=lambda x: x["confidence"])

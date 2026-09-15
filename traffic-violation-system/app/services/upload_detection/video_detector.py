@@ -211,6 +211,8 @@ class VideoDetector:
 
         # Reset tracker internal state and track manager to avoid state corruption between videos
         yolo_detector.reset_tracker()
+        from app.services.ocr.ocr_engine import ocr_engine
+        ocr_engine.clear_cache()
         track_manager.tracks.clear()
         track_manager.total_vehicles_tracked = 0
         track_manager.id_switch_count = 0
@@ -518,7 +520,7 @@ class VideoDetector:
                     history_list,
                     key=lambda e: (e["box"][2] - e["box"][0]) * (e["box"][3] - e["box"][1]) * (0.6 + 0.4 * e["quality_score"]),
                     reverse=True
-                )[:8]
+                )[:4]
                 
                 best_entry = candidate_frames[0] if candidate_frames else history_list[0]
                 cls_name = best_entry["cls_name"]
@@ -535,7 +537,9 @@ class VideoDetector:
                 from app.services.ocr.ocr_engine import ocr_engine
                 from app.services.accuracy.accuracy_optimizer import accuracy_optimizer
 
-                for cand_entry in candidate_frames:
+                # High-speed OCR: evaluate top 2 frames with immediate early-exit on match
+                ocr_candidate_frames = candidate_frames[:2]
+                for cand_entry in ocr_candidate_frames:
                     cf_box = cand_entry["box"]
                     cf_frame = cand_entry["frame_copy"]
                     cf_crop = cf_frame[cf_box[1]:cf_box[3], cf_box[0]:cf_box[2]]
@@ -579,6 +583,11 @@ class VideoDetector:
                                     "plate_box": abs_p_box,
                                     "frame_entry": cand_entry
                                 })
+                                break # Stop plate loop once valid plate is found for this candidate frame
+                    
+                    if plate_candidates:
+                        # Stop candidate frames loop once plate is found
+                        break
 
                 if plate_candidates:
                     best_cand = max(plate_candidates, key=lambda c: c["score"])

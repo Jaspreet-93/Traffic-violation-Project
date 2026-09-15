@@ -81,12 +81,13 @@ class YoloDetector:
 
     def reset_tracker(self):
         """
-        Resets Ultralytics tracker internal states and Kalman history between video files.
+        Resets Ultralytics tracker internal states and Kalman history between video files safely.
+        Setting model.predictor = None causes Ultralytics to re-initialize a fresh
+        tracker without leaving trackers = None, which breaks subscript indexing.
         """
         try:
-            if hasattr(self.model, "predictor") and self.model.predictor is not None:
-                if hasattr(self.model.predictor, "trackers"):
-                    self.model.predictor.trackers = None
+            if hasattr(self, "model") and self.model is not None:
+                self.model.predictor = None
         except Exception as e:
             logger.debug(f"Reset tracker error: {e}")
 
@@ -161,7 +162,12 @@ class YoloDetector:
                 device=device
             )
         except Exception as e:
-            logger.warning(f"Tracker error: {e}, falling back to predict")
+            logger.warning(f"Tracker error: {e}, resetting predictor and falling back to predict")
+            try:
+                if hasattr(self, "model") and self.model is not None:
+                    self.model.predictor = None
+            except Exception:
+                pass
             results = self.model(
                 frame,
                 conf=0.28,

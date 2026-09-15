@@ -122,7 +122,7 @@ class VideoDetector:
             try:
                 yolo_detector.load_model()
                 mid_frame = sample_frames[1]
-                vehicles = yolo_detector.predict_vehicles(mid_frame)
+                vehicles = yolo_detector.detect_vehicles_static(mid_frame)
                 vehicle_count = len(vehicles)
                 if vehicle_count == 0:
                     traffic_density = "empty"
@@ -190,9 +190,24 @@ class VideoDetector:
     def _process_video_worker(cls, filepath: str, job_id: str):
         start_time = time.time()
         file_name = os.path.basename(filepath)
+        uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
+        orig_dir = os.path.join(uploads_dir, "original")
+        ann_dir = os.path.join(uploads_dir, "annotated")
+        thumb_dir = os.path.join(uploads_dir, "thumbnails")
+        os.makedirs(orig_dir, exist_ok=True)
+        os.makedirs(ann_dir, exist_ok=True)
+        os.makedirs(thumb_dir, exist_ok=True)
+
+        canonical_orig_path = os.path.join(orig_dir, file_name)
+        if not os.path.exists(canonical_orig_path) and os.path.exists(filepath):
+            try:
+                import shutil
+                shutil.copy2(filepath, canonical_orig_path)
+            except Exception:
+                pass
+
         out_name = f"processed_{file_name}"
-        out_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", out_name))
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        out_path = os.path.join(ann_dir, out_name)
 
         # Reset tracker internal state and track manager to avoid state corruption between videos
         yolo_detector.reset_tracker()
@@ -219,8 +234,7 @@ class VideoDetector:
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         ret_thumb, thumb_frame = cap.read()
         if ret_thumb and thumb_frame is not None:
-            thumb_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "thumbnails", f"thumbnail_{os.path.splitext(file_name)[0]}.jpg"))
-            os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+            thumb_path = os.path.join(thumb_dir, f"thumbnail_{os.path.splitext(file_name)[0]}.jpg")
             try:
                 thumb_resized = cv2.resize(thumb_frame, (320, 240))
                 cv2.imwrite(thumb_path, thumb_resized)
@@ -390,6 +404,7 @@ class VideoDetector:
             jobs_registry[job_id]["status"] = "Failed"
             jobs_registry[job_id]["error_message"] = str(e)
             UploadService.update_history_status(job_id, "Failed", f"Inference failure: {str(e)[:120]}")
+            yolo_detector.reset_tracker()
             return
         finally:
             cap.release()
@@ -848,10 +863,8 @@ class VideoDetector:
                     orig_snap_name = f"snapshot_{job_id}_v{t_id}_{v_slug}_f{snap_frame_idx}.jpg"
                     ann_snap_name = f"processed_snapshot_{job_id}_v{t_id}_{v_slug}_f{snap_frame_idx}.jpg"
                     
-                    orig_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", orig_snap_name))
-                    ann_snap_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", ann_snap_name))
-                    os.makedirs(os.path.dirname(orig_snap_path), exist_ok=True)
-                    os.makedirs(os.path.dirname(ann_snap_path), exist_ok=True)
+                    orig_snap_path = os.path.join(orig_dir, orig_snap_name)
+                    ann_snap_path = os.path.join(ann_dir, ann_snap_name)
                     
                     cv2.imwrite(orig_snap_path, v_entry["frame_copy"])
                     
@@ -870,10 +883,8 @@ class VideoDetector:
                     
                     # Save video clip
                     clip_viol_name = f"clip_viol_{job_id}_v{t_id}_{v_slug}.mp4"
-                    clip_viol_orig_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "original", clip_viol_name))
-                    clip_viol_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", clip_viol_name))
-                    os.makedirs(os.path.dirname(clip_viol_orig_path), exist_ok=True)
-                    os.makedirs(os.path.dirname(clip_viol_path), exist_ok=True)
+                    clip_viol_orig_path = os.path.join(orig_dir, clip_viol_name)
+                    clip_viol_path = os.path.join(ann_dir, clip_viol_name)
                     
                     overlay_info = {
                         "violation": v_type,
@@ -971,6 +982,7 @@ class VideoDetector:
         from app.services.upload_detection.result_generator import ResultGenerator
         ResultGenerator.save_job_result(job_id, result_dict)
         UploadService.add_history_entry(job_id, file_name, "video", "Completed", summary_text)
+        yolo_detector.reset_tracker()
 
     @classmethod
     def _extract_violation_clips(cls, original_video_path: str, start_frame: int, end_frame: int, orig_clip_path: str, ann_clip_path: str, overlay_info: dict, fps: float):

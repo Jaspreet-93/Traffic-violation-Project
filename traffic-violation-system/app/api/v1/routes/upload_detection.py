@@ -62,7 +62,7 @@ async def upload_image(file: UploadFile = File(...)):
     except Exception as e:
         UploadService.add_history_entry(job_id, os.path.basename(filepath), "image", "Failed", str(e))
         raise HTTPException(
-            status_code=status.HTTP_550_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Inference execution failure: {str(e)}"
         )
 

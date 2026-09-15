@@ -2,6 +2,9 @@
 
 An advanced, real-time traffic monitoring, AI-powered violation detection, and administrative management ecosystem. This project combines computer vision (YOLO, custom classifiers) with a responsive admin console to detect, log, and alert officers about traffic infractions (such as speeding, red-light jumping, helmet violations, seatbelt non-compliance, and lane crossings).
 
+> [!NOTE]
+> **Latest Updates (v2.4.0)**: One-click cross-platform setup scripts (`setup.bat`, `start.bat`, `setup.sh`, `start.sh`), ByteTrack video pipeline stabilization (0 optical flow crashes), bundled test media in `traffic-violation-system/samples/`, and full multi-violation UI breakdown. See [CHANGELOG.md](file:///c:/Users/Jaspreet/OneDrive/Desktop/Traffic%20violation%20Project/CHANGELOG.md) for full details.
+
 ---
 
 ## 📌 Project Overview & Architecture

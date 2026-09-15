@@ -105,9 +105,22 @@ Traffic-violation-Project/
 * **Node.js**: `18.0` or higher
 * **Git**
 
+### ⚡ One-Click Quick Start (Recommended)
+
+#### On Windows:
+1. Double-click or run **`setup.bat`** in PowerShell/CMD (creates venv, installs Python & npm packages, sets up directories and `.env`).
+2. Run **`start.bat`** (automatically boots FastAPI on `:8000`, Vite on `:3000`, and opens your browser).
+
+#### On Linux / macOS:
+```bash
+chmod +x setup.sh start.sh
+./setup.sh
+./start.sh
+```
+
 ---
 
-### Step 1: Clone the Repository
+### Step 1: Manual Setup (Alternative)
 ```bash
 git clone https://github.com/Jaspreet-93/Traffic-violation-Project.git
 cd Traffic-violation-Project

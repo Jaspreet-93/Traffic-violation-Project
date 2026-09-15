@@ -37,9 +37,16 @@ Desktop.ini
 runs/
 *.cache
 **/training/cache/
-# Ignore all uploads and reports media
-/traffic-violation-system/uploads/
-/traffic-violation-system/reports/
-/traffic-violation-system/storage/
-/traffic-violation-system/outputs/
+# Ignore all runtime generated uploads and reports media but preserve directory structure
+/traffic-violation-system/uploads/*
+!/traffic-violation-system/uploads/**/.gitkeep
+/traffic-violation-system/reports/*
+!/traffic-violation-system/reports/**/.gitkeep
+/traffic-violation-system/storage/*
+!/traffic-violation-system/storage/**/.gitkeep
+/traffic-violation-system/outputs/*
+!/traffic-violation-system/outputs/**/.gitkeep
+/traffic-violation-system/logs/*
+!/traffic-violation-system/logs/**/.gitkeep
+
 

@@ -1,5 +1,68 @@
 [
   {
+    "job_id": "d6e2cbd0-abc2-4b3d-bfaf-0542e5bb1708",
+    "upload_date": "2026-09-15 11:06:06",
+    "filename": "Helmet video 1_6dccde14.mp4",
+    "file_type": "video",
+    "status": "Failed",
+    "summary_text": "Inference failure: OpenCV(4.11.0) D:\\a\\opencv-python\\opencv-python\\opencv\\modules\\video\\src\\lkpyramid.cpp:1415: error: (-215:Assertion fail",
+    "result_link": "/api/v1/upload/result/d6e2cbd0-abc2-4b3d-bfaf-0542e5bb1708"
+  },
+  {
+    "job_id": "e7836092-1018-43c5-acea-932fe3f5c61b",
+    "upload_date": "2026-09-15 11:04:27",
+    "filename": "Helmet video 1_8f0f7041.mp4",
+    "file_type": "video",
+    "status": "Failed",
+    "summary_text": "Inference failure: OpenCV(4.11.0) D:\\a\\opencv-python\\opencv-python\\opencv\\modules\\video\\src\\lkpyramid.cpp:1415: error: (-215:Assertion fail",
+    "result_link": "/api/v1/upload/result/e7836092-1018-43c5-acea-932fe3f5c61b"
+  },
+  {
+    "job_id": "7956170d-54be-4548-ba15-6418d0cfa8c9",
+    "upload_date": "2026-09-15 11:04:10",
+    "filename": "Helmet video 1_12f61b9c.mp4",
+    "file_type": "video",
+    "status": "Failed",
+    "summary_text": "Inference failure: OpenCV(4.11.0) D:\\a\\opencv-python\\opencv-python\\opencv\\modules\\video\\src\\lkpyramid.cpp:1415: error: (-215:Assertion fail",
+    "result_link": "/api/v1/upload/result/7956170d-54be-4548-ba15-6418d0cfa8c9"
+  },
+  {
+    "job_id": "test_verify_run_02",
+    "upload_date": "2026-09-15 11:17:59",
+    "filename": "Helmet video 1_1f6f61a4.mp4",
+    "file_type": "video",
+    "status": "Completed",
+    "summary_text": "Analyzed 147 frames. Processed 28 frames, skipped 119. Confirmed 4 violations.",
+    "result_link": "/api/v1/upload/result/test_verify_run_02"
+  },
+  {
+    "job_id": "728614a3-33af-4d5d-ba33-7d1d36a8c038",
+    "upload_date": "2026-09-15 10:59:11",
+    "filename": "violation images_666e7436.jpeg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 1 violations in 0.38 seconds.",
+    "result_link": "/api/v1/upload/result/728614a3-33af-4d5d-ba33-7d1d36a8c038"
+  },
+  {
+    "job_id": "82b743e1-12a3-40a2-8a86-98651d48ab3c",
+    "upload_date": "2026-09-15 10:46:48",
+    "filename": "violation images_a9c84190.jpeg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 1 violations in 0.50 seconds.",
+    "result_link": "/api/v1/upload/result/82b743e1-12a3-40a2-8a86-98651d48ab3c"
+  },
+  {
+    "job_id": "9201e80b-68fa-4b23-9ac5-c1b16b47aee6",
+    "upload_date": "2026-09-15 10:46:08",
+    "filename": "violation images_5c152805.jpeg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 1 violations in 7.29 seconds.",
+    "result_link": "/api/v1/upload/result/9201e80b-68fa-4b23-9ac5-c1b16b47aee6"
+  },
+  {
     "job_id": "cfcb1997-9798-43d1-9f2f-46b0bea9b66f",
     "upload_date": "2026-09-14 22:02:13",
     "filename": "Helmet video 1_92e3e8f6.mp4",

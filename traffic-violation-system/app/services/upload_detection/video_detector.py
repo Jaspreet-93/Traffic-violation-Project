@@ -1,5 +1,6 @@
 # Video processing pipeline and sub-model optimization
 import os
+import re
 import time
 import cv2
 import threading
@@ -193,7 +194,8 @@ class VideoDetector:
         out_path = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "annotated", out_name))
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-        # Clear track manager database to avoid ID collisions or memory growth
+        # Reset tracker internal state and track manager to avoid state corruption between videos
+        yolo_detector.reset_tracker()
         track_manager.tracks.clear()
         track_manager.total_vehicles_tracked = 0
         track_manager.id_switch_count = 0
@@ -241,7 +243,7 @@ class VideoDetector:
 
         base_step = max(1, min(base_step, total_frames // 2))
 
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
 
         vehicle_tracks_history: Dict[int, List[dict]] = {}
@@ -580,6 +582,15 @@ class VideoDetector:
                 t1_ocr = time.time()
                 ocr_latencies.append((t1_ocr - t0_ocr) * 1000)
 
+                if ocr_text:
+                    p_label = f"license plate ({ocr_text}) (Vehicle {t_id})"
+                    if not any(d.get("label") == p_label for d in all_detections):
+                        all_detections.append({
+                            "label": p_label,
+                            "bbox": plate_box if plate_box else bx,
+                            "confidence": ocr_conf
+                        })
+
                 # --- Multi-Frame & Multi-Violation Detection ---
                 executed = ["YOLOv8-Vehicle", "ByteTrack-Tracker", "OCR-Plate-Reader"]
                 skipped = ["TrafficLight-Detector", "Speed-Estimator", "StopLine-Detector"]
@@ -797,6 +808,14 @@ class VideoDetector:
                     fused_conf = round(max(fused_conf, v_conf), 2)
                     confidences_list.append(fused_conf)
                     
+                    # Append confirmed violation to all_detections for UI objects panel
+                    viol_box = v_sub_box if v_sub_box else v_entry["box"]
+                    all_detections.append({
+                        "label": f"{v_type} (Vehicle {t_id})",
+                        "bbox": viol_box,
+                        "confidence": v_conf
+                    })
+                    
                     # Directories
                     storage_root = os.path.abspath(os.path.join(os.path.dirname(filepath), "..", "..", "storage"))
                     v_dir = os.path.join(storage_root, "vehicle")
@@ -967,7 +986,7 @@ class VideoDetector:
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
         
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_orig = cv2.VideoWriter(orig_clip_path, fourcc, fps, (width, height))
         out_ann = cv2.VideoWriter(ann_clip_path, fourcc, fps, (width, height))
         

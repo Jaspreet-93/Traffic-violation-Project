@@ -22,19 +22,12 @@ class PipelineRunner:
             return False, "Not a suitable passenger vehicle"
 
         h, w, _ = crop.shape
-        if w < 100 or h < 100:
+        if w < 40 or h < 40:
             return False, "Insufficient view (Far distance / Low resolution)"
 
         aspect_ratio = w / h
-        if aspect_ratio > 1.5 or aspect_ratio < 0.65:
-            return False, "Insufficient view (Side view / Angle not suitable)"
-
-        fn_lower = filename.lower() if filename else ""
-        if any(k in fn_lower for k in ["rear", "back", "side", "truck", "bus", "moto", "bike"]):
-            return False, "Insufficient view (Rear/Side view or incompatible vehicle type)"
-
-        if "night" in fn_lower or "rain" in fn_lower:
-            return False, "Insufficient view (Low lighting / Rain occlusion)"
+        if aspect_ratio > 3.2 or aspect_ratio < 0.35:
+            return False, "Insufficient view (Angle not suitable)"
 
         return True, "Valid windshield/cabin view"
 

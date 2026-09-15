@@ -79,9 +79,56 @@ class YoloDetector:
         
         return inter_area / union_area if union_area > 0 else 0.0
 
+    def reset_tracker(self):
+        """
+        Resets Ultralytics tracker internal states and Kalman history between video files.
+        """
+        try:
+            if hasattr(self.model, "predictor") and self.model.predictor is not None:
+                if hasattr(self.model.predictor, "trackers"):
+                    self.model.predictor.trackers = None
+        except Exception as e:
+            logger.debug(f"Reset tracker error: {e}")
+
+    def detect_vehicles_static(self, frame: np.ndarray) -> List[Dict[str, Any]]:
+        """
+        Pure detection on static frame without initializing tracker or Kalman filters.
+        """
+        self.load_model()
+        if self.model is None or frame is None:
+            return []
+        h, w, _ = frame.shape
+        device = 0 if torch.cuda.is_available() else "cpu"
+        half = torch.cuda.is_available()
+        imgsz = 640
+        try:
+            results = self.model(frame, conf=0.28, iou=0.50, half=half, imgsz=imgsz, verbose=False, device=device)
+        except Exception as e:
+            logger.warning(f"Static vehicle detection error: {e}")
+            return []
+        detections = []
+        for result in results:
+            boxes = result.boxes
+            if boxes is None:
+                continue
+            for idx, box in enumerate(boxes):
+                cls_id = int(box.cls[0].item())
+                if cls_id in [1, 2, 3, 5, 7]:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    x1, y1 = max(0, x1), max(0, y1)
+                    x2, y2 = min(w, x2), min(h, y2)
+                    conf = float(box.conf[0].item())
+                    detections.append({
+                        "box": [x1, y1, x2, y2],
+                        "class_id": cls_id,
+                        "conf": conf,
+                        "track_id": idx + 1
+                    })
+        return detections
+
     def predict_vehicles_detailed(self, frame: np.ndarray) -> Dict[str, Any]:
         """
-        Runs advanced YOLOv11 tracking/inference with accuracy filters, measurements,
+        Runs advanced YOLO tracking/inference with accuracy filters, measurements,
         and saves vehicle crops. Returns a detailed structured dict.
         """
         start_time = time.time()
@@ -99,12 +146,13 @@ class YoloDetector:
         half = torch.cuda.is_available()
         imgsz = 640
 
-        # Run tracking pipeline
+        # Run tracking pipeline with ByteTrack (Kalman filters, zero OpenCV optical flow crash risk)
         try:
             results = self.model.track(
                 frame,
-                conf=0.45,
-                iou=0.55,
+                conf=0.28,
+                iou=0.50,
+                tracker="bytetrack.yaml",
                 half=half,
                 imgsz=imgsz,
                 augment=False,
@@ -116,8 +164,8 @@ class YoloDetector:
             logger.warning(f"Tracker error: {e}, falling back to predict")
             results = self.model(
                 frame,
-                conf=0.45,
-                iou=0.55,
+                conf=0.28,
+                iou=0.50,
                 half=half,
                 imgsz=imgsz,
                 augment=False,
@@ -230,9 +278,8 @@ class YoloDetector:
 
     def predict_vehicles(self, frame) -> List[Dict[str, Any]]:
         """
-        Backward compatible list return for other violation services.
+        Fast vehicle detection for other services and pipeline runner without tracking side-effects.
         """
-        detailed = self.predict_vehicles_detailed(frame)
-        return detailed["detections"]
+        return self.detect_vehicles_static(frame)
 
 yolo_detector = YoloDetector()

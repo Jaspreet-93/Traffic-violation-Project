@@ -14,7 +14,7 @@ command -v node >/dev/null 2>&1 || { echo "[ERROR] Node.js is not installed."; e
 echo "[OK] Node.js detected."
 
 # 3. Virtual Environment
-if [ ! -d "traffic-violation-system/venv" ]; then
+if [ ! -f "traffic-violation-system/venv/bin/activate" ]; then
     echo "[*] Creating virtual environment..."
     python3 -m venv traffic-violation-system/venv
 fi

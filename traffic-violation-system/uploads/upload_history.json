@@ -1,5 +1,77 @@
 [
   {
+    "job_id": "6812c5c9-98a5-4ac1-af05-412dfff446b5",
+    "upload_date": "2026-11-19 01:36:56",
+    "filename": "test_surveillance_7ab3013a.avi",
+    "file_type": "video",
+    "status": "Processing",
+    "summary_text": "Worker initialized.",
+    "result_link": "/api/v1/upload/result/6812c5c9-98a5-4ac1-af05-412dfff446b5"
+  },
+  {
+    "job_id": "0b44be93-ec47-4ffa-8f18-673d118f2df8",
+    "upload_date": "2026-11-19 01:36:55",
+    "filename": "snapshot_3d383f89.jpg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 0 vehicles and 0 violations in 7.66 seconds.",
+    "result_link": "/api/v1/upload/result/0b44be93-ec47-4ffa-8f18-673d118f2df8"
+  },
+  {
+    "job_id": "cd908cbe-c4e4-4f38-a4c7-f9184179e479",
+    "upload_date": "2026-11-19 01:30:57",
+    "filename": "test_surveillance_314cd025.avi",
+    "file_type": "video",
+    "status": "Processing",
+    "summary_text": "Worker initialized.",
+    "result_link": "/api/v1/upload/result/cd908cbe-c4e4-4f38-a4c7-f9184179e479"
+  },
+  {
+    "job_id": "3588cb39-15ba-484b-a72f-a4c5739d00c9",
+    "upload_date": "2026-11-19 01:30:57",
+    "filename": "snapshot_b4682f93.jpg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 0 vehicles and 0 violations in 8.96 seconds.",
+    "result_link": "/api/v1/upload/result/3588cb39-15ba-484b-a72f-a4c5739d00c9"
+  },
+  {
+    "job_id": "5779fe2d-4e37-4614-8e6c-778a31dd899e",
+    "upload_date": "2026-09-15 13:43:56",
+    "filename": "Helmet video 1_b0607a49.mp4",
+    "file_type": "video",
+    "status": "Completed",
+    "summary_text": "Analyzed 147 frames. Processed 28 frames, skipped 119. Confirmed 4 violations.",
+    "result_link": "/api/v1/upload/result/5779fe2d-4e37-4614-8e6c-778a31dd899e"
+  },
+  {
+    "job_id": "ccb2038f-eed6-4460-8a18-e6bba0565071",
+    "upload_date": "2026-09-15 13:07:35",
+    "filename": "violation images_5318428e.jpeg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 1 violations in 2.53 seconds.",
+    "result_link": "/api/v1/upload/result/ccb2038f-eed6-4460-8a18-e6bba0565071"
+  },
+  {
+    "job_id": "b6525fad-d9b8-4f07-a5ad-25f57337a05b",
+    "upload_date": "2026-09-15 12:38:31",
+    "filename": "Helmet video 1_a0152e45.mp4",
+    "file_type": "video",
+    "status": "Completed",
+    "summary_text": "Analyzed 147 frames. Processed 28 frames, skipped 119. Confirmed 4 violations.",
+    "result_link": "/api/v1/upload/result/b6525fad-d9b8-4f07-a5ad-25f57337a05b"
+  },
+  {
+    "job_id": "2a032e99-3506-45f6-a67c-1a6699fada7a",
+    "upload_date": "2026-09-15 12:35:50",
+    "filename": "violation images_2cda316d.jpeg",
+    "file_type": "image",
+    "status": "Completed",
+    "summary_text": "Detected 1 vehicles and 1 violations in 10.14 seconds.",
+    "result_link": "/api/v1/upload/result/2a032e99-3506-45f6-a67c-1a6699fada7a"
+  },
+  {
     "job_id": "e416a84f-b411-477e-89ea-cf7ae5d25220",
     "upload_date": "2026-09-15 12:19:39",
     "filename": "Helmet video 1_1ffae31a.mp4",
@@ -52,15 +124,6 @@
     "status": "Completed",
     "summary_text": "Detected 0 vehicles and 0 violations in 0.51 seconds.",
     "result_link": "/api/v1/upload/result/c16f0480-f7aa-4297-baf5-1d7b91355e0a"
-  },
-  {
-    "job_id": "01c936bd-142c-481e-8999-070178ac3b6a",
-    "upload_date": "2026-09-15 12:02:04",
-    "filename": "Helmet video 1_ae33d2a2.mp4",
-    "file_type": "video",
-    "status": "Failed",
-    "summary_text": "Inference failure: 'NoneType' object is not subscriptable",
-    "result_link": "/api/v1/upload/result/01c936bd-142c-481e-8999-070178ac3b6a"
   },
   {
     "job_id": "713476e0-79a7-4cfe-a6e2-0ea2c87defd3",

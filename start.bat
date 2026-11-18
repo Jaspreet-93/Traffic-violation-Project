@@ -6,7 +6,7 @@ echo.
 
 :: 1. Start Backend API Server
 echo [*] Starting FastAPI Backend on port 8000...
-start "Traffic Backend Server" cmd /k "cd traffic-violation-system && call venv\Scripts\activate && python -m uvicorn app.main:app --port 8000"
+start "Traffic Backend Server" cmd /k "cd traffic-violation-system && (if exist venv\Scripts\activate.bat call venv\Scripts\activate.bat) && python -m uvicorn app.main:app --port 8000"
 
 :: 2. Wait 3 seconds for backend initialization
 timeout /t 3 /nobreak >nul

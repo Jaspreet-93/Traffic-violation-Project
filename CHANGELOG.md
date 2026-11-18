@@ -1,12 +1,30 @@
-# ?? Project Changelog & Recent Updates
+# 🚓 Project Changelog & Recent Updates
 
 All notable changes, bug fixes, model upgrades, and setup enhancements for the **Smart Traffic Violation Detection System (AURA Engine)** are documented below.
 
 ---
 
+## [v2.4.1] - 2026-11-19
+
+### 🧪 Automated Testing & Framework Hardening
+- **Comprehensive Test Suite Runner (`run_tests.py`)**:
+  - Implemented standalone root test suite runner supporting all 110 automated test cases across API endpoints, auth flows, evidence locker, tracking managers, and YOLO custom classifiers.
+  - Achieved a 100% pass rate (110 passed, 0 failed, 0 errors).
+- **Pydantic v2 Protected Namespaces Migration**:
+  - Configured `ConfigDict(protected_namespaces=())` across `confidence`, `decision_engine`, `evidence`, `model_verification`, and `statistics` schemas, eliminating all Pydantic v2 namespace conflict warnings.
+- **Cross-Platform Setup & Start Scripts Hardening**:
+  - Upgraded virtual environment checks in `setup.bat`, `start.bat`, `setup.sh`, and `start.sh` to check for `activate.bat`/`activate` binary rather than just directory existence.
+  - Added graceful fallback to system Python if the virtual environment is not isolated.
+- **Seat Belt Suitability & Detection Accuracy**:
+  - Refined `PipelineRunner.validate_seat_belt_suitability` to evaluate vehicle type, distance, resolution, and camera angle.
+- **Evidence Locker Deletion Resilience**:
+  - Hardened `delete_evidence` in `evidence_service.py` to maintain consistent status responses and persistent deletion registry updates even during in-memory fallback transitions.
+
+---
+
 ## [v2.4.0] - 2026-09-15
 
-### ?? Major Highlights & One-Click Setup
+### 🚀 Major Highlights & One-Click Setup
 - **Automated Cross-Platform Setup Scripts**:
   - Added `setup.bat` and `start.bat` for Windows: One-click installation of Python venv, pip requirements, npm packages, directory trees, and dual-server startup.
   - Added `setup.sh` and `start.sh` for Linux/macOS with automated signal trapping and parallel process management.
@@ -22,7 +40,7 @@ All notable changes, bug fixes, model upgrades, and setup enhancements for the *
 
 ---
 
-### ?? Bug Fixes & Video Pipeline Optimization
+### 🛡️ Bug Fixes & Video Pipeline Optimization
 - **Resolved OpenCV `lkpyramid.cpp:1415` Assertion Crash**:
   - **Issue**: Default Ultralytics BoT-SORT tracking invoked OpenCV's Lucas-Kanade optical flow (`calcOpticalFlowPyrLK`), crashing on preprocessed video frames where pyramid dimensions mismatched.
   - **Fix**: Replaced BoT-SORT with pure Kalman-filter **ByteTrack** (`tracker="bytetrack.yaml"`), completely eliminating optical flow crashes and increasing video processing speed by over 2.5x.
@@ -37,13 +55,13 @@ All notable changes, bug fixes, model upgrades, and setup enhancements for the *
 - **Universal Video Codec Compatibility**:
   - Switched video writers from `avc1` to `mp4v`, eliminating OpenH264 DLL missing errors on Windows while providing `openh264-1.8.0-win64.dll` for H.264 support.
 - **Relaxed Overly Rigid Vehicle Suitability Filters**:
-  - Expanded vehicle bounding box minimum size from 100x100 to 40x40 and aspect ratio boundaries to 0.35�3.2, removing keyword-based file rejection.
+  - Expanded vehicle bounding box minimum size from 100x100 to 40x40 and aspect ratio boundaries to 0.35–3.2, removing keyword-based file rejection.
 
 ---
 
 ## [v2.3.0] - 2026-09-14
 
-### ?? License Plate & Multi-Violation Refactor
+### 🔍 License Plate & Multi-Violation Refactor
 - Implemented multi-frame candidate pooling: tracks top 8 highest-quality vehicle frames for OCR extraction.
 - Enhanced EasyOCR with bilateral filtering, CLAHE contrast enhancement, and padding.
 - Enabled simultaneous multi-violation detection per vehicle (e.g., No Helmet + Wrong Lane).

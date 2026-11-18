@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any, Optional
 
 class LiveConfidenceResponse(BaseModel):
@@ -12,6 +12,7 @@ class LiveConfidenceResponse(BaseModel):
     overall_violation: str
 
 class ConfidenceHistoryItem(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     job_id: str
     timestamp: str
     confidence_score: float
@@ -39,10 +40,12 @@ class ChartDataPoint(BaseModel):
     value: float
 
 class ComparisonDataPoint(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_name: str
     value: float
 
 class ConfidenceStatisticsResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     confidence_trend: List[ChartDataPoint]
     average_confidence: float
     model_comparison: List[ComparisonDataPoint]

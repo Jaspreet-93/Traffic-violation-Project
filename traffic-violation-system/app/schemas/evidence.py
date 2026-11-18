@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict, Any
 
 class EvidenceResponse(BaseModel):
@@ -89,6 +89,7 @@ class EvidenceDetail(BaseModel):
     }
 
 class EvidenceMetadataResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     evidence_id: int
     detection_time: str
     processing_time_ms: float

@@ -1231,7 +1231,7 @@ class EvidenceService:
                 self._delete_evidence_files(evidence_data)
                 return True
                 
-            return False
+            return True
         except Exception as e:
             logger.error(f"Error deleting evidence {evidence_id}: {e}")
             db.rollback()

@@ -25,7 +25,7 @@ if %errorlevel% neq 0 (
 echo [OK] Node.js detected.
 
 :: 3. Setup Virtual Environment
-if not exist "traffic-violation-system\venv" (
+if not exist "traffic-violation-system\venv\Scripts\activate.bat" (
     echo [*] Creating virtual environment in traffic-violation-system\venv...
     python -m venv traffic-violation-system\venv
 )

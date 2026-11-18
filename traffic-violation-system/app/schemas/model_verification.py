@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any
 
 class ModelOverviewResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_name: str
     framework: str
     version: str
@@ -13,6 +14,7 @@ class ModelOverviewResponse(BaseModel):
     loaded_models: List[str]
 
 class ModelHealthResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_name: str
     status: str # "Excellent", "Good", "Warning", "Critical"
     load_success: bool

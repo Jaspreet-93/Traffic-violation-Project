@@ -3,7 +3,7 @@
 An advanced, real-time traffic monitoring, AI-powered violation detection, and administrative management ecosystem. This project combines computer vision (YOLO, custom classifiers) with a responsive admin console to detect, log, and alert officers about traffic infractions (such as speeding, red-light jumping, helmet violations, seatbelt non-compliance, and lane crossings).
 
 > [!NOTE]
-> **Latest Updates (v2.4.0)**: One-click cross-platform setup scripts (`setup.bat`, `start.bat`, `setup.sh`, `start.sh`), ByteTrack video pipeline stabilization (0 optical flow crashes), bundled test media in `traffic-violation-system/samples/`, and full multi-violation UI breakdown. See [CHANGELOG.md](file:///c:/Users/Jaspreet/OneDrive/Desktop/Traffic%20violation%20Project/CHANGELOG.md) for full details.
+> **Latest Updates (v2.4.1)**: Standalone test suite runner (`run_tests.py`) with 100% pass rate (110/110 tests), Pydantic v2 protected namespace migration, hardened cross-platform setup scripts (`setup.bat`, `start.bat`, `setup.sh`, `start.sh`), and optimized seat belt suitability validation. See [CHANGELOG.md](file:///c:/Users/Jaspreet/OneDrive/Desktop/Traffic%20violation%20Project/CHANGELOG.md) for full details.
 
 ---
 
@@ -184,6 +184,18 @@ To dispatch automatic email alerts to officers when a violation is identified:
 2. Generate a **Google App Password** (16 characters) under Account Security.
 3. Open the **System Settings** page in the frontend Dashboard.
 4. Input your Gmail address and the 16-character App Password under the **SMTP Server** tab, then save the configuration.
+
+---
+
+## 🧪 Automated Testing Suite
+The repository includes a comprehensive automated test suite verifying all 110 API endpoints, authentication flows, YOLO detectors, tracking lifecycles, and model inference pipelines:
+
+```bash
+# Run all tests with environmental isolation and PyTorch 2.6+ compatibility
+python run_tests.py
+```
+* **Coverage**: 110 automated tests covering API endpoints, authentication, email delivery, evidence locker, custom YOLO classifiers, and ByteTrack pipelines.
+* **Pass Rate**: 100% (110 passed, 0 failed, 0 errors).
 
 ---
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any, Optional
 
 class DecisionResponse(BaseModel):
@@ -13,6 +13,7 @@ class DecisionHistoryResponse(BaseModel):
     history: List[DecisionResponse]
 
 class ExplanationResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     violation_id: str
     violation_type: str
     reason: str

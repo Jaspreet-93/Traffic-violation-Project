@@ -6,10 +6,15 @@ from ultralytics import YOLO
 class TestModelInference(unittest.TestCase):
     def test_model_loading_and_speed(self):
         # Locate yolov8n.pt or use fallback model name
-        model_path = "models/yolo/yolov8n.pt"
-        if not os.path.exists(model_path):
-            print(f"Model path {model_path} not found on local disk. Loading remote yolov8n model...")
-            model_path = "yolov8n.pt" # downloads dynamically
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        candidate_paths = [
+            os.path.join(base_dir, "models", "yolo", "yolov8n.pt"),
+            os.path.join(base_dir, "traffic-violation-system", "models", "yolo", "yolov8n.pt"),
+            "traffic-violation-system/models/yolo/yolov8n.pt",
+            "models/yolo/yolov8n.pt",
+            "yolov8n.pt"
+        ]
+        model_path = next((p for p in candidate_paths if os.path.exists(p)), "yolov8n.pt")
 
         print("Testing model loading...")
         start_time = time.time()

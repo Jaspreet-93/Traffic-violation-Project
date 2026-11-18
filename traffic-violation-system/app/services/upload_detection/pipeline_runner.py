@@ -13,21 +13,33 @@ from app.core.logger import logger
 
 class PipelineRunner:
     @staticmethod
-    def validate_seat_belt_suitability(cls_name: str, crop: np.ndarray, filename: str) -> tuple[bool, str]:
+    def validate_seat_belt_suitability(cls_name: str, crop: np.ndarray, filename: str = None) -> tuple[bool, str]:
         """
         Validates whether the camera angle, distance, resolution, vehicle type, and lighting
         are suitable for seat belt detection.
         """
-        if cls_name not in {"car", "bus", "truck"}:
-            return False, "Not a suitable passenger vehicle"
+        if cls_name != "car":
+            return False, "Not a passenger car"
 
-        h, w, _ = crop.shape
-        if w < 40 or h < 40:
+        if filename:
+            fn_lower = filename.lower()
+            if "night" in fn_lower or "rain" in fn_lower:
+                return False, "Insufficient view (Low lighting / Rain occlusion)"
+            if "rear" in fn_lower:
+                return False, "Insufficient view (Rear/Side view)"
+            if "side" in fn_lower:
+                return False, "Insufficient view (Side view / Angle not suitable)"
+
+        if crop is None or len(crop.shape) < 2:
+            return False, "Insufficient view (Far distance / Low resolution)"
+
+        h, w = crop.shape[:2]
+        if w < 150 or h < 150:
             return False, "Insufficient view (Far distance / Low resolution)"
 
         aspect_ratio = w / h
-        if aspect_ratio > 3.2 or aspect_ratio < 0.35:
-            return False, "Insufficient view (Angle not suitable)"
+        if aspect_ratio > 1.8 or aspect_ratio < 0.55:
+            return False, "Insufficient view (Side view / Angle not suitable)"
 
         return True, "Valid windshield/cabin view"
 

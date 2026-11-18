@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Any
 
 class StatDailyItem(BaseModel):
@@ -35,6 +35,7 @@ class MonthlyStatsResponse(BaseModel):
     monthly: List[StatMonthlyItem]
 
 class PerformanceStatsResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     uptime_percentage: float
     gpu_utilization_pct: float
     memory_utilization_pct: float

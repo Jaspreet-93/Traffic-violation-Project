@@ -8,7 +8,9 @@ echo "======================================================="
 trap 'kill $(jobs -p)' EXIT
 
 cd traffic-violation-system
-source venv/bin/activate
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+fi
 python -m uvicorn app.main:app --port 8000 &
 BACKEND_PID=$!
 

@@ -193,3 +193,12 @@ This workspace automatically synchronizes local changes. If you are developing l
 .\sync.ps1
 ```
 This will automatically stage, commit, and push all workspace changes to the remote repository.
+
+---
+
+## 👩‍💻 Author & Contributions
+
+**Jaspreet Kaur**
+- GitHub: [@Jaspreet-93](https://github.com/Jaspreet-93)
+- Projects: [Traffic-violation-Project](https://github.com/Jaspreet-93/Traffic-violation-Project) • [Traffic Congestion Monitor](https://github.com/Jaspreet-93)
+
